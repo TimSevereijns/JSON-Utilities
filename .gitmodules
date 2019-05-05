@@ -1,0 +1,8 @@
+[submodule "third-party/rapid-json"]
+    path = third-party/rapid-json
+    url = https://github.com/Tencent/rapidjson.git
+    branch = v1.1.0
+[submodule "third-party/catch2"]
+    path = third-party/catch2
+    url = https://github.com/catchorg/Catch2.git
+    branch = v2.7.2
