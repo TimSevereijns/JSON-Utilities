@@ -33,3 +33,5 @@
 
 third-party/*
 build/*
+
+.vscode/*

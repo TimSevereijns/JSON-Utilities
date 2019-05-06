@@ -4,7 +4,7 @@
 #include <memory>
 #include <vector>
 
-#include "rapid-json-utils.h"
+#include "json_utils.h"
 
 namespace sample
 {
@@ -43,31 +43,31 @@ namespace sample
 int main()
 {
     // clang-format off
-  const std::vector<std::pair<sample::Foo, std::list<std::shared_ptr<std::string>>>> container =
-  {
+    const std::vector<std::pair<sample::Foo, std::list<std::shared_ptr<std::string>>>> container =
     {
-      sample::Foo{ "Test" },
-      {
-        std::make_unique<std::string>("1"),
-        std::make_unique<std::string>("2"),
-        std::make_unique<std::string>("3"),
-        std::make_unique<std::string>("4"),
-        std::make_unique<std::string>("5"),
-        nullptr
-      }
-    },
-    {
-      sample::Foo{ "Test" },
-      {
-        nullptr,
-        std::make_unique<std::string>("5"),
-        std::make_unique<std::string>("6"),
-        std::make_unique<std::string>("7"),
-        std::make_unique<std::string>("8"),
-        std::make_unique<std::string>("9")
-      }
-    }
-  };
+        {
+            sample::Foo{ "Test" },
+            {
+                std::make_unique<std::string>("1"),
+                std::make_unique<std::string>("2"),
+                std::make_unique<std::string>("3"),
+                std::make_unique<std::string>("4"),
+                std::make_unique<std::string>("5"),
+                nullptr
+            }
+        },
+        {
+            sample::Foo{ "Test" },
+            {
+                nullptr,
+                std::make_unique<std::string>("5"),
+                std::make_unique<std::string>("6"),
+                std::make_unique<std::string>("7"),
+                std::make_unique<std::string>("8"),
+                std::make_unique<std::string>("9")
+            }
+        }
+    };
     // clang-format on
 
     const auto json1 = json_utils::serialize_to_pretty_json(container);
