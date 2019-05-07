@@ -661,6 +661,18 @@ namespace json_utils
     } // namespace deserializer
 
     template <typename EncodingType = rapidjson::UTF8<>, typename DataType>
+    std::basic_string<typename EncodingType::Ch> serialize_to_json(const DataType& data)
+    {
+        rapidjson::GenericStringBuffer<EncodingType> buffer;
+        rapidjson::Writer<decltype(buffer)> writer{ buffer };
+
+        using serializer::to_json;
+        to_json(writer, data);
+
+        return buffer.GetString();
+    }
+
+    template <typename EncodingType = rapidjson::UTF8<>, typename DataType>
     std::basic_string<typename EncodingType::Ch> serialize_to_pretty_json(const DataType& data)
     {
         rapidjson::GenericStringBuffer<EncodingType> buffer;
