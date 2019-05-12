@@ -24,7 +24,7 @@ namespace json_utils
         {
             template <typename DataType> static std::string generate_key(const DataType& data)
             {
-                using serializer::to_narrow_json_key;
+                using serializer::to_narrow_json_key; //< Enables ADL
                 return to_narrow_json_key(data);
             }
         };
@@ -33,7 +33,7 @@ namespace json_utils
         {
             template <typename DataType> static std::wstring generate_key(const DataType& data)
             {
-                using serializer::to_wide_json_key;
+                using serializer::to_wide_json_key; //< Enables ADL
                 return to_wide_json_key(data);
             }
         };
@@ -45,7 +45,9 @@ namespace json_utils
         void insert_key_value_pair(Writer& writer, const KeyType& key, const ValueType& value)
         {
             writer.Key(serializer::key_master<typename Writer::Ch>::generate_key(key).c_str());
-            serializer::to_json(writer, value);
+
+            using serializer::to_json; //< Enables ADL
+            to_json(writer, value);
         }
     } // namespace detail
 

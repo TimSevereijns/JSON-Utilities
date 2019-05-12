@@ -48,7 +48,7 @@ namespace
         template <typename Writer> void to_json(Writer& writer, const sample::widget& foo)
         {
             writer.StartObject();
-            writer.Key("Key");
+            writer.Key("Purpose");
             writer.String(foo.get_key().c_str());
             writer.EndObject();
         }
@@ -310,7 +310,7 @@ TEST_CASE("Serializations of Composite Containrs")
 
 TEST_CASE("Serializing a Custom Type")
 {
-    SECTION("Custom Type to Key")
+    SECTION("Custom Type as Key")
     {
         const std::vector<std::pair<sample::widget, std::list<std::shared_ptr<std::string>>>>
             container = {
@@ -329,5 +329,28 @@ TEST_CASE("Serializing a Custom Type")
         REQUIRE(
             json ==
             R"({"Widget One":["1","2","3","4","5",null],"Widget Two":["5","6","7","8","9"]})");
+    }
+
+    SECTION("Custom Type as Value in std::vector<...>")
+    {
+        const std::vector<sample::widget> container = { sample::widget{ "JSON Serialization" } };
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == R"([{"Purpose":"JSON Serialization"}])");
+    }
+
+    SECTION("Custom Type as Value in std::vector<std::pair<...>>")
+    {
+        // @note This test will need ADL to be enabled in the serialization of key-value pairs.
+
+        const std::vector<std::pair<std::string, sample::widget>> container = {
+            std::make_pair<std::string, sample::widget>(
+                "Widget", sample::widget{ "JSON Serialization" })
+        };
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == R"({"Widget":{"Purpose":"JSON Serialization"}})");
     }
 }
