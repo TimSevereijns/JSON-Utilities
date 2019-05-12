@@ -15,20 +15,19 @@
 
 #include <json_utils.h>
 
-namespace unit_tests
+namespace
 {
     template <typename NumericType> void test_serialization_of_numerics()
     {
-        constexpr auto max_positive = std::numeric_limits<NumericType>::max();
-        constexpr auto min_negative = std::numeric_limits<NumericType>::min();
+        constexpr auto max = std::numeric_limits<NumericType>::max();
+        constexpr auto min = std::numeric_limits<NumericType>::min();
 
-        const std::vector<NumericType> container = { max_positive, min_negative };
+        const std::vector<NumericType> container = { max, min };
         const auto json = json_utils::serialize_to_json(container);
 
-        REQUIRE(
-            json == "[" + std::to_string(max_positive) + "," + std::to_string(min_negative) + "]");
+        REQUIRE(json == "[" + std::to_string(max) + "," + std::to_string(min) + "]");
     }
-} // namespace unit_tests
+} // namespace
 
 TEST_CASE("Trait Detection")
 {
@@ -161,22 +160,22 @@ TEST_CASE("Serialization of JSON Value Types")
 
     SECTION("Array of std::int32_t")
     {
-        unit_tests::test_serialization_of_numerics<std::int32_t>();
+        test_serialization_of_numerics<std::int32_t>();
     }
 
     SECTION("Array of std::uin32_t")
     {
-        unit_tests::test_serialization_of_numerics<std::uint32_t>();
+        test_serialization_of_numerics<std::uint32_t>();
     }
 
     SECTION("Array of std::int64_t")
     {
-        unit_tests::test_serialization_of_numerics<std::int64_t>();
+        test_serialization_of_numerics<std::int64_t>();
     }
 
     SECTION("Array of std::uint64_t")
     {
-        unit_tests::test_serialization_of_numerics<std::uint64_t>();
+        test_serialization_of_numerics<std::uint64_t>();
     }
 }
 
@@ -195,3 +194,85 @@ TEST_CASE("Serialization of C++17 Constructs")
     }
 }
 #endif
+
+TEST_CASE("Handling Pointer Types")
+{
+    SECTION("Using std::unique_ptr<...>")
+    {
+        auto container = std::vector<std::unique_ptr<std::string>>();
+        container.emplace_back(std::make_unique<std::string>("Hello"));
+        container.emplace_back(std::make_unique<std::string>("World"));
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == R"(["Hello","World"])");
+    }
+
+    SECTION("Using std::shared_ptr<...>")
+    {
+        const auto container =
+            std::vector<std::shared_ptr<std::string>>{ std::make_shared<std::string>("Hello"),
+                                                       std::make_shared<std::string>("World") };
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == R"(["Hello","World"])");
+    }
+
+    SECTION("Using std::weak_ptr<...>")
+    {
+        const auto pointer_one = std::make_shared<std::string>("Hello");
+        const auto pointer_two = std::make_shared<std::string>("World");
+
+        const auto container = std::vector<std::weak_ptr<std::string>>{ pointer_one, pointer_two };
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == R"(["Hello","World"])");
+    }
+}
+
+TEST_CASE("Serializations of Composite Containrs")
+{
+    SECTION("std::map<std::string, std::vector<std::shared_ptr<std::string>>>")
+    {
+        const std::map<std::string, std::vector<std::shared_ptr<std::string>>> container = {
+            { "Key One",
+              std::vector<std::shared_ptr<std::string>>{
+                  std::make_shared<std::string>("Value 1.A"),
+                  std::make_shared<std::string>("Value 1.B"),
+                  std::make_shared<std::string>("Value 1.C") } },
+            { "Key Two",
+              std::vector<std::shared_ptr<std::string>>{
+                  std::make_shared<std::string>("Value 2.A"),
+                  std::make_shared<std::string>("Value 2.B") } }
+        };
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(
+            json ==
+            R"({"Key One":["Value 1.A","Value 1.B","Value 1.C"],"Key Two":["Value 2.A","Value 2.B"]})");
+    }
+
+    SECTION("std::map<std::string, std::map<std::string, double>>")
+    {
+        const std::map<std::string, std::map<std::string, double>> container = {
+            { "Key One", std::map<std::string, double>{ { "Subkey One", 16.0 },
+                                                        { "Subkey Two", 32.0 },
+                                                        { "Subkey Three", 64.0 } } },
+            { "Key Two", std::map<std::string, double>{ { "Subkey One", 128.0 },
+                                                        { "Subkey Two", 256.0 },
+                                                        { "Subkey Three", 512.0 } } }
+        };
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(
+            json ==
+            R"({)"
+            R"("Key One":{"Subkey One":16.0,"Subkey Three":64.0,"Subkey Two":32.0},)"
+            R"("Key Two":{"Subkey One":128.0,"Subkey Three":512.0,"Subkey Two":256.0})"
+            R"(})");
+    }
+}
