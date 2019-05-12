@@ -27,6 +27,37 @@ namespace
 
         REQUIRE(json == "[" + std::to_string(max) + "," + std::to_string(min) + "]");
     }
+
+    namespace sample
+    {
+        struct widget
+        {
+            explicit widget(std::string keyName) : m_key{ std::move(keyName) }
+            {
+            }
+
+            std::string get_key() const noexcept
+            {
+                return m_key;
+            }
+
+          private:
+            std::string m_key;
+        };
+
+        template <typename Writer> void to_json(Writer& writer, const sample::widget& foo)
+        {
+            writer.StartObject();
+            writer.Key("Key");
+            writer.String(foo.get_key().c_str());
+            writer.EndObject();
+        }
+
+        std::string to_narrow_json_key(const sample::widget& foo) noexcept
+        {
+            return foo.get_key();
+        }
+    } // namespace sample
 } // namespace
 
 TEST_CASE("Trait Detection")
@@ -274,5 +305,29 @@ TEST_CASE("Serializations of Composite Containrs")
             R"("Key One":{"Subkey One":16.0,"Subkey Three":64.0,"Subkey Two":32.0},)"
             R"("Key Two":{"Subkey One":128.0,"Subkey Three":512.0,"Subkey Two":256.0})"
             R"(})");
+    }
+}
+
+TEST_CASE("Serializing a Custom Type")
+{
+    SECTION("Custom Type to Key")
+    {
+        const std::vector<std::pair<sample::widget, std::list<std::shared_ptr<std::string>>>>
+            container = {
+                { sample::widget{ "Widget One" },
+                  { std::make_unique<std::string>("1"), std::make_unique<std::string>("2"),
+                    std::make_unique<std::string>("3"), std::make_unique<std::string>("4"),
+                    std::make_unique<std::string>("5"), nullptr } },
+                { sample::widget{ "Widget Two" },
+                  { std::make_unique<std::string>("5"), std::make_unique<std::string>("6"),
+                    std::make_unique<std::string>("7"), std::make_unique<std::string>("8"),
+                    std::make_unique<std::string>("9") } }
+            };
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(
+            json ==
+            R"({"Widget One":["1","2","3","4","5",null],"Widget Two":["5","6","7","8","9"]})");
     }
 }

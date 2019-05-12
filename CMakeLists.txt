@@ -12,7 +12,13 @@ include_directories(
     third-party/catch2/single_include
     third-party/rapid-json/include)
 
-add_executable(Json-Utils tests/unit_tests.cpp source/json_utils.h)
+add_executable(Json-Utils
+    tests/unit_tests.cpp
+    source/json_fwd.h
+    source/json_traits.h
+    source/json_serializer.h
+    source/json_deserializer.h
+    source/json_utils.h)
 
 target_link_libraries(Json-Utils stdc++)
 
