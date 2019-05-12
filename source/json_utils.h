@@ -11,7 +11,7 @@ namespace json_utils
         rapidjson::GenericStringBuffer<EncodingType> buffer;
         rapidjson::Writer<decltype(buffer)> writer{ buffer };
 
-        using serializer::to_json;
+        using serializer::to_json; //< Enables ADL
         to_json(writer, data);
 
         return buffer.GetString();
@@ -23,7 +23,7 @@ namespace json_utils
         rapidjson::GenericStringBuffer<EncodingType> buffer;
         rapidjson::PrettyWriter<decltype(buffer)> writer{ buffer };
 
-        using serializer::to_json;
+        using serializer::to_json; //< Enables ADL
         to_json(writer, data);
 
         return buffer.GetString();
