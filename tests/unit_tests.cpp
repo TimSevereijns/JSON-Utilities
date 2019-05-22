@@ -30,9 +30,9 @@ namespace
 
     namespace sample
     {
-        struct widget
+        struct simple_widget
         {
-            explicit widget(std::string keyName) : m_key{ std::move(keyName) }
+            explicit simple_widget(std::string keyName) : m_key{ std::move(keyName) }
             {
             }
 
@@ -45,7 +45,7 @@ namespace
             std::string m_key;
         };
 
-        template <typename Writer> void to_json(Writer& writer, const sample::widget& foo)
+        template <typename Writer> void to_json(Writer& writer, const sample::simple_widget& foo)
         {
             writer.StartObject();
             writer.Key("Purpose");
@@ -53,9 +53,33 @@ namespace
             writer.EndObject();
         }
 
-        std::string to_narrow_json_key(const sample::widget& foo) noexcept
+        std::string to_narrow_json_key(const sample::simple_widget& foo) noexcept
         {
             return foo.get_key();
+        }
+
+        struct composite_widget
+        {
+            // @note Demonstrates the ability to befriend a `to_json(...)` overload so that
+            // internals are visible to the serialization logic. This is generally discouraged,
+            // however.
+            template <typename Writer>
+            friend void to_json(Writer& writer, const sample::composite_widget&);
+
+            explicit composite_widget(std::string keyName) : m_internal_widget{ std::move(keyName) }
+            {
+            }
+
+          private:
+            simple_widget m_internal_widget;
+        };
+
+        template <typename Writer> void to_json(Writer& writer, const sample::composite_widget& foo)
+        {
+            writer.StartObject();
+            writer.Key("Inner Widget");
+            to_json(writer, foo.m_internal_widget);
+            writer.EndObject();
         }
     } // namespace sample
 } // namespace
@@ -312,13 +336,13 @@ TEST_CASE("Serializing a Custom Type")
 {
     SECTION("Custom Type as Key")
     {
-        const std::vector<std::pair<sample::widget, std::list<std::shared_ptr<std::string>>>>
+        const std::vector<std::pair<sample::simple_widget, std::list<std::shared_ptr<std::string>>>>
             container = {
-                { sample::widget{ "Widget One" },
+                { sample::simple_widget{ "Widget One" },
                   { std::make_unique<std::string>("1"), std::make_unique<std::string>("2"),
                     std::make_unique<std::string>("3"), std::make_unique<std::string>("4"),
                     std::make_unique<std::string>("5"), nullptr } },
-                { sample::widget{ "Widget Two" },
+                { sample::simple_widget{ "Widget Two" },
                   { std::make_unique<std::string>("5"), std::make_unique<std::string>("6"),
                     std::make_unique<std::string>("7"), std::make_unique<std::string>("8"),
                     std::make_unique<std::string>("9") } }
@@ -331,9 +355,20 @@ TEST_CASE("Serializing a Custom Type")
             R"({"Widget One":["1","2","3","4","5",null],"Widget Two":["5","6","7","8","9"]})");
     }
 
+    SECTION("Custom Type with Nested Custom Type")
+    {
+        const std::vector<sample::composite_widget> container = { sample::composite_widget{
+            "JSON Serialization" } };
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == R"([{"Inner Widget":{"Purpose":"JSON Serialization"}}])");
+    }
+
     SECTION("Custom Type as Value in std::vector<...>")
     {
-        const std::vector<sample::widget> container = { sample::widget{ "JSON Serialization" } };
+        const std::vector<sample::simple_widget> container = { sample::simple_widget{
+            "JSON Serialization" } };
 
         const auto json = json_utils::serialize_to_json(container);
 
@@ -344,13 +379,164 @@ TEST_CASE("Serializing a Custom Type")
     {
         // @note This test will need ADL to be enabled in the serialization of key-value pairs.
 
-        const std::vector<std::pair<std::string, sample::widget>> container = {
-            std::make_pair<std::string, sample::widget>(
-                "Widget", sample::widget{ "JSON Serialization" })
+        const std::vector<std::pair<std::string, sample::simple_widget>> container = {
+            std::make_pair<std::string, sample::simple_widget>(
+                "Widget", sample::simple_widget{ "JSON Serialization" })
         };
 
         const auto json = json_utils::serialize_to_json(container);
 
         REQUIRE(json == R"({"Widget":{"Purpose":"JSON Serialization"}})");
+    }
+}
+
+TEST_CASE("Deserialization into a std::vector<...>")
+{
+    using container_type = std::vector<int>;
+
+    SECTION("Empty JSON Array")
+    {
+        const container_type source_container = {};
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Array with Single Element")
+    {
+        const container_type source_container = { 1 };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Array with Numerous Elements")
+    {
+        const container_type source_container = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
+TEST_CASE("Deserialization into a std::map<...>")
+{
+    using container_type = std::map<std::string, int>;
+
+    SECTION("Empty JSON Object")
+    {
+        const container_type source_container = {};
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Object with Single Element")
+    {
+        const container_type source_container = { { "Key", 1 } };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Object with Numerous Elements")
+    {
+        const container_type source_container = { { "keyOne", 1 },
+                                                  { "keyTwo", 2 },
+                                                  { "keyThree", 3 } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
+TEST_CASE("Deserialization into a std::list<...>")
+{
+    using container_type = std::list<std::string>;
+
+    SECTION("Empty JSON Object")
+    {
+        const container_type source_container = {};
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Object with Single Element")
+    {
+        const container_type source_container = { "Hello" };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Object with Numerous Elements")
+    {
+        const container_type source_container = { "Hello, ", "World.", "This ",
+                                                  "is "
+                                                  "a ",
+                                                  "test." };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
+TEST_CASE("Deserialization into a std::set<...>")
+{
+    using container_type = std::set<std::string>;
+
+    SECTION("Empty JSON Object")
+    {
+        const container_type source_container = {};
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Object with Single Element")
+    {
+        const container_type source_container = { "Hello" };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Object with Numerous Elements")
+    {
+        const container_type source_container = { "Hello, ", "World.", "This ",
+                                                  "is "
+                                                  "a ",
+                                                  "test." };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
     }
 }
