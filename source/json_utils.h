@@ -29,15 +29,23 @@ namespace json_utils
         return buffer.GetString();
     }
 
-    template <typename ContainerType, typename EncodingType = rapidjson::UTF8<>>
-    ContainerType deserialize_from_json(const std::string& json)
+    template <typename ContainerType> ContainerType deserialize_from_json(const std::string& json)
     {
         rapidjson::StringStream stringStream{ json.c_str() };
         rapidjson::Document document;
         document.ParseStream(stringStream);
 
-        auto container = deserializer::from_json<ContainerType>(document);
+        using deserializer::from_json; //< Enables ADL
+        return from_json<ContainerType>(document);
+    }
 
-        return container;
+    template <typename ContainerType> ContainerType deserialize_from_json(const char* const json)
+    {
+        rapidjson::StringStream stringStream{ json };
+        rapidjson::Document document;
+        document.ParseStream(stringStream);
+
+        using deserializer::from_json; //< Enables ADL
+        return from_json<ContainerType>(document);
     }
 } // namespace json_utils
