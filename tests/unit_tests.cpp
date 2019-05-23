@@ -398,7 +398,6 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
         const container_type source_container = {};
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -410,7 +409,6 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
         const container_type source_container = { 1 };
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -422,7 +420,6 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
         const container_type source_container = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -434,7 +431,6 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
         const container_type source_container = { 1.1, 2.2, 3.3 };
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -446,7 +442,6 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
         const container_type source_container = { "String One", "String Two" };
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -458,7 +453,6 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
         const container_type source_container = { false, true };
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -473,7 +467,6 @@ TEST_CASE("Deserialization into a std::map<...>")
 
         const container_type source_container = {};
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -485,7 +478,6 @@ TEST_CASE("Deserialization into a std::map<...>")
 
         const container_type source_container = { { "Key", 1 } };
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -500,7 +492,6 @@ TEST_CASE("Deserialization into a std::map<...>")
                                                   { "keyThree", 3 } };
 
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -515,7 +506,6 @@ TEST_CASE("Deserialization into a std::map<...>")
                                                   { "keyThree", 3.123 } };
 
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -530,7 +520,6 @@ TEST_CASE("Deserialization into a std::map<...>")
                                                   { "keyThree", "3.123" } };
 
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -545,7 +534,6 @@ TEST_CASE("Deserialization into a std::map<...>")
                                                   { "keyThree", false } };
 
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -560,7 +548,6 @@ TEST_CASE("Deserialization into a std::list<...>")
     {
         const container_type source_container = {};
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -570,7 +557,6 @@ TEST_CASE("Deserialization into a std::list<...>")
     {
         const container_type source_container = { "Hello" };
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -583,7 +569,6 @@ TEST_CASE("Deserialization into a std::list<...>")
         };
 
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -598,7 +583,6 @@ TEST_CASE("Deserialization into a std::set<...>")
     {
         const container_type source_container = {};
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -608,7 +592,6 @@ TEST_CASE("Deserialization into a std::set<...>")
     {
         const container_type source_container = { "Hello" };
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
@@ -621,7 +604,6 @@ TEST_CASE("Deserialization into a std::set<...>")
         };
 
         const auto json = json_utils::serialize_to_json(source_container);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
