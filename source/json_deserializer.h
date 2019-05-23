@@ -28,9 +28,7 @@ namespace json_utils
         void insert(DataType&& value, ContainerType& container)
         {
             static_assert(
-                std::disjunction<
-                    std::is_same<DataType, typename ContainerType::value_type>,
-                    std::is_convertible<DataType, typename ContainerType::value_type>>::value,
+                std::is_convertible<DataType, typename ContainerType::value_type>::value,
                 "The type being inserted is not the same as, or cannot be converted to, the "
                 "container's value type.");
 
@@ -40,7 +38,19 @@ namespace json_utils
         template <typename InsertionPolicy, typename ContainerType>
         auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
             typename std::enable_if<
-                std::is_same<int, typename ContainerType::value_type>::value>::type
+                std::is_same<typename ContainerType::value_type, bool>::value>::type
+        {
+            if (value.IsBool()) {
+                insert<InsertionPolicy>(value.GetBool(), container);
+            } else {
+                assert(false);
+            }
+        }
+
+        template <typename InsertionPolicy, typename ContainerType>
+        auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
+            typename std::enable_if<
+                std::is_same<typename ContainerType::value_type, int>::value>::type
         {
             if (value.IsInt()) {
                 insert<InsertionPolicy>(value.GetInt(), container);
@@ -52,7 +62,7 @@ namespace json_utils
         template <typename InsertionPolicy, typename ContainerType>
         auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
             typename std::enable_if<
-                std::is_same<unsigned int, typename ContainerType::value_type>::value>::type
+                std::is_same<typename ContainerType::value_type, unsigned int>::value>::type
         {
             if (value.IsUint()) {
                 insert<InsertionPolicy>(value.GetUint(), container);
@@ -64,7 +74,7 @@ namespace json_utils
         template <typename InsertionPolicy, typename ContainerType>
         auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
             typename std::enable_if<
-                std::is_same<std::int64_t, typename ContainerType::value_type>::value>::type
+                std::is_same<typename ContainerType::value_type, std::int64_t>::value>::type
         {
             if (value.IsInt64()) {
                 insert<InsertionPolicy>(value.GetInt64(), container);
@@ -76,7 +86,7 @@ namespace json_utils
         template <typename InsertionPolicy, typename ContainerType>
         auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
             typename std::enable_if<
-                std::is_same<std::uint64_t, typename ContainerType::value_type>::value>::type
+                std::is_same<typename ContainerType::value_type, std::uint64_t>::value>::type
         {
             if (value.IsUint64()) {
                 insert<InsertionPolicy>(value.GetUint64(), container);
@@ -88,7 +98,7 @@ namespace json_utils
         template <typename InsertionPolicy, typename ContainerType>
         auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
             typename std::enable_if<
-                std::is_same<std::string, typename ContainerType::value_type>::value>::type
+                std::is_same<typename ContainerType::value_type, std::string>::value>::type
         {
             if (value.IsString()) {
                 insert<InsertionPolicy>(value.GetString(), container);
@@ -100,7 +110,7 @@ namespace json_utils
         template <typename InsertionPolicy, typename ContainerType>
         auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
             typename std::enable_if<
-                std::is_same<double, typename ContainerType::value_type>::value>::type
+                std::is_same<typename ContainerType::value_type, double>::value>::type
         {
             if (value.IsDouble()) {
                 insert<InsertionPolicy>(value.GetDouble(), container);
@@ -184,6 +194,26 @@ namespace json_utils
         {
             return std::make_pair<std::string, double>(
                 member.name.GetString(), member.value.GetDouble());
+        }
+
+        template <typename PairType, typename EncodingType, typename AllocatorType>
+        auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member)
+            -> typename std::enable_if<
+                std::is_same<typename PairType::second_type, std::string>::value,
+                std::pair<std::string, std::string>>::type
+        {
+            return std::make_pair<std::string, std::string>(
+                member.name.GetString(), member.value.GetString());
+        }
+
+        template <typename PairType, typename EncodingType, typename AllocatorType>
+        auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member)
+            -> typename std::enable_if<
+                std::is_same<typename PairType::second_type, bool>::value,
+                std::pair<std::string, bool>>::type
+        {
+            return std::make_pair<std::string, bool>(
+                member.name.GetString(), member.value.GetBool());
         }
 
         template <

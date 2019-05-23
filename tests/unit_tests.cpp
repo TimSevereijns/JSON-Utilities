@@ -19,13 +19,13 @@ namespace
 {
     template <typename NumericType> void test_serialization_of_numerics()
     {
-        constexpr auto max = std::numeric_limits<NumericType>::max();
         constexpr auto min = std::numeric_limits<NumericType>::min();
+        constexpr auto max = std::numeric_limits<NumericType>::max();
 
-        const std::vector<NumericType> container = { max, min };
+        const std::vector<NumericType> container = { min, max };
         const auto json = json_utils::serialize_to_json(container);
 
-        REQUIRE(json == "[" + std::to_string(max) + "," + std::to_string(min) + "]");
+        REQUIRE(json == "[" + std::to_string(min) + "," + std::to_string(max) + "]");
     }
 
     namespace sample
@@ -392,10 +392,10 @@ TEST_CASE("Serializing a Custom Type")
 
 TEST_CASE("Deserialization into a std::vector<...>")
 {
-    using container_type = std::vector<int>;
-
     SECTION("Empty JSON Array")
     {
+        using container_type = std::vector<int>;
+
         const container_type source_container = {};
         const auto json = json_utils::serialize_to_json(source_container);
 
@@ -406,6 +406,8 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
     SECTION("JSON Array with Single Element")
     {
+        using container_type = std::vector<int>;
+
         const container_type source_container = { 1 };
         const auto json = json_utils::serialize_to_json(source_container);
 
@@ -416,7 +418,45 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
     SECTION("JSON Array with Numerous Elements")
     {
+        using container_type = std::vector<int>;
+
         const container_type source_container = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Array of Doubles")
+    {
+        using container_type = std::vector<double>;
+
+        const container_type source_container = { 1.1, 2.2, 3.3 };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Array of Strings")
+    {
+        using container_type = std::vector<std::string>;
+
+        const container_type source_container = { "String One", "String Two" };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Array of Strings")
+    {
+        using container_type = std::vector<bool>;
+
+        const container_type source_container = { false, true };
         const auto json = json_utils::serialize_to_json(source_container);
 
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
@@ -427,10 +467,10 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
 TEST_CASE("Deserialization into a std::map<...>")
 {
-    using container_type = std::map<std::string, int>;
-
     SECTION("Empty JSON Object")
     {
+        using container_type = std::map<std::string, int>;
+
         const container_type source_container = {};
         const auto json = json_utils::serialize_to_json(source_container);
 
@@ -441,6 +481,8 @@ TEST_CASE("Deserialization into a std::map<...>")
 
     SECTION("JSON Object with Single Element")
     {
+        using container_type = std::map<std::string, int>;
+
         const container_type source_container = { { "Key", 1 } };
         const auto json = json_utils::serialize_to_json(source_container);
 
@@ -451,9 +493,56 @@ TEST_CASE("Deserialization into a std::map<...>")
 
     SECTION("JSON Object with Numerous Elements")
     {
+        using container_type = std::map<std::string, int>;
+
         const container_type source_container = { { "keyOne", 1 },
                                                   { "keyTwo", 2 },
                                                   { "keyThree", 3 } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Object of Doubles")
+    {
+        using container_type = std::map<std::string, double>;
+
+        const container_type source_container = { { "keyOne", 1.99 },
+                                                  { "keyTwo", 2.67 },
+                                                  { "keyThree", 3.123 } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Object of Strings")
+    {
+        using container_type = std::map<std::string, std::string>;
+
+        const container_type source_container = { { "keyOne", "1.99" },
+                                                  { "keyTwo", "2.67" },
+                                                  { "keyThree", "3.123" } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Object of Booleans")
+    {
+        using container_type = std::map<std::string, bool>;
+
+        const container_type source_container = { { "keyOne", false },
+                                                  { "keyTwo", true },
+                                                  { "keyThree", false } };
 
         const auto json = json_utils::serialize_to_json(source_container);
 
@@ -489,10 +578,9 @@ TEST_CASE("Deserialization into a std::list<...>")
 
     SECTION("JSON Object with Numerous Elements")
     {
-        const container_type source_container = { "Hello, ", "World.", "This ",
-                                                  "is "
-                                                  "a ",
-                                                  "test." };
+        const container_type source_container = {
+            "Hello, ", "World.", "This ", "is ", "a ", "test."
+        };
 
         const auto json = json_utils::serialize_to_json(source_container);
 
@@ -528,10 +616,9 @@ TEST_CASE("Deserialization into a std::set<...>")
 
     SECTION("JSON Object with Numerous Elements")
     {
-        const container_type source_container = { "Hello, ", "World.", "This ",
-                                                  "is "
-                                                  "a ",
-                                                  "test." };
+        const container_type source_container = {
+            "Hello, ", "World.", "This ", "is ", "a ", "test."
+        };
 
         const auto json = json_utils::serialize_to_json(source_container);
 
