@@ -459,6 +459,31 @@ TEST_CASE("Deserialization into a std::vector<...>")
     }
 }
 
+TEST_CASE("Deserialization into a std::vector<std::pair<...>>")
+{
+    SECTION("With a Single Entry")
+    {
+        using container_type = std::vector<std::pair<std::string, int>>;
+
+        const container_type source_container = { { "Test", 1 } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("With Multiple Entries")
+    {
+        using container_type = std::vector<std::pair<std::string, int>>;
+
+        const container_type source_container = { { "Key One", 1 }, { "Key Two", 99 } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
 TEST_CASE("Deserialization into a std::map<...>")
 {
     SECTION("Empty JSON Object")
