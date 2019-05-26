@@ -228,14 +228,13 @@ namespace json_utils
         }
 
         template <typename ContainerType>
-        auto from_json(const rapidjson::Document& document) -> typename std::enable_if<
-            std::conjunction<
-                traits::has_emplace_back<ContainerType>,
-                traits::treat_as_array<ContainerType>>::value,
-            ContainerType>::type
+        auto from_json(const rapidjson::Document& document, ContainerType& container) ->
+            typename std::enable_if<
+                std::conjunction<
+                    traits::has_emplace_back<ContainerType>,
+                    traits::treat_as_array<ContainerType>>::value,
+                ContainerType>::type
         {
-            ContainerType container;
-
             if (document.IsArray()) {
                 for (const auto& jsonValue : document.GetArray()) {
                     dispatch_insertion<back_inserter_policy>(jsonValue, container);
@@ -246,13 +245,13 @@ namespace json_utils
         }
 
         template <typename ContainerType>
-        auto from_json(const rapidjson::Document& document) -> typename std::enable_if<
-            std::conjunction<
-                traits::has_emplace<ContainerType>, traits::treat_as_array<ContainerType>>::value,
-            ContainerType>::type
+        auto from_json(const rapidjson::Document& document, ContainerType& container) ->
+            typename std::enable_if<
+                std::conjunction<
+                    traits::has_emplace<ContainerType>,
+                    traits::treat_as_array<ContainerType>>::value,
+                ContainerType>::type
         {
-            ContainerType container;
-
             if (document.IsArray()) {
                 for (const auto& jsonValue : document.GetArray()) {
                     dispatch_insertion<inserter_policy>(jsonValue, container);
@@ -263,14 +262,13 @@ namespace json_utils
         }
 
         template <typename ContainerType>
-        auto from_json(const rapidjson::Document& document) -> typename std::enable_if<
-            std::conjunction<
-                traits::has_emplace_back<ContainerType>,
-                traits::treat_as_object<ContainerType>>::value,
-            ContainerType>::type
+        auto from_json(const rapidjson::Document& document, ContainerType& container) ->
+            typename std::enable_if<
+                std::conjunction<
+                    traits::has_emplace_back<ContainerType>,
+                    traits::treat_as_object<ContainerType>>::value,
+                ContainerType>::type
         {
-            ContainerType container;
-
             if (document.IsObject()) {
                 for (const auto& jsonValue : document.GetObject()) {
                     dispatch_insertion<back_inserter_policy>(jsonValue, container);
@@ -281,13 +279,13 @@ namespace json_utils
         }
 
         template <typename ContainerType>
-        auto from_json(const rapidjson::Document& document) -> typename std::enable_if<
-            std::conjunction<
-                traits::has_emplace<ContainerType>, traits::treat_as_object<ContainerType>>::value,
-            ContainerType>::type
+        auto from_json(const rapidjson::Document& document, ContainerType& container) ->
+            typename std::enable_if<
+                std::conjunction<
+                    traits::has_emplace<ContainerType>,
+                    traits::treat_as_object<ContainerType>>::value,
+                ContainerType>::type
         {
-            ContainerType container;
-
             if (document.IsObject()) {
                 for (const auto& jsonValue : document.GetObject()) {
                     dispatch_insertion<inserter_policy>(jsonValue, container);

@@ -32,6 +32,8 @@ namespace
     {
         struct simple_widget
         {
+            simple_widget() = default;
+
             explicit simple_widget(std::string keyName) : m_key{ std::move(keyName) }
             {
             }
@@ -39,6 +41,11 @@ namespace
             std::string get_key() const noexcept
             {
                 return m_key;
+            }
+
+            void set_key(std::string keyName)
+            {
+                m_key = std::move(keyName);
             }
 
           private:
@@ -51,6 +58,20 @@ namespace
             writer.Key("Purpose");
             writer.String(foo.get_key().c_str());
             writer.EndObject();
+        }
+
+        void from_json(const rapidjson::Document& document, sample::simple_widget& foo)
+        {
+            if (!document.IsObject()) {
+                return;
+            }
+
+            const auto member_iterator = document.FindMember("Purpose");
+            if (member_iterator == document.MemberEnd()) {
+                return;
+            }
+
+            foo.set_key(member_iterator->value.GetString());
         }
 
         std::string to_narrow_json_key(const sample::simple_widget& foo) noexcept
@@ -632,5 +653,17 @@ TEST_CASE("Deserialization into a std::set<...>")
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
+    }
+}
+
+TEST_CASE("Deserialization of Custom Type")
+{
+    SECTION("JSON OBject to sample::widget")
+    {
+        const sample::simple_widget widget{ "JSON Demonstration" };
+        const auto json = json_utils::serialize_to_json(widget);
+        const auto deserialization = json_utils::deserialize_from_json<sample::simple_widget>(json);
+
+        REQUIRE(widget.get_key() == deserialization.get_key());
     }
 }

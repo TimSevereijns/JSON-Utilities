@@ -35,8 +35,16 @@ namespace json_utils
         rapidjson::Document document;
         document.ParseStream(stringStream);
 
+        static_assert(
+            std::is_default_constructible<ContainerType>::value,
+            "The container must have a default constructor defined.");
+
+        ContainerType container;
+
         using deserializer::from_json; //< Enables ADL
-        return from_json<ContainerType>(document);
+        from_json(document, container);
+
+        return container;
     }
 
     template <typename ContainerType> ContainerType deserialize_from_json(const char* const json)
@@ -45,7 +53,15 @@ namespace json_utils
         rapidjson::Document document;
         document.ParseStream(stringStream);
 
+        static_assert(
+            std::is_default_constructible<ContainerType>::value,
+            "The container must have a default constructor defined.");
+
+        ContainerType container;
+
         using deserializer::from_json; //< Enables ADL
-        return from_json<ContainerType>(document);
+        from_json(document, container);
+
+        return container;
     }
 } // namespace json_utils
