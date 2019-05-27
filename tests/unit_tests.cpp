@@ -584,32 +584,32 @@ TEST_CASE("Deserialization into a std::vector<std::vector<...>>")
     }
 }
 
-// TEST_CASE("Deserialization into a std::map<std::vector<...>>")
-// {
-//     SECTION("With a Single Entry")
-//     {
-//         using container_type = std::map<std::string, std::vector<int>>;
+TEST_CASE("Deserialization into a std::map<std::string, std::vector<...>>")
+{
+    SECTION("With a Single Entry")
+    {
+        using container_type = std::map<std::string, std::vector<int>>;
 
-//         const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } } };
-//         const auto json = json_utils::serialize_to_json(source_container);
-//         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
-//         REQUIRE(source_container == resultant_container);
-//     }
+        REQUIRE(source_container == resultant_container);
+    }
 
-//     SECTION("With Multiple Entries")
-//     {
-//         using container_type = std::map<std::string, std::vector<int>>;
+    SECTION("With Multiple Entries")
+    {
+        using container_type = std::map<std::string, std::vector<int>>;
 
-//         const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } },
-//                                                   { "objectTwo", { 5, 6, 7, 8 } } };
+        const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } },
+                                                  { "objectTwo", { 5, 6, 7, 8 } } };
 
-//         const auto json = json_utils::serialize_to_json(source_container);
-//         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
-//         REQUIRE(source_container == resultant_container);
-//     }
-// }
+        REQUIRE(source_container == resultant_container);
+    }
+}
 
 TEST_CASE("Deserialization into a std::map<...>")
 {

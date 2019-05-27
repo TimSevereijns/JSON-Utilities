@@ -6,6 +6,13 @@ namespace json_utils
 {
     namespace deserializer
     {
+        // template <
+        //     typename InsertionPolicy, typename EncodingType, typename AllocatorType,
+        //     typename ContainerType>
+        // auto dispatch_insertion(
+        //     const rapidjson::GenericMember<EncodingType, AllocatorType>& member,
+        //     ContainerType& container);
+
         struct back_inserter_policy
         {
             template <typename DataType, typename ContainerType>
@@ -122,7 +129,7 @@ namespace json_utils
         template <typename InsertionPolicy, typename ContainerType, typename DataType>
         auto from_json_array(const rapidjson::GenericArray<true, DataType>& jsonArray)
         {
-            ContainerType container{};
+            ContainerType container;
 
             for (const auto& jsonValue : jsonArray) {
                 dispatch_insertion<InsertionPolicy>(jsonValue, container);
@@ -214,6 +221,39 @@ namespace json_utils
         {
             return std::make_pair<std::string, bool>(
                 member.name.GetString(), member.value.GetBool());
+        }
+
+        // template <typename ContainerType, typename DataType>
+        // auto from_json(
+        //     const rapidjson::GenericObject<true, DataType>& jsonObject, ContainerType& container)
+        //     -> typename std::enable_if<
+        //         std::conjunction<
+        //             traits::has_emplace_back<ContainerType>,
+        //             traits::treat_as_array<ContainerType>>::value,
+        //         ContainerType>::type
+        // {
+        //     for (const auto& jsonMember : jsonObject) {
+        //         dispatch_insertion<back_inserter_policy>(jsonMember.value, container);
+        //     }
+
+        //     return container;
+        // }
+
+        template <typename PairType, typename EncodingType, typename AllocatorType>
+        auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member)
+            -> typename std::enable_if<
+                traits::treat_as_array<typename PairType::second_type>::value,
+                std::pair<std::string, typename PairType::second_type>>::type
+        {
+            assert(member.value.IsArray());
+
+            using nested_container_type = typename PairType::second_type;
+
+            auto container = from_json_array<back_inserter_policy, nested_container_type>(
+                member.value.GetArray());
+
+            return std::make_pair<std::string, nested_container_type>(
+                member.name.GetString(), std::move(container));
         }
 
         template <
