@@ -34,7 +34,7 @@ namespace
         {
             simple_widget() = default;
 
-            explicit simple_widget(std::string keyName) : m_key{ std::move(keyName) }
+            explicit simple_widget(std::string key_name) : m_key{ std::move(key_name) }
             {
             }
 
@@ -43,9 +43,14 @@ namespace
                 return m_key;
             }
 
-            void set_key(std::string keyName)
+            void set_key(std::string key_name)
             {
-                m_key = std::move(keyName);
+                m_key = std::move(key_name);
+            }
+
+            bool operator==(const simple_widget& rhs) const noexcept
+            {
+                return m_key == rhs.m_key;
             }
 
           private:
@@ -60,7 +65,7 @@ namespace
             writer.EndObject();
         }
 
-        void from_json(const rapidjson::Document& document, sample::simple_widget& foo)
+        void from_json(const rapidjson::Document& document, sample::simple_widget& widget)
         {
             if (!document.IsObject()) {
                 return;
@@ -71,36 +76,85 @@ namespace
                 return;
             }
 
-            foo.set_key(member_iterator->value.GetString());
+            widget.set_key(member_iterator->value.GetString());
         }
 
-        std::string to_narrow_json_key(const sample::simple_widget& foo) noexcept
+        template <typename EncodingType, typename AllocatorType>
+        void from_json(
+            const rapidjson::GenericMember<EncodingType, AllocatorType>& member,
+            sample::simple_widget& widget)
         {
-            return foo.get_key();
+            if (!member.value.IsObject()) {
+                return;
+            }
+
+            const auto json_object = member.value.GetObject();
+            const auto member_iterator = json_object.FindMember("Purpose");
+
+            if (member_iterator == json_object.MemberEnd() || !member_iterator->value.IsString()) {
+                return;
+            }
+
+            widget.set_key(member_iterator->value.GetString());
+        }
+
+        std::string to_narrow_json_key(const sample::simple_widget& widget) noexcept
+        {
+            return widget.get_key();
         }
 
         struct composite_widget
         {
-            // @note Demonstrates the ability to befriend a `to_json(...)` overload so that
-            // internals are visible to the serialization logic. This is generally discouraged,
-            // however.
-            template <typename Writer>
-            friend void to_json(Writer& writer, const sample::composite_widget&);
+            composite_widget() = default;
 
-            explicit composite_widget(std::string keyName) : m_internal_widget{ std::move(keyName) }
+            explicit composite_widget(std::string key_name)
+                : m_internal_widget{ std::move(key_name) }
             {
+            }
+
+            void set_inner_widget(const sample::simple_widget& widget)
+            {
+                m_internal_widget = widget;
+            }
+
+            simple_widget get_inner_widget() const noexcept
+            {
+                return m_internal_widget;
+            }
+
+            bool operator==(const composite_widget& rhs) const noexcept
+            {
+                return m_internal_widget == rhs.m_internal_widget;
             }
 
           private:
             simple_widget m_internal_widget;
         };
 
-        template <typename Writer> void to_json(Writer& writer, const sample::composite_widget& foo)
+        template <typename Writer>
+        void to_json(Writer& writer, const sample::composite_widget& widget)
         {
             writer.StartObject();
             writer.Key("Inner Widget");
-            to_json(writer, foo.m_internal_widget);
+            to_json(writer, widget.get_inner_widget());
             writer.EndObject();
+        }
+
+        void from_json(const rapidjson::Document& document, sample::composite_widget& widget)
+        {
+            if (!document.IsObject()) {
+                return;
+            }
+
+            const auto member_iterator = document.FindMember("Inner Widget");
+            if (member_iterator == document.MemberEnd()) {
+                return;
+            }
+
+            sample::simple_widget simple_widget;
+            from_json(*member_iterator, simple_widget);
+
+            widget.set_inner_widget(simple_widget);
         }
     } // namespace sample
 } // namespace
@@ -505,6 +559,58 @@ TEST_CASE("Deserialization into a std::vector<std::pair<...>>")
     }
 }
 
+TEST_CASE("Deserialization into a std::vector<std::vector<...>>")
+{
+    SECTION("With a Single Entry")
+    {
+        using container_type = std::vector<std::vector<int>>;
+
+        const container_type source_container = { { 1, 2, 3, 4 } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("With Multiple Entries")
+    {
+        using container_type = std::vector<std::vector<int>>;
+
+        const container_type source_container = { { 1, 2, 3, 4 }, { 5, 6, 7, 8 } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
+// TEST_CASE("Deserialization into a std::map<std::vector<...>>")
+// {
+//     SECTION("With a Single Entry")
+//     {
+//         using container_type = std::map<std::string, std::vector<int>>;
+
+//         const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } } };
+//         const auto json = json_utils::serialize_to_json(source_container);
+//         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+//         REQUIRE(source_container == resultant_container);
+//     }
+
+//     SECTION("With Multiple Entries")
+//     {
+//         using container_type = std::map<std::string, std::vector<int>>;
+
+//         const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } },
+//                                                   { "objectTwo", { 5, 6, 7, 8 } } };
+
+//         const auto json = json_utils::serialize_to_json(source_container);
+//         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+//         REQUIRE(source_container == resultant_container);
+//     }
+// }
+
 TEST_CASE("Deserialization into a std::map<...>")
 {
     SECTION("Empty JSON Object")
@@ -658,12 +764,22 @@ TEST_CASE("Deserialization into a std::set<...>")
 
 TEST_CASE("Deserialization of Custom Type")
 {
-    SECTION("JSON OBject to sample::widget")
+    SECTION("JSON Object to sample::widget")
     {
         const sample::simple_widget widget{ "JSON Demonstration" };
         const auto json = json_utils::serialize_to_json(widget);
         const auto deserialization = json_utils::deserialize_from_json<sample::simple_widget>(json);
 
-        REQUIRE(widget.get_key() == deserialization.get_key());
+        REQUIRE(widget == deserialization);
+    }
+
+    SECTION("JSON Object to sample::composite_widget")
+    {
+        const sample::composite_widget widget{ "JSON Demonstration" };
+        const auto json = json_utils::serialize_to_json(widget);
+        const auto deserialization =
+            json_utils::deserialize_from_json<sample::composite_widget>(json);
+
+        REQUIRE(widget.get_inner_widget() == deserialization.get_inner_widget());
     }
 }
