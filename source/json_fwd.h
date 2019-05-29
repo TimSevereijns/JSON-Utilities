@@ -89,4 +89,20 @@ namespace json_utils
         template <typename Writer> void to_json(Writer& writer, const std::filesystem::path& path);
 #endif
     } // namespace serializer
+
+    namespace deserializer
+    {
+        template <
+            typename InsertionPolicy, typename EncodingType, typename AllocatorType,
+            typename ContainerType>
+        void dispatch_insertion(
+            const rapidjson::GenericMember<EncodingType, AllocatorType>& member,
+            ContainerType& container);
+
+        template <typename InsertionPolicy, typename ContainerType, typename DataType>
+        ContainerType from_json_array(const rapidjson::GenericArray<true, DataType>& json_array);
+
+        template <typename InsertionPolicy, typename ContainerType, typename DataType>
+        ContainerType from_json_object(const rapidjson::GenericObject<true, DataType>& json_object);
+    } // namespace deserializer
 } // namespace json_utils

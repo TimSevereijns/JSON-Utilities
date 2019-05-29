@@ -280,12 +280,23 @@ TEST_CASE("Serialization of std::map<...>", "[Standard Containers]")
 
 TEST_CASE("Serialization of JSON Value Types")
 {
-    SECTION("Array of `bool`")
+    SECTION("Array of bool")
     {
         const std::vector<bool> container = { false, true };
         const auto json = json_utils::serialize_to_json(container);
 
         REQUIRE(json == "[false,true]");
+    }
+
+    SECTION("Array of const char*")
+    {
+        const char* message_one = "Message One";
+        const char* message_two = "Message Two";
+
+        const std::vector<const char*> container = { message_one, message_two };
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == R"(["Message One","Message Two"])");
     }
 
     SECTION("Array of std::int32_t")
@@ -584,33 +595,6 @@ TEST_CASE("Deserialization into a std::vector<std::vector<...>>")
     }
 }
 
-TEST_CASE("Deserialization into a std::map<std::string, std::vector<...>>")
-{
-    SECTION("With a Single Entry")
-    {
-        using container_type = std::map<std::string, std::vector<int>>;
-
-        const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } } };
-        const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
-
-        REQUIRE(source_container == resultant_container);
-    }
-
-    SECTION("With Multiple Entries")
-    {
-        using container_type = std::map<std::string, std::vector<int>>;
-
-        const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } },
-                                                  { "objectTwo", { 5, 6, 7, 8 } } };
-
-        const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
-
-        REQUIRE(source_container == resultant_container);
-    }
-}
-
 TEST_CASE("Deserialization into a std::map<...>")
 {
     SECTION("Empty JSON Object")
@@ -684,6 +668,63 @@ TEST_CASE("Deserialization into a std::map<...>")
         const container_type source_container = { { "keyOne", false },
                                                   { "keyTwo", true },
                                                   { "keyThree", false } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
+TEST_CASE("Deserialization into a std::map<std::string, std::vector<...>>")
+{
+    SECTION("With a Single Entry")
+    {
+        using container_type = std::map<std::string, std::vector<int>>;
+
+        const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("With Multiple Entries")
+    {
+        using container_type = std::map<std::string, std::vector<int>>;
+
+        const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } },
+                                                  { "objectTwo", { 5, 6, 7, 8 } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
+TEST_CASE("Deserialization into a std::map<std::string, std::map<std::string, int>>")
+{
+    SECTION("With a Single Entry")
+    {
+        using container_type = std::map<std::string, std::map<std::string, int>>;
+
+        const container_type source_container = { { "objectOne", std::map<std::string, int>{
+                                                                     { "subKey", 10 } } } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("With Multiple Entries")
+    {
+        using container_type = std::map<std::string, std::map<std::string, int>>;
+
+        const container_type source_container = {
+            { "objectOne", std::map<std::string, int>{ { "subKey", 10 } } },
+            { "objectTwo", std::map<std::string, int>{ { "subKey", 20 } } }
+        };
 
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
