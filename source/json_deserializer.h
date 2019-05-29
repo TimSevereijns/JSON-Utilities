@@ -2,8 +2,35 @@
 
 #include "json_fwd.h"
 
+#include <stdexcept>
+
 namespace json_utils
 {
+    namespace detail
+    {
+        std::string type_to_string(const rapidjson::Value& value)
+        {
+            switch (value.GetType()) {
+                case rapidjson::Type::kArrayType:
+                    return "an array";
+                case rapidjson::Type::kFalseType:
+                    return "a false type";
+                case rapidjson::Type::kNullType:
+                    return "a null type";
+                case rapidjson::Type::kNumberType:
+                    return "a numeric type";
+                case rapidjson::Type::kObjectType:
+                    return "an object type";
+                case rapidjson::Type::kStringType:
+                    return "a string type";
+                case rapidjson::Type::kTrueType:
+                    return "a true type";
+            }
+
+            return "an unknown type";
+        }
+    } // namespace detail
+
     namespace deserializer
     {
         struct back_inserter_policy
@@ -110,7 +137,10 @@ namespace json_utils
                 traits::treat_as_object<typename PairType::second_type>::value,
                 std::pair<std::string, typename PairType::second_type>>::type
         {
-            assert(member.value.IsObject());
+            if (!member.value.IsObject()) {
+                throw std::runtime_error(
+                    "Expected an object, got " + detail::type_to_string(member.value) + ".");
+            }
 
             using nested_container_type = typename PairType::second_type;
 
@@ -127,7 +157,10 @@ namespace json_utils
                 traits::treat_as_array<typename PairType::second_type>::value,
                 std::pair<std::string, typename PairType::second_type>>::type
         {
-            assert(member.value.IsArray());
+            if (!member.value.IsArray()) {
+                throw std::runtime_error(
+                    "Expected an array, got " + detail::type_to_string(member.value) + ".");
+            }
 
             using nested_container_type = typename PairType::second_type;
 
@@ -143,11 +176,12 @@ namespace json_utils
             typename std::enable_if<
                 std::is_same<typename ContainerType::value_type, bool>::value>::type
         {
-            if (value.IsBool()) {
-                insert<InsertionPolicy>(value.GetBool(), container);
-            } else {
-                assert(false);
+            if (!value.IsBool()) {
+                throw std::runtime_error(
+                    "Expected a boolean, got " + detail::type_to_string(value) + ".");
             }
+
+            insert<InsertionPolicy>(value.GetBool(), container);
         }
 
         template <typename InsertionPolicy, typename ContainerType>
@@ -155,11 +189,12 @@ namespace json_utils
             typename std::enable_if<
                 std::is_same<typename ContainerType::value_type, int>::value>::type
         {
-            if (value.IsInt()) {
-                insert<InsertionPolicy>(value.GetInt(), container);
-            } else {
-                assert(false);
+            if (!value.IsInt()) {
+                throw std::runtime_error(
+                    "Expected an integer, got " + detail::type_to_string(value) + ".");
             }
+
+            insert<InsertionPolicy>(value.GetInt(), container);
         }
 
         template <typename InsertionPolicy, typename ContainerType>
@@ -167,11 +202,12 @@ namespace json_utils
             typename std::enable_if<
                 std::is_same<typename ContainerType::value_type, unsigned int>::value>::type
         {
-            if (value.IsUint()) {
-                insert<InsertionPolicy>(value.GetUint(), container);
-            } else {
-                assert(false);
+            if (!value.IsUint()) {
+                throw std::runtime_error(
+                    "Expected an unsigned integer, got " + detail::type_to_string(value) + ".");
             }
+
+            insert<InsertionPolicy>(value.GetUint(), container);
         }
 
         template <typename InsertionPolicy, typename ContainerType>
@@ -179,11 +215,12 @@ namespace json_utils
             typename std::enable_if<
                 std::is_same<typename ContainerType::value_type, std::int64_t>::value>::type
         {
-            if (value.IsInt64()) {
-                insert<InsertionPolicy>(value.GetInt64(), container);
-            } else {
-                assert(false);
+            if (!value.IsInt64()) {
+                throw std::runtime_error(
+                    "Expected a 64-bit integer, got " + detail::type_to_string(value) + ".");
             }
+
+            insert<InsertionPolicy>(value.GetInt64(), container);
         }
 
         template <typename InsertionPolicy, typename ContainerType>
@@ -191,11 +228,13 @@ namespace json_utils
             typename std::enable_if<
                 std::is_same<typename ContainerType::value_type, std::uint64_t>::value>::type
         {
-            if (value.IsUint64()) {
-                insert<InsertionPolicy>(value.GetUint64(), container);
-            } else {
-                assert(false);
+            if (!value.IsUint64()) {
+                throw std::runtime_error(
+                    "Expected an unsigned, 64-bit integer, got " + detail::type_to_string(value) +
+                    ".");
             }
+
+            insert<InsertionPolicy>(value.GetUint64(), container);
         }
 
         template <typename InsertionPolicy, typename ContainerType>
@@ -203,11 +242,12 @@ namespace json_utils
             typename std::enable_if<
                 std::is_same<typename ContainerType::value_type, std::string>::value>::type
         {
-            if (value.IsString()) {
-                insert<InsertionPolicy>(value.GetString(), container);
-            } else {
-                assert(false);
+            if (!value.IsString()) {
+                throw std::runtime_error(
+                    "Expected a string, got " + detail::type_to_string(value) + ".");
             }
+
+            insert<InsertionPolicy>(value.GetString(), container);
         }
 
         template <typename InsertionPolicy, typename ContainerType>
@@ -215,11 +255,12 @@ namespace json_utils
             typename std::enable_if<
                 std::is_same<typename ContainerType::value_type, double>::value>::type
         {
-            if (value.IsDouble()) {
-                insert<InsertionPolicy>(value.GetDouble(), container);
-            } else {
-                assert(false);
+            if (!value.IsDouble()) {
+                throw std::runtime_error(
+                    "Expected a double, got " + detail::type_to_string(value) + ".");
             }
+
+            insert<InsertionPolicy>(value.GetDouble(), container);
         }
 
         template <
@@ -238,15 +279,16 @@ namespace json_utils
             typename std::enable_if<
                 traits::treat_as_array<typename ContainerType::value_type>::value>::type
         {
+            if (!value.IsArray()) {
+                throw std::runtime_error(
+                    "Expected an array, got " + detail::type_to_string(value) + ".");
+            }
+
             using nested_container_type = typename ContainerType::value_type;
 
-            if (value.IsArray()) {
-                auto nested_container =
-                    from_json_array<InsertionPolicy, nested_container_type>(value.GetArray());
-                insert<InsertionPolicy>(std::move(nested_container), container);
-            } else {
-                assert(false);
-            }
+            auto nested_container =
+                from_json_array<InsertionPolicy, nested_container_type>(value.GetArray());
+            insert<InsertionPolicy>(std::move(nested_container), container);
         }
 
         template <typename InsertionPolicy, typename ContainerType, typename DataType>
