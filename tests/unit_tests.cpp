@@ -109,29 +109,28 @@ namespace
           public:
             composite_widget() = default;
 
-            explicit composite_widget(std::string key_name)
-                : m_internal_widget{ std::move(key_name) }
+            explicit composite_widget(std::string key_name) : m_inner_widget{ std::move(key_name) }
             {
             }
 
-            void set_inner_widget(const sample::simple_widget& widget)
+            void set_inner_widget(sample::simple_widget&& widget)
             {
-                m_internal_widget = widget;
+                m_inner_widget = std::move(widget);
             }
 
             simple_widget get_inner_widget() const noexcept
             {
-                return m_internal_widget;
+                return m_inner_widget;
             }
 
             friend bool
             operator==(const composite_widget& lhs, const composite_widget& rhs) noexcept
             {
-                return lhs.m_internal_widget == rhs.m_internal_widget;
+                return lhs.m_inner_widget == rhs.m_inner_widget;
             }
 
           private:
-            simple_widget m_internal_widget;
+            simple_widget m_inner_widget;
         };
 
         template <typename Writer>
@@ -139,6 +138,7 @@ namespace
         {
             writer.StartObject();
             writer.Key("Inner Widget");
+            using json_utils::serializer::to_json;
             to_json(writer, widget.get_inner_widget());
             writer.EndObject();
         }
@@ -155,15 +155,17 @@ namespace
             }
 
             sample::simple_widget simple_widget;
+
+            using json_utils::serializer::to_json;
             from_json(*member_iterator, simple_widget);
 
-            widget.set_inner_widget(simple_widget);
+            widget.set_inner_widget(std::move(simple_widget));
         }
 
-        class widget_with_vector
+        class heterogeneous_widget
         {
           public:
-            widget_with_vector()
+            heterogeneous_widget()
             {
                 m_data = std::vector<std::string>{ "Test String One", "Test String Two",
                                                    "Test String Three" };
@@ -190,7 +192,7 @@ namespace
             }
 
             friend bool
-            operator==(const widget_with_vector& lhs, const widget_with_vector& rhs) noexcept
+            operator==(const heterogeneous_widget& lhs, const heterogeneous_widget& rhs) noexcept
             {
                 return lhs.m_timestamp == rhs.m_timestamp && lhs.m_data == rhs.m_data;
             }
@@ -201,7 +203,7 @@ namespace
         };
 
         template <typename Writer>
-        void to_json(Writer& writer, const sample::widget_with_vector& widget)
+        void to_json(Writer& writer, const sample::heterogeneous_widget& widget)
         {
             writer.StartObject();
 
@@ -209,12 +211,13 @@ namespace
             writer.String(widget.get_timestamp().c_str());
 
             writer.Key("Data");
-            json_utils::serializer::to_json(writer, widget.get_data());
+            using json_utils::serializer::to_json;
+            to_json(writer, widget.get_data());
 
             writer.EndObject();
         }
 
-        void from_json(const rapidjson::Document& document, sample::widget_with_vector& widget)
+        void from_json(const rapidjson::Document& document, sample::heterogeneous_widget& widget)
         {
             if (!document.IsObject()) {
                 return;
@@ -544,7 +547,7 @@ TEST_CASE("Serializing a Custom Type")
 
     SECTION("Custom Type as Value in std::vector<std::pair<...>>")
     {
-        // @note This test will need ADL to be enabled in the serialization of key-value pairs.
+        // @note This test relies on Argument-Dependent Lookup in the serialization logic.
 
         const std::vector<std::pair<std::string, sample::simple_widget>> container = {
             std::make_pair<std::string, sample::simple_widget>(
@@ -931,14 +934,14 @@ TEST_CASE("Deserialization of Custom Type")
     }
 }
 
-TEST_CASE("Deserialization of Heterogenious Type")
+TEST_CASE("Deserialization of Heterogeneous Object")
 {
-    SECTION("JSON Object to sample::widget_with_vector")
+    SECTION("JSON Object to sample::heterogeneous_widget")
     {
-        const sample::widget_with_vector widget;
+        const sample::heterogeneous_widget widget;
         const auto json = json_utils::serialize_to_json(widget);
         const auto deserialization =
-            json_utils::deserialize_from_json<sample::widget_with_vector>(json);
+            json_utils::deserialize_from_json<sample::heterogeneous_widget>(json);
 
         REQUIRE(widget == deserialization);
     }

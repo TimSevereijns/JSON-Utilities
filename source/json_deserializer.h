@@ -296,8 +296,6 @@ namespace json_utils
                 std::is_default_constructible<nested_container_type>::value,
                 "The container must have a default constructible.");
 
-            assert(json_value.IsArray());
-
             nested_container_type nested_container;
 
             using deserializer::from_json;
@@ -320,8 +318,6 @@ namespace json_utils
             static_assert(
                 std::is_default_constructible<nested_container_type>::value,
                 "The container must have a default constructible.");
-
-            assert(json_value.IsObject());
 
             nested_container_type nested_container;
 
