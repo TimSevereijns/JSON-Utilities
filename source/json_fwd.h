@@ -99,10 +99,36 @@ namespace json_utils
             const rapidjson::GenericMember<EncodingType, AllocatorType>& member,
             ContainerType& container);
 
-        template <typename InsertionPolicy, typename ContainerType, typename DataType>
-        ContainerType from_json_array(const rapidjson::GenericArray<true, DataType>& json_array);
+        template <typename ContainerType, typename EncodingType, typename AllocatorType>
+        auto from_json(
+            const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
+            ContainerType& container) ->
+            typename std::enable_if<std::conjunction<
+                traits::has_emplace_back<ContainerType>,
+                traits::treat_as_array<ContainerType>>::value>::type;
 
-        template <typename InsertionPolicy, typename ContainerType, typename DataType>
-        ContainerType from_json_object(const rapidjson::GenericObject<true, DataType>& json_object);
+        template <typename ContainerType, typename EncodingType, typename AllocatorType>
+        auto from_json(
+            const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
+            ContainerType& container) ->
+            typename std::enable_if<std::conjunction<
+                traits::has_emplace<ContainerType>,
+                traits::treat_as_array<ContainerType>>::value>::type;
+
+        template <typename ContainerType, typename EncodingType, typename AllocatorType>
+        auto from_json(
+            const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
+            ContainerType& container) ->
+            typename std::enable_if<std::conjunction<
+                traits::has_emplace_back<ContainerType>,
+                traits::treat_as_object<ContainerType>>::value>::type;
+
+        template <typename ContainerType, typename EncodingType, typename AllocatorType>
+        auto from_json(
+            const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
+            ContainerType& container) ->
+            typename std::enable_if<std::conjunction<
+                traits::has_emplace<ContainerType>,
+                traits::treat_as_object<ContainerType>>::value>::type;
     } // namespace deserializer
 } // namespace json_utils

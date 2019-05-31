@@ -233,7 +233,7 @@ namespace
             }
 
             std::vector<std::string> data;
-            json_utils::deserializer::from_json(*vector_iterator, data);
+            json_utils::deserializer::from_json(vector_iterator->value, data);
 
             widget.set_data(std::move(data));
         }
