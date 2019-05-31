@@ -129,6 +129,7 @@ namespace json_utils
                 return;
             }
 
+            using serializer::to_json;
             to_json(writer, *pointer);
         }
 
@@ -140,6 +141,7 @@ namespace json_utils
                 return;
             }
 
+            using serializer::to_json;
             to_json(writer, *pointer);
         }
 
@@ -152,6 +154,7 @@ namespace json_utils
                 return;
             }
 
+            using serializer::to_json;
             to_json(writer, *strongPointer);
         }
 
@@ -180,6 +183,7 @@ namespace json_utils
         {
             writer.StartArray();
             for (const auto& item : container) {
+                using serializer::to_json;
                 to_json(writer, item);
             }
             writer.EndArray();
@@ -191,6 +195,7 @@ namespace json_utils
         {
             writer.StartObject();
             for (const auto& item : container) {
+                using serializer::to_json;
                 to_json(writer, item);
             }
             writer.EndObject();
@@ -218,6 +223,7 @@ namespace json_utils
                 return;
             }
 
+            using serializer::to_json;
             to_json(writer, *data);
         }
 

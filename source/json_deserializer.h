@@ -323,113 +323,12 @@ namespace json_utils
             insert<InsertionPolicy>(std::move(nested_container), container);
         }
 
-        template <typename ContainerType>
-        auto from_json(const rapidjson::Document& document, ContainerType& container) ->
-            typename std::enable_if<std::conjunction<
-                traits::has_emplace_back<ContainerType>,
-                traits::treat_as_array<ContainerType>>::value>::type
-        {
-            if (!document.IsArray()) {
-                return;
-            }
-
-            const auto& json_array = document.GetArray();
-            for (const auto& json_value : json_array) {
-                dispatch_insertion<back_inserter_policy>(json_value, container);
-            }
-        }
-
-        template <typename ContainerType>
-        auto from_json(const rapidjson::Document& document, ContainerType& container) ->
-            typename std::enable_if<std::conjunction<
-                traits::has_emplace<ContainerType>,
-                traits::treat_as_array<ContainerType>>::value>::type
-        {
-            if (!document.IsArray()) {
-                return;
-            }
-
-            const auto& json_array = document.GetArray();
-            for (const auto& json_value : json_array) {
-                dispatch_insertion<inserter_policy>(json_value, container);
-            }
-        }
-
-        template <typename ContainerType>
-        auto from_json(const rapidjson::Document& document, ContainerType& container) ->
-            typename std::enable_if<std::conjunction<
-                traits::has_emplace_back<ContainerType>,
-                traits::treat_as_object<ContainerType>>::value>::type
-        {
-            if (!document.IsObject()) {
-                return;
-            }
-
-            const auto& json_object = document.GetObject();
-            for (const auto& json_value : json_object) {
-                dispatch_insertion<back_inserter_policy>(json_value, container);
-            }
-        }
-
-        template <typename ContainerType>
-        auto from_json(const rapidjson::Document& document, ContainerType& container) ->
-            typename std::enable_if<std::conjunction<
-                traits::has_emplace<ContainerType>,
-                traits::treat_as_object<ContainerType>>::value>::type
-        {
-            if (!document.IsObject()) {
-                return;
-            }
-
-            const auto& json_object = document.GetObject();
-            for (const auto& json_value : json_object) {
-                dispatch_insertion<inserter_policy>(json_value, container);
-            }
-        }
-
-        template <typename ContainerType, typename EncodingType, typename AllocatorType>
-        auto from_json(
+        template <
+            typename InsertionPolicy, typename ContainerType, typename EncodingType,
+            typename AllocatorType>
+        auto deserialize_json_object(
             const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
-            ContainerType& container) ->
-            typename std::enable_if<std::conjunction<
-                traits::has_emplace_back<ContainerType>,
-                traits::treat_as_array<ContainerType>>::value>::type
-        {
-            if (!json_value.IsArray()) {
-                return;
-            }
-
-            const auto& json_array = json_value.GetArray();
-            for (const auto& json_value : json_array) {
-                dispatch_insertion<back_inserter_policy>(json_value, container);
-            }
-        }
-
-        template <typename ContainerType, typename EncodingType, typename AllocatorType>
-        auto from_json(
-            const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
-            ContainerType& container) ->
-            typename std::enable_if<std::conjunction<
-                traits::has_emplace<ContainerType>,
-                traits::treat_as_array<ContainerType>>::value>::type
-        {
-            if (!json_value.IsArray()) {
-                return;
-            }
-
-            const auto& json_array = json_value.GetArray();
-            for (const auto& json_value : json_array) {
-                dispatch_insertion<inserter_policy>(json_value, container);
-            }
-        }
-
-        template <typename ContainerType, typename EncodingType, typename AllocatorType>
-        auto from_json(
-            const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
-            ContainerType& container) ->
-            typename std::enable_if<std::conjunction<
-                traits::has_emplace_back<ContainerType>,
-                traits::treat_as_object<ContainerType>>::value>::type
+            ContainerType& container)
         {
             if (!json_value.IsObject()) {
                 return;
@@ -437,8 +336,58 @@ namespace json_utils
 
             const auto& json_object = json_value.GetObject();
             for (const auto& json_value : json_object) {
-                dispatch_insertion<back_inserter_policy>(json_value, container);
+                dispatch_insertion<InsertionPolicy>(json_value, container);
             }
+        }
+
+        template <
+            typename InsertionPolicy, typename ContainerType, typename EncodingType,
+            typename AllocatorType>
+        auto deserialize_json_array(
+            const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
+            ContainerType& container)
+        {
+            if (!json_value.IsArray()) {
+                return;
+            }
+
+            const auto& json_array = json_value.GetArray();
+            for (const auto& json_value : json_array) {
+                dispatch_insertion<InsertionPolicy>(json_value, container);
+            }
+        }
+
+        template <typename ContainerType, typename EncodingType, typename AllocatorType>
+        auto from_json(
+            const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
+            ContainerType& container) ->
+            typename std::enable_if<std::conjunction<
+                traits::has_emplace_back<ContainerType>,
+                traits::treat_as_array<ContainerType>>::value>::type
+        {
+            deserialize_json_array<back_inserter_policy>(json_value, container);
+        }
+
+        template <typename ContainerType, typename EncodingType, typename AllocatorType>
+        auto from_json(
+            const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
+            ContainerType& container) ->
+            typename std::enable_if<std::conjunction<
+                traits::has_emplace<ContainerType>,
+                traits::treat_as_array<ContainerType>>::value>::type
+        {
+            deserialize_json_array<inserter_policy>(json_value, container);
+        }
+
+        template <typename ContainerType, typename EncodingType, typename AllocatorType>
+        auto from_json(
+            const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
+            ContainerType& container) ->
+            typename std::enable_if<std::conjunction<
+                traits::has_emplace_back<ContainerType>,
+                traits::treat_as_object<ContainerType>>::value>::type
+        {
+            deserialize_json_object<back_inserter_policy>(json_value, container);
         }
 
         template <typename ContainerType, typename EncodingType, typename AllocatorType>
@@ -449,14 +398,7 @@ namespace json_utils
                 traits::has_emplace<ContainerType>,
                 traits::treat_as_object<ContainerType>>::value>::type
         {
-            if (!json_value.IsObject()) {
-                return;
-            }
-
-            const auto& json_object = json_value.GetObject();
-            for (const auto& json_value : json_object) {
-                dispatch_insertion<inserter_policy>(json_value, container);
-            }
+            deserialize_json_object<inserter_policy>(json_value, container);
         }
     } // namespace deserializer
 } // namespace json_utils
