@@ -135,6 +135,10 @@ namespace json_utils
         std::pair<std::string, ContainerType>
         construct_nested_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member)
         {
+            static_assert(
+                std::is_default_constructible<ContainerType>::value,
+                "The container must have a default constructible.");
+
             ContainerType container;
 
             using deserializer::from_json;
@@ -151,7 +155,7 @@ namespace json_utils
                 std::pair<std::string, typename PairType::second_type>>::type
         {
             if (!member.value.IsObject()) {
-                throw std::runtime_error(
+                throw std::invalid_argument(
                     "Expected an object, got " + detail::type_to_string(member.value) + ".");
             }
 
@@ -166,7 +170,7 @@ namespace json_utils
                 std::pair<std::string, typename PairType::second_type>>::type
         {
             if (!member.value.IsArray()) {
-                throw std::runtime_error(
+                throw std::invalid_argument(
                     "Expected an array, got " + detail::type_to_string(member.value) + ".");
             }
 
@@ -180,7 +184,7 @@ namespace json_utils
                 std::is_same<typename ContainerType::value_type, bool>::value>::type
         {
             if (!value.IsBool()) {
-                throw std::runtime_error(
+                throw std::invalid_argument(
                     "Expected a boolean, got " + detail::type_to_string(value) + ".");
             }
 
@@ -193,7 +197,7 @@ namespace json_utils
                 std::is_same<typename ContainerType::value_type, int>::value>::type
         {
             if (!value.IsInt()) {
-                throw std::runtime_error(
+                throw std::invalid_argument(
                     "Expected an integer, got " + detail::type_to_string(value) + ".");
             }
 
@@ -206,7 +210,7 @@ namespace json_utils
                 std::is_same<typename ContainerType::value_type, unsigned int>::value>::type
         {
             if (!value.IsUint()) {
-                throw std::runtime_error(
+                throw std::invalid_argument(
                     "Expected an unsigned integer, got " + detail::type_to_string(value) + ".");
             }
 
@@ -219,7 +223,7 @@ namespace json_utils
                 std::is_same<typename ContainerType::value_type, std::int64_t>::value>::type
         {
             if (!value.IsInt64()) {
-                throw std::runtime_error(
+                throw std::invalid_argument(
                     "Expected a 64-bit integer, got " + detail::type_to_string(value) + ".");
             }
 
@@ -232,7 +236,7 @@ namespace json_utils
                 std::is_same<typename ContainerType::value_type, std::uint64_t>::value>::type
         {
             if (!value.IsUint64()) {
-                throw std::runtime_error(
+                throw std::invalid_argument(
                     "Expected an unsigned, 64-bit integer, got " + detail::type_to_string(value) +
                     ".");
             }
@@ -246,7 +250,7 @@ namespace json_utils
                 std::is_same<typename ContainerType::value_type, std::string>::value>::type
         {
             if (!value.IsString()) {
-                throw std::runtime_error(
+                throw std::invalid_argument(
                     "Expected a string, got " + detail::type_to_string(value) + ".");
             }
 
@@ -259,7 +263,7 @@ namespace json_utils
                 std::is_same<typename ContainerType::value_type, double>::value>::type
         {
             if (!value.IsDouble()) {
-                throw std::runtime_error(
+                throw std::invalid_argument(
                     "Expected a double, got " + detail::type_to_string(value) + ".");
             }
 
@@ -286,9 +290,14 @@ namespace json_utils
             typename std::enable_if<
                 traits::treat_as_array<typename ContainerType::value_type>::value>::type
         {
+            using nested_container_type = typename ContainerType::value_type;
+
+            static_assert(
+                std::is_default_constructible<nested_container_type>::value,
+                "The container must have a default constructible.");
+
             assert(json_value.IsArray());
 
-            using nested_container_type = typename ContainerType::value_type;
             nested_container_type nested_container;
 
             using deserializer::from_json;
@@ -306,9 +315,14 @@ namespace json_utils
             typename std::enable_if<
                 traits::treat_as_object<typename ContainerType::value_type>::value>::type
         {
+            using nested_container_type = typename ContainerType::value_type;
+
+            static_assert(
+                std::is_default_constructible<nested_container_type>::value,
+                "The container must have a default constructible.");
+
             assert(json_value.IsObject());
 
-            using nested_container_type = typename ContainerType::value_type;
             nested_container_type nested_container;
 
             using deserializer::from_json;
@@ -325,7 +339,7 @@ namespace json_utils
             ContainerType& container)
         {
             if (!json_value.IsObject()) {
-                throw std::runtime_error(
+                throw std::invalid_argument(
                     "Expected an object, got " + detail::type_to_string(json_value) + ".");
             }
 
@@ -343,7 +357,7 @@ namespace json_utils
             ContainerType& container)
         {
             if (!json_value.IsArray()) {
-                throw std::runtime_error(
+                throw std::invalid_argument(
                     "Expected an array, got " + detail::type_to_string(json_value) + ".");
             }
 

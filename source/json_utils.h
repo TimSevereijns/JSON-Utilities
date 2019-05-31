@@ -48,7 +48,7 @@ namespace json_utils
 
         static_assert(
             std::is_default_constructible<ContainerType>::value,
-            "The container must have a default constructor defined.");
+            "The container must have a default constructible.");
 
         ContainerType container;
 
