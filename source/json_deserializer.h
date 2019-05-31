@@ -42,7 +42,7 @@ namespace json_utils
             }
         };
 
-        struct inserter_policy
+        struct default_inserter_policy
         {
             template <typename DataType, typename ContainerType>
             static void insert(DataType&& data, ContainerType& container)
@@ -286,10 +286,7 @@ namespace json_utils
             typename std::enable_if<
                 traits::treat_as_array<typename ContainerType::value_type>::value>::type
         {
-            if (!json_value.IsArray()) {
-                throw std::runtime_error(
-                    "Expected an array, got " + detail::type_to_string(json_value) + ".");
-            }
+            assert(json_value.IsArray());
 
             using nested_container_type = typename ContainerType::value_type;
             nested_container_type nested_container;
@@ -309,10 +306,7 @@ namespace json_utils
             typename std::enable_if<
                 traits::treat_as_object<typename ContainerType::value_type>::value>::type
         {
-            if (!json_value.IsObject()) {
-                throw std::runtime_error(
-                    "Expected an object, got " + detail::type_to_string(json_value) + ".");
-            }
+            assert(json_value.IsObject());
 
             using nested_container_type = typename ContainerType::value_type;
             nested_container_type nested_container;
@@ -331,7 +325,8 @@ namespace json_utils
             ContainerType& container)
         {
             if (!json_value.IsObject()) {
-                return;
+                throw std::runtime_error(
+                    "Expected an object, got " + detail::type_to_string(json_value) + ".");
             }
 
             const auto& json_object = json_value.GetObject();
@@ -348,7 +343,8 @@ namespace json_utils
             ContainerType& container)
         {
             if (!json_value.IsArray()) {
-                return;
+                throw std::runtime_error(
+                    "Expected an array, got " + detail::type_to_string(json_value) + ".");
             }
 
             const auto& json_array = json_value.GetArray();
@@ -376,7 +372,7 @@ namespace json_utils
                 traits::has_emplace<ContainerType>,
                 traits::treat_as_array<ContainerType>>::value>::type
         {
-            deserialize_json_array<inserter_policy>(json_value, container);
+            deserialize_json_array<default_inserter_policy>(json_value, container);
         }
 
         template <typename ContainerType, typename EncodingType, typename AllocatorType>
@@ -398,7 +394,7 @@ namespace json_utils
                 traits::has_emplace<ContainerType>,
                 traits::treat_as_object<ContainerType>>::value>::type
         {
-            deserialize_json_object<inserter_policy>(json_value, container);
+            deserialize_json_object<default_inserter_policy>(json_value, container);
         }
     } // namespace deserializer
 } // namespace json_utils
