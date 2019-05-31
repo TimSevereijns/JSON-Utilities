@@ -174,9 +174,9 @@ namespace json_utils
 
         // @todo Add overload for a vector of pairs
 
-        template <typename Writer, typename Type>
-        auto to_json(Writer& writer, const Type& container) ->
-            typename std::enable_if<traits::treat_as_array<Type>::value>::type
+        template <typename Writer, typename ContainerType>
+        auto to_json(Writer& writer, const ContainerType& container) ->
+            typename std::enable_if<traits::treat_as_array<ContainerType>::value>::type
         {
             writer.StartArray();
             for (const auto& item : container) {
@@ -185,9 +185,9 @@ namespace json_utils
             writer.EndArray();
         }
 
-        template <typename Writer, typename Type>
-        auto to_json(Writer& writer, const Type& container) ->
-            typename std::enable_if<traits::treat_as_object<Type>::value>::type
+        template <typename Writer, typename ContainerType>
+        auto to_json(Writer& writer, const ContainerType& container) ->
+            typename std::enable_if<traits::treat_as_object<ContainerType>::value>::type
         {
             writer.StartObject();
             for (const auto& item : container) {

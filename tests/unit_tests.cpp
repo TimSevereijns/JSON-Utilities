@@ -30,8 +30,9 @@ namespace
 
     namespace sample
     {
-        struct simple_widget
+        class simple_widget
         {
+          public:
             simple_widget() = default;
 
             explicit simple_widget(std::string key_name) : m_key{ std::move(key_name) }
@@ -48,9 +49,9 @@ namespace
                 m_key = std::move(key_name);
             }
 
-            bool operator==(const simple_widget& rhs) const noexcept
+            friend bool operator==(const simple_widget& lhs, const simple_widget& rhs) noexcept
             {
-                return m_key == rhs.m_key;
+                return lhs.m_key == rhs.m_key;
             }
 
           private:
@@ -103,8 +104,9 @@ namespace
             return widget.get_key();
         }
 
-        struct composite_widget
+        class composite_widget
         {
+          public:
             composite_widget() = default;
 
             explicit composite_widget(std::string key_name)
@@ -122,9 +124,10 @@ namespace
                 return m_internal_widget;
             }
 
-            bool operator==(const composite_widget& rhs) const noexcept
+            friend bool
+            operator==(const composite_widget& lhs, const composite_widget& rhs) noexcept
             {
-                return m_internal_widget == rhs.m_internal_widget;
+                return lhs.m_internal_widget == rhs.m_internal_widget;
             }
 
           private:
@@ -155,6 +158,84 @@ namespace
             from_json(*member_iterator, simple_widget);
 
             widget.set_inner_widget(simple_widget);
+        }
+
+        class widget_with_vector
+        {
+          public:
+            widget_with_vector()
+            {
+                m_data = std::vector<std::string>{ "Test String One", "Test String Two",
+                                                   "Test String Three" };
+            }
+
+            const std::vector<std::string>& get_data() const
+            {
+                return m_data;
+            }
+
+            void set_data(std::vector<std::string>&& data)
+            {
+                m_data = std::move(data);
+            }
+
+            const std::string& get_timestamp() const
+            {
+                return m_timestamp;
+            }
+
+            void set_timestamp(std::string timestamp)
+            {
+                m_timestamp = std::move(timestamp);
+            }
+
+            friend bool
+            operator==(const widget_with_vector& lhs, const widget_with_vector& rhs) noexcept
+            {
+                return lhs.m_timestamp == rhs.m_timestamp && lhs.m_data == rhs.m_data;
+            }
+
+          private:
+            std::string m_timestamp = "2019/05/29";
+            std::vector<std::string> m_data;
+        };
+
+        template <typename Writer>
+        void to_json(Writer& writer, const sample::widget_with_vector& widget)
+        {
+            writer.StartObject();
+
+            writer.Key("Timestamp");
+            writer.String(widget.get_timestamp().c_str());
+
+            writer.Key("Data");
+            json_utils::serializer::to_json(writer, widget.get_data());
+
+            writer.EndObject();
+        }
+
+        void from_json(const rapidjson::Document& document, sample::widget_with_vector& widget)
+        {
+            if (!document.IsObject()) {
+                return;
+            }
+
+            const auto timestamp_iterator = document.FindMember("Timestamp");
+            if (timestamp_iterator == document.MemberEnd()) {
+                return;
+            }
+
+            widget.set_timestamp(timestamp_iterator->value.GetString());
+
+            const auto vector_iterator = document.FindMember("Data");
+            if (vector_iterator == document.MemberEnd()) {
+                return;
+            }
+
+            std::vector<std::string> data;
+            json_utils::deserializer::from_json(*vector_iterator, data);
+
+            widget.set_data(std::move(data));
         }
     } // namespace sample
 } // namespace
@@ -803,6 +884,31 @@ TEST_CASE("Deserialization into a std::set<...>")
     }
 }
 
+TEST_CASE("Deserialization into a std::set<std::map<std::string, int>>")
+{
+    using container_type = std::set<std::map<std::string, int>>;
+
+    SECTION("JSON Array with Single Element")
+    {
+        const container_type source_container = { std::map<std::string, int>{ { "value", 10 } } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("JSON Array with Multiple Elements")
+    {
+        const container_type source_container = { std::map<std::string, int>{ { "value", 10 } },
+                                                  std::map<std::string, int>{ { "value", 20 } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
 TEST_CASE("Deserialization of Custom Type")
 {
     SECTION("JSON Object to sample::widget")
@@ -822,5 +928,18 @@ TEST_CASE("Deserialization of Custom Type")
             json_utils::deserialize_from_json<sample::composite_widget>(json);
 
         REQUIRE(widget.get_inner_widget() == deserialization.get_inner_widget());
+    }
+}
+
+TEST_CASE("Deserialization of Heterogenious Type")
+{
+    SECTION("JSON Object to sample::widget_with_vector")
+    {
+        const sample::widget_with_vector widget;
+        const auto json = json_utils::serialize_to_json(widget);
+        const auto deserialization =
+            json_utils::deserialize_from_json<sample::widget_with_vector>(json);
+
+        REQUIRE(widget == deserialization);
     }
 }

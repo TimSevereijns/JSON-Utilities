@@ -274,8 +274,12 @@ namespace json_utils
             insert<InsertionPolicy>(std::move(pair), container);
         }
 
-        template <typename InsertionPolicy, typename ContainerType>
-        auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
+        template <
+            typename InsertionPolicy, typename ContainerType, typename EncodingType,
+            typename AllocatorType>
+        auto dispatch_insertion(
+            const rapidjson::GenericValue<EncodingType, AllocatorType>& value,
+            ContainerType& container) ->
             typename std::enable_if<
                 traits::treat_as_array<typename ContainerType::value_type>::value>::type
         {
@@ -288,6 +292,27 @@ namespace json_utils
 
             auto nested_container =
                 from_json_array<InsertionPolicy, nested_container_type>(value.GetArray());
+            insert<InsertionPolicy>(std::move(nested_container), container);
+        }
+
+        template <
+            typename InsertionPolicy, typename ContainerType, typename EncodingType,
+            typename AllocatorType>
+        auto dispatch_insertion(
+            const rapidjson::GenericValue<EncodingType, AllocatorType>& value,
+            ContainerType& container) ->
+            typename std::enable_if<
+                traits::treat_as_object<typename ContainerType::value_type>::value>::type
+        {
+            if (!value.IsObject()) {
+                throw std::runtime_error(
+                    "Expected an object, got " + detail::type_to_string(value) + ".");
+            }
+
+            using nested_container_type = typename ContainerType::value_type;
+
+            auto nested_container =
+                from_json_object<InsertionPolicy, nested_container_type>(value.GetObject());
             insert<InsertionPolicy>(std::move(nested_container), container);
         }
 
@@ -344,6 +369,24 @@ namespace json_utils
             const auto& json_array = document.GetArray();
             for (const auto& json_value : json_array) {
                 dispatch_insertion<inserter_policy>(json_value, container);
+            }
+        }
+
+        template <typename ContainerType, typename EncodingType, typename AllocatorType>
+        auto from_json(
+            const rapidjson::GenericMember<EncodingType, AllocatorType>& json_member,
+            ContainerType& container) ->
+            typename std::enable_if<std::conjunction<
+                traits::has_emplace_back<ContainerType>,
+                traits::treat_as_array<ContainerType>>::value>::type
+        {
+            if (!json_member.value.IsArray()) {
+                return;
+            }
+
+            const auto& json_object = json_member.value.GetArray();
+            for (const auto& json_value : json_object) {
+                dispatch_insertion<back_inserter_policy>(json_value, container);
             }
         }
 
