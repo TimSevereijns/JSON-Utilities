@@ -902,6 +902,7 @@ TEST_CASE("Deserialization into a std::map<std::string, std::map<std::string, in
 
         const container_type source_container = { { "objectOne", std::map<std::string, int>{
                                                                      { "subKey", 10 } } } };
+
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
@@ -1146,7 +1147,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Object, Got a Bool")
+    SECTION("Expected an Nested Object, Got a Bool")
     {
         const std::map<std::string, bool> source_container = { { "keyOne", false },
                                                                { "keyTwo", false } };
@@ -1161,7 +1162,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Array, Got a Bool")
+    SECTION("Expected an Nested Array, Got a Bool")
     {
         const std::map<std::string, bool> source_container = { { "keyOne", false },
                                                                { "keyTwo", false } };
