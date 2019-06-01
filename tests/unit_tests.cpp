@@ -28,6 +28,36 @@ namespace
         REQUIRE(json == "[" + std::to_string(min) + "," + std::to_string(max) + "]");
     }
 
+    template <typename NumericType> void test_array_deserialization_of_numerics()
+    {
+        constexpr auto min = std::numeric_limits<NumericType>::min();
+        constexpr auto max = std::numeric_limits<NumericType>::max();
+
+        const std::vector<NumericType> source_container = { min, max };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto deserialization =
+            json_utils::deserialize_from_json<std::vector<NumericType>>(json);
+
+        REQUIRE(source_container == deserialization);
+    }
+
+    template <typename NumericType> void test_object_deserialization_of_numerics()
+    {
+        constexpr auto min = std::numeric_limits<NumericType>::min();
+        constexpr auto max = std::numeric_limits<NumericType>::max();
+
+        const std::map<std::string, NumericType> source_container = { { "min", min },
+                                                                      { "max", max } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto deserialization =
+            json_utils::deserialize_from_json<std::map<std::string, NumericType>>(json);
+
+        REQUIRE(source_container == deserialization);
+    }
+
     namespace sample
     {
         class simple_widget
@@ -58,11 +88,13 @@ namespace
             std::string m_key;
         };
 
-        template <typename Writer> void to_json(Writer& writer, const sample::simple_widget& foo)
+        template <typename Writer> void to_json(Writer& writer, const sample::simple_widget& widget)
         {
             writer.StartObject();
+
             writer.Key("Purpose");
-            writer.String(foo.get_key().c_str());
+            writer.String(widget.get_key().c_str());
+
             writer.EndObject();
         }
 
@@ -113,7 +145,7 @@ namespace
             {
             }
 
-            void set_inner_widget(sample::simple_widget&& widget)
+            void set_inner_widget(sample::simple_widget widget)
             {
                 m_inner_widget = std::move(widget);
             }
@@ -137,9 +169,12 @@ namespace
         void to_json(Writer& writer, const sample::composite_widget& widget)
         {
             writer.StartObject();
+
             writer.Key("Inner Widget");
+
             using json_utils::serializer::to_json;
             to_json(writer, widget.get_inner_widget());
+
             writer.EndObject();
         }
 
@@ -206,11 +241,11 @@ namespace
         void to_json(Writer& writer, const sample::heterogeneous_widget& widget)
         {
             writer.StartObject();
-
             writer.Key("Timestamp");
             writer.String(widget.get_timestamp().c_str());
 
             writer.Key("Data");
+
             using json_utils::serializer::to_json;
             to_json(writer, widget.get_data());
 
@@ -382,7 +417,33 @@ TEST_CASE("Serialization of JSON Value Types")
 
         REQUIRE(json == R"(["Message One","Message Two"])");
     }
+}
 
+TEST_CASE("Serialization of Numeric Types into JSON Array")
+{
+    SECTION("Array of std::int32_t")
+    {
+        test_serialization_of_numerics<std::int32_t>();
+    }
+
+    SECTION("Array of std::uin32_t")
+    {
+        test_serialization_of_numerics<std::uint32_t>();
+    }
+
+    SECTION("Array of std::int64_t")
+    {
+        test_serialization_of_numerics<std::int64_t>();
+    }
+
+    SECTION("Array of std::uint64_t")
+    {
+        test_serialization_of_numerics<std::uint64_t>();
+    }
+}
+
+TEST_CASE("Serialization of Numeric Types into JSON Object")
+{
     SECTION("Array of std::int32_t")
     {
         test_serialization_of_numerics<std::int32_t>();
@@ -557,6 +618,52 @@ TEST_CASE("Serializing a Custom Type")
         const auto json = json_utils::serialize_to_json(container);
 
         REQUIRE(json == R"({"Widget":{"Purpose":"JSON Serialization"}})");
+    }
+}
+
+TEST_CASE("Deserialization of JSON Array into Vector of Numerics")
+{
+    SECTION("Array of std::int32_t")
+    {
+        test_array_deserialization_of_numerics<std::int32_t>();
+    }
+
+    SECTION("Array of std::uin32_t")
+    {
+        test_array_deserialization_of_numerics<std::uint32_t>();
+    }
+
+    SECTION("Array of std::int64_t")
+    {
+        test_array_deserialization_of_numerics<std::int64_t>();
+    }
+
+    SECTION("Array of std::uint64_t")
+    {
+        test_array_deserialization_of_numerics<std::uint64_t>();
+    }
+}
+
+TEST_CASE("Deserialization of JSON Object into Map of Numerics")
+{
+    SECTION("Array of std::int32_t")
+    {
+        test_object_deserialization_of_numerics<std::int32_t>();
+    }
+
+    SECTION("Array of std::uin32_t")
+    {
+        test_object_deserialization_of_numerics<std::uint32_t>();
+    }
+
+    SECTION("Array of std::int64_t")
+    {
+        test_object_deserialization_of_numerics<std::int64_t>();
+    }
+
+    SECTION("Array of std::uint64_t")
+    {
+        test_object_deserialization_of_numerics<std::uint64_t>();
     }
 }
 
@@ -930,12 +1037,9 @@ TEST_CASE("Deserialization of Custom Type")
         const auto deserialization =
             json_utils::deserialize_from_json<sample::composite_widget>(json);
 
-        REQUIRE(widget.get_inner_widget() == deserialization.get_inner_widget());
+        REQUIRE(widget == deserialization);
     }
-}
 
-TEST_CASE("Deserialization of Heterogeneous Object")
-{
     SECTION("JSON Object to sample::heterogeneous_widget")
     {
         const sample::heterogeneous_widget widget;
@@ -944,5 +1048,219 @@ TEST_CASE("Deserialization of Heterogeneous Object")
             json_utils::deserialize_from_json<sample::heterogeneous_widget>(json);
 
         REQUIRE(widget == deserialization);
+    }
+}
+
+TEST_CASE("Error Handling")
+{
+    SECTION("Malformed JSON")
+    {
+        const auto lambda = [] {
+            const auto json = R"("missing":"brackets")";
+            const auto deserialization =
+                json_utils::deserialize_from_json<std::map<std::string, std::string>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected an Int, Got a Bool")
+    {
+        const std::vector<bool> source_container = { false, true };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization = json_utils::deserialize_from_json<std::vector<int>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected an UInt, Got a Bool")
+    {
+        const std::vector<bool> source_container = { false, true };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization =
+                json_utils::deserialize_from_json<std::vector<std::uint64_t>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected a String, Got a Bool")
+    {
+        const std::vector<bool> source_container = { false, true };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization =
+                json_utils::deserialize_from_json<std::vector<std::string>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected an UInt, Got a String")
+    {
+        const std::vector<std::string> source_container = { "Invalid", "Argument" };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization =
+                json_utils::deserialize_from_json<std::vector<std::uint32_t>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected an Int, Got a Null")
+    {
+        const std::vector<std::shared_ptr<int>> source_container = { nullptr };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization =
+                json_utils::deserialize_from_json<std::vector<std::string>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected an Double, Got an Object")
+    {
+        const std::vector<std::map<std::string, bool>> source_container = {
+            std::map<std::string, bool>{ { "keyOne", false } },
+            std::map<std::string, bool>{ { "keyTwo", false } }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization =
+                json_utils::deserialize_from_json<std::vector<double>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected an Object, Got a Bool")
+    {
+        const std::map<std::string, bool> source_container = { { "keyOne", false },
+                                                               { "keyTwo", false } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization = json_utils::deserialize_from_json<
+                std::map<std::string, std::map<std::string, bool>>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected an Array, Got a Bool")
+    {
+        const std::map<std::string, bool> source_container = { { "keyOne", false },
+                                                               { "keyTwo", false } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization =
+                json_utils::deserialize_from_json<std::map<std::string, std::vector<bool>>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected an Double, Got an Array")
+    {
+        const std::vector<std::vector<bool>> source_container = { { false, false },
+                                                                  { true, true } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization =
+                json_utils::deserialize_from_json<std::vector<double>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected an Array, Got a Bool")
+    {
+        const std::vector<bool> source_container = { true, false };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization =
+                json_utils::deserialize_from_json<std::vector<std::vector<bool>>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected an Object, Got a Bool")
+    {
+        const std::vector<bool> source_container = { true, false };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization =
+                json_utils::deserialize_from_json<std::vector<std::map<std::string, bool>>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected an Bool, Got a Int")
+    {
+        constexpr auto min = std::numeric_limits<std::uint32_t>::min();
+        constexpr auto max = std::numeric_limits<std::uint32_t>::max();
+
+        const std::vector<std::uint32_t> source_container = { min, max };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization = json_utils::deserialize_from_json<std::vector<bool>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected an Int, Got a UInt")
+    {
+        constexpr auto min = std::numeric_limits<std::uint32_t>::min();
+        constexpr auto max = std::numeric_limits<std::uint32_t>::max();
+
+        const std::vector<std::uint32_t> source_container = { min, max };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization =
+                json_utils::deserialize_from_json<std::vector<std::int32_t>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+
+    SECTION("Expected an Int64, Got a UInt64")
+    {
+        constexpr auto min = std::numeric_limits<std::uint64_t>::min();
+        constexpr auto max = std::numeric_limits<std::uint64_t>::max();
+
+        const std::vector<std::uint64_t> source_container = { min, max };
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto deserialization =
+                json_utils::deserialize_from_json<std::vector<std::int64_t>>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 }

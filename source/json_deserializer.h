@@ -33,21 +33,21 @@ namespace json_utils
 
     namespace deserializer
     {
-        struct back_inserter_policy
-        {
-            template <typename DataType, typename ContainerType>
-            static void insert(DataType&& data, ContainerType& container)
-            {
-                container.emplace_back(std::forward<DataType>(data));
-            }
-        };
-
-        struct default_inserter_policy
+        struct default_insertion_policy
         {
             template <typename DataType, typename ContainerType>
             static void insert(DataType&& data, ContainerType& container)
             {
                 container.emplace(std::forward<DataType>(data));
+            }
+        };
+
+        struct back_insertion_policy
+        {
+            template <typename DataType, typename ContainerType>
+            static void insert(DataType&& data, ContainerType& container)
+            {
+                container.emplace_back(std::forward<DataType>(data));
             }
         };
 
@@ -287,31 +287,9 @@ namespace json_utils
         auto dispatch_insertion(
             const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
             ContainerType& container) ->
-            typename std::enable_if<
-                traits::treat_as_array<typename ContainerType::value_type>::value>::type
-        {
-            using nested_container_type = typename ContainerType::value_type;
-
-            static_assert(
-                std::is_default_constructible<nested_container_type>::value,
-                "The container must have a default constructible.");
-
-            nested_container_type nested_container;
-
-            using deserializer::from_json;
-            from_json(json_value, nested_container);
-
-            insert<InsertionPolicy>(std::move(nested_container), container);
-        }
-
-        template <
-            typename InsertionPolicy, typename ContainerType, typename EncodingType,
-            typename AllocatorType>
-        auto dispatch_insertion(
-            const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
-            ContainerType& container) ->
-            typename std::enable_if<
-                traits::treat_as_object<typename ContainerType::value_type>::value>::type
+            typename std::enable_if<std::disjunction<
+                traits::treat_as_array<typename ContainerType::value_type>,
+                traits::treat_as_object<typename ContainerType::value_type>>::value>::type
         {
             using nested_container_type = typename ContainerType::value_type;
 
@@ -371,7 +349,7 @@ namespace json_utils
                 traits::has_emplace_back<ContainerType>,
                 traits::treat_as_array<ContainerType>>::value>::type
         {
-            deserialize_json_array<back_inserter_policy>(json_value, container);
+            deserialize_json_array<back_insertion_policy>(json_value, container);
         }
 
         template <typename ContainerType, typename EncodingType, typename AllocatorType>
@@ -382,7 +360,7 @@ namespace json_utils
                 traits::has_emplace<ContainerType>,
                 traits::treat_as_array<ContainerType>>::value>::type
         {
-            deserialize_json_array<default_inserter_policy>(json_value, container);
+            deserialize_json_array<default_insertion_policy>(json_value, container);
         }
 
         template <typename ContainerType, typename EncodingType, typename AllocatorType>
@@ -393,7 +371,7 @@ namespace json_utils
                 traits::has_emplace_back<ContainerType>,
                 traits::treat_as_object<ContainerType>>::value>::type
         {
-            deserialize_json_object<back_inserter_policy>(json_value, container);
+            deserialize_json_object<back_insertion_policy>(json_value, container);
         }
 
         template <typename ContainerType, typename EncodingType, typename AllocatorType>
@@ -404,7 +382,7 @@ namespace json_utils
                 traits::has_emplace<ContainerType>,
                 traits::treat_as_object<ContainerType>>::value>::type
         {
-            deserialize_json_object<default_inserter_policy>(json_value, container);
+            deserialize_json_object<default_insertion_policy>(json_value, container);
         }
     } // namespace deserializer
 } // namespace json_utils
