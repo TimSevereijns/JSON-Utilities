@@ -14,6 +14,7 @@
 #include <rapidjson/reader.h>
 #include <rapidjson/stringbuffer.h>
 
+#include "future_std.h"
 #include "json_traits.h"
 
 namespace json_utils
@@ -106,7 +107,7 @@ namespace json_utils
         auto from_json(
             const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
             ContainerType& container) ->
-            typename std::enable_if<std::conjunction<
+            typename std::enable_if<compatibility::conjunction<
                 traits::has_emplace_back<ContainerType>,
                 traits::treat_as_array<ContainerType>>::value>::type;
 
@@ -114,7 +115,7 @@ namespace json_utils
         auto from_json(
             const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
             ContainerType& container) ->
-            typename std::enable_if<std::conjunction<
+            typename std::enable_if<compatibility::conjunction<
                 traits::has_emplace<ContainerType>,
                 traits::treat_as_array<ContainerType>>::value>::type;
 
@@ -122,7 +123,7 @@ namespace json_utils
         auto from_json(
             const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
             ContainerType& container) ->
-            typename std::enable_if<std::conjunction<
+            typename std::enable_if<compatibility::conjunction<
                 traits::has_emplace_back<ContainerType>,
                 traits::treat_as_object<ContainerType>>::value>::type;
 
@@ -130,7 +131,7 @@ namespace json_utils
         auto from_json(
             const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
             ContainerType& container) ->
-            typename std::enable_if<std::conjunction<
+            typename std::enable_if<compatibility::conjunction<
                 traits::has_emplace<ContainerType>,
                 traits::treat_as_object<ContainerType>>::value>::type;
     } // namespace deserializer
