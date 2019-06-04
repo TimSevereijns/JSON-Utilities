@@ -163,9 +163,11 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
         return;
     }
 
-    std::vector<std::string> data;
-    json_utils::deserializer::from_json(vector_iterator->value, data);
+    using json_utils::deserializer::from_json;
 
+    std::vector<std::string> data;
+    from_json(vector_iterator->value, data);
+    
     widget.set_data(std::move(data));
 }
 ```

@@ -17,265 +17,262 @@
 
 namespace
 {
-    template <typename NumericType> void test_serialization_of_numerics()
+template <typename NumericType> void test_serialization_of_numerics()
+{
+    constexpr auto min = std::numeric_limits<NumericType>::min();
+    constexpr auto max = std::numeric_limits<NumericType>::max();
+
+    const std::vector<NumericType> container = { min, max };
+    const auto json = json_utils::serialize_to_json(container);
+
+    REQUIRE(json == "[" + std::to_string(min) + "," + std::to_string(max) + "]");
+}
+
+template <typename NumericType> void test_array_deserialization_of_numerics()
+{
+    constexpr auto min = std::numeric_limits<NumericType>::min();
+    constexpr auto max = std::numeric_limits<NumericType>::max();
+
+    const std::vector<NumericType> source_container = { min, max };
+    const auto json = json_utils::serialize_to_json(source_container);
+
+    const auto deserialization = json_utils::deserialize_from_json<std::vector<NumericType>>(json);
+
+    REQUIRE(source_container == deserialization);
+}
+
+template <typename NumericType> void test_object_deserialization_of_numerics()
+{
+    constexpr auto min = std::numeric_limits<NumericType>::min();
+    constexpr auto max = std::numeric_limits<NumericType>::max();
+
+    const std::map<std::string, NumericType> source_container = { { "min", min }, { "max", max } };
+
+    const auto json = json_utils::serialize_to_json(source_container);
+
+    const auto deserialization =
+        json_utils::deserialize_from_json<std::map<std::string, NumericType>>(json);
+
+    REQUIRE(source_container == deserialization);
+}
+
+namespace sample
+{
+class simple_widget
+{
+  public:
+    simple_widget() = default;
+
+    explicit simple_widget(std::string key_name) : m_key{ std::move(key_name) }
     {
-        constexpr auto min = std::numeric_limits<NumericType>::min();
-        constexpr auto max = std::numeric_limits<NumericType>::max();
-
-        const std::vector<NumericType> container = { min, max };
-        const auto json = json_utils::serialize_to_json(container);
-
-        REQUIRE(json == "[" + std::to_string(min) + "," + std::to_string(max) + "]");
     }
 
-    template <typename NumericType> void test_array_deserialization_of_numerics()
+    std::string get_key() const noexcept
     {
-        constexpr auto min = std::numeric_limits<NumericType>::min();
-        constexpr auto max = std::numeric_limits<NumericType>::max();
-
-        const std::vector<NumericType> source_container = { min, max };
-        const auto json = json_utils::serialize_to_json(source_container);
-
-        const auto deserialization =
-            json_utils::deserialize_from_json<std::vector<NumericType>>(json);
-
-        REQUIRE(source_container == deserialization);
+        return m_key;
     }
 
-    template <typename NumericType> void test_object_deserialization_of_numerics()
+    void set_key(std::string key_name)
     {
-        constexpr auto min = std::numeric_limits<NumericType>::min();
-        constexpr auto max = std::numeric_limits<NumericType>::max();
-
-        const std::map<std::string, NumericType> source_container = { { "min", min },
-                                                                      { "max", max } };
-
-        const auto json = json_utils::serialize_to_json(source_container);
-
-        const auto deserialization =
-            json_utils::deserialize_from_json<std::map<std::string, NumericType>>(json);
-
-        REQUIRE(source_container == deserialization);
+        m_key = std::move(key_name);
     }
 
-    namespace sample
+    friend bool operator==(const simple_widget& lhs, const simple_widget& rhs) noexcept
     {
-        class simple_widget
-        {
-          public:
-            simple_widget() = default;
+        return lhs.m_key == rhs.m_key;
+    }
 
-            explicit simple_widget(std::string key_name) : m_key{ std::move(key_name) }
-            {
-            }
+  private:
+    std::string m_key;
+};
 
-            std::string get_key() const noexcept
-            {
-                return m_key;
-            }
+template <typename Writer> void to_json(Writer& writer, const sample::simple_widget& widget)
+{
+    writer.StartObject();
 
-            void set_key(std::string key_name)
-            {
-                m_key = std::move(key_name);
-            }
+    writer.Key("Purpose");
+    writer.String(widget.get_key().c_str());
 
-            friend bool operator==(const simple_widget& lhs, const simple_widget& rhs) noexcept
-            {
-                return lhs.m_key == rhs.m_key;
-            }
+    writer.EndObject();
+}
 
-          private:
-            std::string m_key;
-        };
+void from_json(const rapidjson::Document& document, sample::simple_widget& widget)
+{
+    if (!document.IsObject()) {
+        return;
+    }
 
-        template <typename Writer> void to_json(Writer& writer, const sample::simple_widget& widget)
-        {
-            writer.StartObject();
+    const auto member_iterator = document.FindMember("Purpose");
+    if (member_iterator == document.MemberEnd()) {
+        return;
+    }
 
-            writer.Key("Purpose");
-            writer.String(widget.get_key().c_str());
+    widget.set_key(member_iterator->value.GetString());
+}
 
-            writer.EndObject();
-        }
+template <typename EncodingType, typename AllocatorType>
+void from_json(
+    const rapidjson::GenericMember<EncodingType, AllocatorType>& member,
+    sample::simple_widget& widget)
+{
+    if (!member.value.IsObject()) {
+        return;
+    }
 
-        void from_json(const rapidjson::Document& document, sample::simple_widget& widget)
-        {
-            if (!document.IsObject()) {
-                return;
-            }
+    const auto json_object = member.value.GetObject();
+    const auto member_iterator = json_object.FindMember("Purpose");
 
-            const auto member_iterator = document.FindMember("Purpose");
-            if (member_iterator == document.MemberEnd()) {
-                return;
-            }
+    if (member_iterator == json_object.MemberEnd() || !member_iterator->value.IsString()) {
+        return;
+    }
 
-            widget.set_key(member_iterator->value.GetString());
-        }
+    widget.set_key(member_iterator->value.GetString());
+}
 
-        template <typename EncodingType, typename AllocatorType>
-        void from_json(
-            const rapidjson::GenericMember<EncodingType, AllocatorType>& member,
-            sample::simple_widget& widget)
-        {
-            if (!member.value.IsObject()) {
-                return;
-            }
+std::string to_narrow_json_key(const sample::simple_widget& widget) noexcept
+{
+    return widget.get_key();
+}
 
-            const auto json_object = member.value.GetObject();
-            const auto member_iterator = json_object.FindMember("Purpose");
+class composite_widget
+{
+  public:
+    composite_widget() = default;
 
-            if (member_iterator == json_object.MemberEnd() || !member_iterator->value.IsString()) {
-                return;
-            }
+    explicit composite_widget(std::string key_name) : m_inner_widget{ std::move(key_name) }
+    {
+    }
 
-            widget.set_key(member_iterator->value.GetString());
-        }
+    void set_inner_widget(sample::simple_widget widget)
+    {
+        m_inner_widget = std::move(widget);
+    }
 
-        std::string to_narrow_json_key(const sample::simple_widget& widget) noexcept
-        {
-            return widget.get_key();
-        }
+    simple_widget get_inner_widget() const noexcept
+    {
+        return m_inner_widget;
+    }
 
-        class composite_widget
-        {
-          public:
-            composite_widget() = default;
+    friend bool operator==(const composite_widget& lhs, const composite_widget& rhs) noexcept
+    {
+        return lhs.m_inner_widget == rhs.m_inner_widget;
+    }
 
-            explicit composite_widget(std::string key_name) : m_inner_widget{ std::move(key_name) }
-            {
-            }
+  private:
+    simple_widget m_inner_widget;
+};
 
-            void set_inner_widget(sample::simple_widget widget)
-            {
-                m_inner_widget = std::move(widget);
-            }
+template <typename Writer> void to_json(Writer& writer, const sample::composite_widget& widget)
+{
+    writer.StartObject();
 
-            simple_widget get_inner_widget() const noexcept
-            {
-                return m_inner_widget;
-            }
+    writer.Key("Inner Widget");
 
-            friend bool
-            operator==(const composite_widget& lhs, const composite_widget& rhs) noexcept
-            {
-                return lhs.m_inner_widget == rhs.m_inner_widget;
-            }
+    using json_utils::serializer::to_json;
+    to_json(writer, widget.get_inner_widget());
 
-          private:
-            simple_widget m_inner_widget;
-        };
+    writer.EndObject();
+}
 
-        template <typename Writer>
-        void to_json(Writer& writer, const sample::composite_widget& widget)
-        {
-            writer.StartObject();
+void from_json(const rapidjson::Document& document, sample::composite_widget& widget)
+{
+    if (!document.IsObject()) {
+        return;
+    }
 
-            writer.Key("Inner Widget");
+    const auto member_iterator = document.FindMember("Inner Widget");
+    if (member_iterator == document.MemberEnd()) {
+        return;
+    }
 
-            using json_utils::serializer::to_json;
-            to_json(writer, widget.get_inner_widget());
+    sample::simple_widget simple_widget;
 
-            writer.EndObject();
-        }
+    using json_utils::serializer::to_json;
+    from_json(*member_iterator, simple_widget);
 
-        void from_json(const rapidjson::Document& document, sample::composite_widget& widget)
-        {
-            if (!document.IsObject()) {
-                return;
-            }
+    widget.set_inner_widget(std::move(simple_widget));
+}
 
-            const auto member_iterator = document.FindMember("Inner Widget");
-            if (member_iterator == document.MemberEnd()) {
-                return;
-            }
+class heterogeneous_widget
+{
+  public:
+    heterogeneous_widget()
+    {
+        m_data =
+            std::vector<std::string>{ "Test String One", "Test String Two", "Test String Three" };
+    }
 
-            sample::simple_widget simple_widget;
+    const std::vector<std::string>& get_data() const
+    {
+        return m_data;
+    }
 
-            using json_utils::serializer::to_json;
-            from_json(*member_iterator, simple_widget);
+    void set_data(std::vector<std::string>&& data)
+    {
+        m_data = std::move(data);
+    }
 
-            widget.set_inner_widget(std::move(simple_widget));
-        }
+    const std::string& get_timestamp() const
+    {
+        return m_timestamp;
+    }
 
-        class heterogeneous_widget
-        {
-          public:
-            heterogeneous_widget()
-            {
-                m_data = std::vector<std::string>{ "Test String One", "Test String Two",
-                                                   "Test String Three" };
-            }
+    void set_timestamp(std::string timestamp)
+    {
+        m_timestamp = std::move(timestamp);
+    }
 
-            const std::vector<std::string>& get_data() const
-            {
-                return m_data;
-            }
+    friend bool
+    operator==(const heterogeneous_widget& lhs, const heterogeneous_widget& rhs) noexcept
+    {
+        return lhs.m_timestamp == rhs.m_timestamp && lhs.m_data == rhs.m_data;
+    }
 
-            void set_data(std::vector<std::string>&& data)
-            {
-                m_data = std::move(data);
-            }
+  private:
+    std::string m_timestamp = "2019/05/29";
+    std::vector<std::string> m_data;
+};
 
-            const std::string& get_timestamp() const
-            {
-                return m_timestamp;
-            }
+template <typename Writer> void to_json(Writer& writer, const sample::heterogeneous_widget& widget)
+{
+    writer.StartObject();
+    writer.Key("Timestamp");
+    writer.String(widget.get_timestamp().c_str());
 
-            void set_timestamp(std::string timestamp)
-            {
-                m_timestamp = std::move(timestamp);
-            }
+    writer.Key("Data");
 
-            friend bool
-            operator==(const heterogeneous_widget& lhs, const heterogeneous_widget& rhs) noexcept
-            {
-                return lhs.m_timestamp == rhs.m_timestamp && lhs.m_data == rhs.m_data;
-            }
+    using json_utils::serializer::to_json;
+    to_json(writer, widget.get_data());
 
-          private:
-            std::string m_timestamp = "2019/05/29";
-            std::vector<std::string> m_data;
-        };
+    writer.EndObject();
+}
 
-        template <typename Writer>
-        void to_json(Writer& writer, const sample::heterogeneous_widget& widget)
-        {
-            writer.StartObject();
-            writer.Key("Timestamp");
-            writer.String(widget.get_timestamp().c_str());
+void from_json(const rapidjson::Document& document, sample::heterogeneous_widget& widget)
+{
+    if (!document.IsObject()) {
+        return;
+    }
 
-            writer.Key("Data");
+    const auto timestamp_iterator = document.FindMember("Timestamp");
+    if (timestamp_iterator == document.MemberEnd()) {
+        return;
+    }
 
-            using json_utils::serializer::to_json;
-            to_json(writer, widget.get_data());
+    widget.set_timestamp(timestamp_iterator->value.GetString());
 
-            writer.EndObject();
-        }
+    const auto vector_iterator = document.FindMember("Data");
+    if (vector_iterator == document.MemberEnd()) {
+        return;
+    }
 
-        void from_json(const rapidjson::Document& document, sample::heterogeneous_widget& widget)
-        {
-            if (!document.IsObject()) {
-                return;
-            }
+    using json_utils::deserializer::from_json;
 
-            const auto timestamp_iterator = document.FindMember("Timestamp");
-            if (timestamp_iterator == document.MemberEnd()) {
-                return;
-            }
+    std::vector<std::string> data;
+    from_json(vector_iterator->value, data);
 
-            widget.set_timestamp(timestamp_iterator->value.GetString());
-
-            const auto vector_iterator = document.FindMember("Data");
-            if (vector_iterator == document.MemberEnd()) {
-                return;
-            }
-
-            std::vector<std::string> data;
-            json_utils::deserializer::from_json(vector_iterator->value, data);
-
-            widget.set_data(std::move(data));
-        }
-    } // namespace sample
+    widget.set_data(std::move(data));
+}
+} // namespace sample
 } // namespace
 
 TEST_CASE("Trait Detection")
@@ -466,6 +463,7 @@ TEST_CASE("Serialization of Numeric Types into JSON Object")
 }
 
 #if __cplusplus >= 201703L // C++17
+
 TEST_CASE("Serialization of C++17 Constructs")
 {
     SECTION("Array of std::string_view")
@@ -479,6 +477,7 @@ TEST_CASE("Serialization of C++17 Constructs")
         REQUIRE(json == R"(["Hello","World"])");
     }
 }
+
 #endif
 
 TEST_CASE("Handling Pointer Types")
