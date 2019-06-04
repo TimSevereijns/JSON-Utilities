@@ -17,7 +17,7 @@ The output, of course, is rather simple:
 [1,2,3,4,5]
 ```
 
-Not only does this work for relatively simple, continuous containers, it also works for associative containers:
+Not only does this work for relatively simple, contiguous containers, it also works for associative containers:
 
 ```C++
 const std::unordered_map<std::string, int> container = { { "key_one", 1 },
@@ -67,4 +67,105 @@ Note, that the ordering of a `std::map<...>` likely isn't going to remain stable
 
 ## Deserialization
 
-Coming soon...
+Deserialization is also supported!
+
+Given that we don't (yet) have reflection in C++, there are obviously going to be some limitations, but certain use-cases can certainly be pretty straightforward.
+
+For instance, suppose you have a simple, flat JSON object. Here's how such an object might be deserialized:
+
+```C++
+const std::string json =
+R"({)"
+R"(    "object1": { "subKey1": 10, "subKey2": 20, "subKey3": 30 }, )"
+R"(    "object2": { "subKey1": 40, "subKey2": 50, "subKey3": 60 }  )"
+R"(})";
+
+const auto map = json_utils::deserialize_from_json<std::map<std::string, int>>(json);
+```
+
+The derialization logc will use the provided template parameters as a guide for what the JSON object should look like at runtime. If the template suggests that a JSON object should be next, and a different type is presented at runtime, then a `std::invalid_argument` exception will be thrown.
+
+## Customization and Handling of Custom Types
+
+Since you'll probably want to serialize something other than plain-old datatypes (PODs), homogeneous arrays, or homogenous objects, you can use argument dependent lookup (ADL) to provide handling for custom types.
+
+```C++
+class heterogeneous_widget
+{
+    public:
+    heterogeneous_widget()
+    {
+        m_data = std::vector<std::string>{ "Test String One", "Test String Two",
+                                            "Test String Three" };
+    }
+
+    const std::vector<std::string>& get_data() const
+    {
+        return m_data;
+    }
+
+    void set_data(std::vector<std::string>&& data)
+    {
+        m_data = std::move(data);
+    }
+
+    const std::string& get_timestamp() const
+    {
+        return m_timestamp;
+    }
+
+    void set_timestamp(std::string timestamp)
+    {
+        m_timestamp = std::move(timestamp);
+    }
+
+    friend bool
+    operator==(const heterogeneous_widget& lhs, const heterogeneous_widget& rhs) noexcept
+    {
+        return lhs.m_timestamp == rhs.m_timestamp && lhs.m_data == rhs.m_data;
+    }
+
+    private:
+    std::string m_timestamp = "2019/05/29";
+    std::vector<std::string> m_data;
+};
+
+template <typename Writer>
+void to_json(Writer& writer, const sample::heterogeneous_widget& widget)
+{
+    writer.StartObject();
+    writer.Key("Timestamp");
+    writer.String(widget.get_timestamp().c_str());
+
+    writer.Key("Data");
+
+    using json_utils::serializer::to_json;
+    to_json(writer, widget.get_data());
+
+    writer.EndObject();
+}
+
+void from_json(const rapidjson::Document& document, sample::heterogeneous_widget& widget)
+{
+    if (!document.IsObject()) {
+        return;
+    }
+
+    const auto timestamp_iterator = document.FindMember("Timestamp");
+    if (timestamp_iterator == document.MemberEnd()) {
+        return;
+    }
+
+    widget.set_timestamp(timestamp_iterator->value.GetString());
+
+    const auto vector_iterator = document.FindMember("Data");
+    if (vector_iterator == document.MemberEnd()) {
+        return;
+    }
+
+    std::vector<std::string> data;
+    json_utils::deserializer::from_json(vector_iterator->value, data);
+
+    widget.set_data(std::move(data));
+}
+```
