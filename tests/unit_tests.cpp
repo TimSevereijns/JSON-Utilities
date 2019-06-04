@@ -414,6 +414,17 @@ TEST_CASE("Serialization of JSON Value Types")
 
         REQUIRE(json == R"(["Message One","Message Two"])");
     }
+
+    SECTION("Array of const char*, with nullptr")
+    {
+        const char* message_one = "Message One";
+        const char* message_two = nullptr;
+
+        const std::vector<const char*> container = { message_one, message_two };
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == R"(["Message One",null])");
+    }
 }
 
 TEST_CASE("Serialization of Numeric Types into JSON Array")
@@ -493,6 +504,17 @@ TEST_CASE("Handling Pointer Types")
         REQUIRE(json == R"(["Hello","World"])");
     }
 
+    SECTION("Using std::unique_ptr<...> Set to Null")
+    {
+        auto container = std::vector<std::unique_ptr<std::string>>();
+        container.emplace_back(std::make_unique<std::string>("Test"));
+        container.emplace_back(nullptr);
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == R"(["Test",null])");
+    }
+
     SECTION("Using std::shared_ptr<...>")
     {
         const auto container =
@@ -502,6 +524,17 @@ TEST_CASE("Handling Pointer Types")
         const auto json = json_utils::serialize_to_json(container);
 
         REQUIRE(json == R"(["Hello","World"])");
+    }
+
+    SECTION("Using std::shared_ptr<...> Set to Null")
+    {
+        const auto container =
+            std::vector<std::shared_ptr<std::string>>{ std::make_shared<std::string>("Test"),
+                                                       nullptr };
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == R"(["Test",null])");
     }
 
     SECTION("Using std::weak_ptr<...>")

@@ -11,7 +11,7 @@ template <typename WriterType, typename DataType, typename BufferType>
 const typename BufferType::Ch*
 serialize(BufferType& buffer, WriterType& writer, const DataType& data)
 {
-    using serializer::to_json; //< Enables ADL
+    using serializer::to_json;
     to_json(writer, data);
 
     return buffer.GetString();

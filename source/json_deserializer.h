@@ -178,8 +178,10 @@ auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorTyp
     return construct_nested_pair<nested_container_type>(member);
 }
 
-template <typename InsertionPolicy, typename ContainerType>
-auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
+template <
+    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
+auto dispatch_insertion(
+    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
     typename std::enable_if<std::is_same<typename ContainerType::value_type, bool>::value>::type
 {
     if (!value.IsBool()) {
@@ -190,8 +192,10 @@ auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container)
     insert<InsertionPolicy>(value.GetBool(), container);
 }
 
-template <typename InsertionPolicy, typename ContainerType>
-auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
+template <
+    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
+auto dispatch_insertion(
+    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
     typename std::enable_if<std::is_same<typename ContainerType::value_type, int>::value>::type
 {
     if (!value.IsInt()) {
@@ -202,8 +206,10 @@ auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container)
     insert<InsertionPolicy>(value.GetInt(), container);
 }
 
-template <typename InsertionPolicy, typename ContainerType>
-auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
+template <
+    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
+auto dispatch_insertion(
+    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
     typename std::enable_if<
         std::is_same<typename ContainerType::value_type, unsigned int>::value>::type
 {
@@ -215,8 +221,10 @@ auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container)
     insert<InsertionPolicy>(value.GetUint(), container);
 }
 
-template <typename InsertionPolicy, typename ContainerType>
-auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
+template <
+    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
+auto dispatch_insertion(
+    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
     typename std::enable_if<
         std::is_same<typename ContainerType::value_type, std::int64_t>::value>::type
 {
@@ -228,8 +236,10 @@ auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container)
     insert<InsertionPolicy>(value.GetInt64(), container);
 }
 
-template <typename InsertionPolicy, typename ContainerType>
-auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
+template <
+    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
+auto dispatch_insertion(
+    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
     typename std::enable_if<
         std::is_same<typename ContainerType::value_type, std::uint64_t>::value>::type
 {
@@ -241,8 +251,10 @@ auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container)
     insert<InsertionPolicy>(value.GetUint64(), container);
 }
 
-template <typename InsertionPolicy, typename ContainerType>
-auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
+template <
+    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
+auto dispatch_insertion(
+    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
     typename std::enable_if<
         std::is_same<typename ContainerType::value_type, std::string>::value>::type
 {
@@ -254,8 +266,10 @@ auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container)
     insert<InsertionPolicy>(value.GetString(), container);
 }
 
-template <typename InsertionPolicy, typename ContainerType>
-auto dispatch_insertion(const rapidjson::Value& value, ContainerType& container) ->
+template <
+    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
+auto dispatch_insertion(
+    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
     typename std::enable_if<std::is_same<typename ContainerType::value_type, double>::value>::type
 {
     if (!value.IsDouble()) {

@@ -2,6 +2,9 @@
 
 #include <type_traits>
 
+/**
+ * The functionality provided in this namespace emulates similar functionality found in C++17.
+ */
 namespace compatibility
 {
 template <typename...> struct conjunction : std::true_type

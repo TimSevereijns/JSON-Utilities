@@ -92,7 +92,7 @@ Since you'll probably want to serialize something other than plain-old datatypes
 ```C++
 class heterogeneous_widget
 {
-    public:
+public:
     heterogeneous_widget()
     {
         m_data = std::vector<std::string>{ "Test String One", "Test String Two",
@@ -125,7 +125,7 @@ class heterogeneous_widget
         return lhs.m_timestamp == rhs.m_timestamp && lhs.m_data == rhs.m_data;
     }
 
-    private:
+private:
     std::string m_timestamp = "2019/05/29";
     std::vector<std::string> m_data;
 };

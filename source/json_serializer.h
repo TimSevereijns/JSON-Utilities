@@ -179,10 +179,12 @@ auto to_json(Writer& writer, const ContainerType& container) ->
     typename std::enable_if<traits::treat_as_array<ContainerType>::value>::type
 {
     writer.StartArray();
+
     for (const auto& item : container) {
         using serializer::to_json;
         to_json(writer, item);
     }
+
     writer.EndArray();
 }
 
@@ -191,10 +193,12 @@ auto to_json(Writer& writer, const ContainerType& container) ->
     typename std::enable_if<traits::treat_as_object<ContainerType>::value>::type
 {
     writer.StartObject();
+
     for (const auto& item : container) {
         using serializer::to_json;
         to_json(writer, item);
     }
+
     writer.EndObject();
 }
 
@@ -205,7 +209,6 @@ void to_json(Writer& writer, const std::pair<FirstType, SecondType>& pair)
 }
 
 #if __cplusplus >= 201703L // C++17
-
 template <typename Writer, typename CharacterType, typename CharacterTraits>
 void to_json(Writer& writer, const std::basic_string_view<CharacterType, CharacterTraits>& view)
 {
@@ -232,8 +235,6 @@ template <typename Writer> void to_json(Writer& writer, const std::filesystem::p
         to_json(writer, path.wstring().c_str());
     }
 }
-
 #endif
-
 } // namespace serializer
 } // namespace json_utils
