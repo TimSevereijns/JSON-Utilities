@@ -487,6 +487,16 @@ TEST_CASE("Serialization of C++17 Constructs")
 
         REQUIRE(json == R"(["Hello","World"])");
     }
+
+    SECTION("Array of std::optional<...>")
+    {
+        const std::vector<std::optional<int>> container = { std::optional<int>{ 101 },
+                                                            std::optional<int>{ 202 } };
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == R"([101,202])");
+    }
 }
 
 #endif
@@ -547,6 +557,19 @@ TEST_CASE("Handling Pointer Types")
         const auto json = json_utils::serialize_to_json(container);
 
         REQUIRE(json == R"(["Hello","World"])");
+    }
+
+    SECTION("Using std::weak_ptr<...> Set to Null")
+    {
+        const auto pointer_one = std::make_shared<std::string>("Test");
+
+        const auto container = std::vector<std::weak_ptr<std::string>>{
+            pointer_one, std::make_shared<std::string>("Short lived temporary")
+        };
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == R"(["Test",null])");
     }
 }
 
@@ -991,6 +1014,26 @@ TEST_CASE("Deserialization into a std::list<...>")
         REQUIRE(source_container == resultant_container);
     }
 }
+
+#if __cplusplus >= 201703L // C++17
+
+TEST_CASE("Deserialization of C++17 Constructs")
+{
+    // using container_type = std::map<std::string, std::optional<int>>;
+
+    // SECTION("Array of std::optional<...>")
+    // {
+    //     const container_type container = { { "keyOne", std::optional<int>{ 101 } },
+    //                                        { "keyTwo", std::optional<int>{ 202 } } };
+
+    //     const auto json = json_utils::serialize_to_json(container);
+    //     const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+    //     REQUIRE(json == R"([101,202])");
+    // }
+}
+
+#endif
 
 TEST_CASE("Deserialization into a std::set<...>")
 {

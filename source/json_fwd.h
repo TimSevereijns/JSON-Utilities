@@ -98,7 +98,7 @@ template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<compatibility::conjunction<
+    typename std::enable_if<future_std::conjunction<
         traits::has_emplace_back<ContainerType>,
         traits::treat_as_array<ContainerType>>::value>::type;
 
@@ -106,14 +106,14 @@ template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<compatibility::conjunction<
+    typename std::enable_if<future_std::conjunction<
         traits::has_emplace<ContainerType>, traits::treat_as_array<ContainerType>>::value>::type;
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<compatibility::conjunction<
+    typename std::enable_if<future_std::conjunction<
         traits::has_emplace_back<ContainerType>,
         traits::treat_as_object<ContainerType>>::value>::type;
 
@@ -121,7 +121,7 @@ template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<compatibility::conjunction<
+    typename std::enable_if<future_std::conjunction<
         traits::has_emplace<ContainerType>, traits::treat_as_object<ContainerType>>::value>::type;
 } // namespace deserializer
 } // namespace json_utils

@@ -7,19 +7,19 @@
 #include <utility>
 #include <vector>
 
+#include "future_std.h"
+
 namespace json_utils
 {
 namespace traits
 {
-template <typename...> using void_t = void;
-
 template <typename, typename = void> struct has_emplace_back : std::false_type
 {
 };
 
 template <typename Type>
 struct has_emplace_back<
-    Type, void_t<decltype(std::declval<Type&>().emplace_back(
+    Type, future_std::void_t<decltype(std::declval<Type&>().emplace_back(
               std::declval<typename Type::value_type&&>()))>> : std::true_type
 {
 };
@@ -30,9 +30,8 @@ template <typename, typename = void> struct has_emplace : std::false_type
 
 template <typename Type>
 struct has_emplace<
-    Type,
-    void_t<decltype(std::declval<Type&>().emplace(std::declval<typename Type::value_type&&>()))>>
-    : std::true_type
+    Type, future_std::void_t<decltype(std::declval<Type&>().emplace(
+              std::declval<typename Type::value_type&&>()))>> : std::true_type
 {
 };
 
@@ -42,7 +41,7 @@ template <typename, typename = void> struct treat_as_array : std::false_type
 
 template <typename Type>
 struct treat_as_array<
-    Type, void_t<
+    Type, future_std::void_t<
               typename Type::value_type, typename Type::reference, typename Type::const_reference,
               typename Type::iterator, decltype(std::declval<Type&>().begin()),
               decltype(std::declval<Type&>().end())>> : std::true_type

@@ -294,7 +294,7 @@ template <
 auto dispatch_insertion(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<compatibility::disjunction<
+    typename std::enable_if<future_std::disjunction<
         traits::treat_as_array<typename ContainerType::value_type>,
         traits::treat_as_object<typename ContainerType::value_type>>::value>::type
 {
@@ -345,15 +345,12 @@ void deserialize_json_array(
     }
 }
 } // namespace detail
-} // namespace deserializer
 
-namespace deserializer
-{
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<compatibility::conjunction<
+    typename std::enable_if<future_std::conjunction<
         traits::has_emplace_back<ContainerType>,
         traits::treat_as_array<ContainerType>>::value>::type
 {
@@ -364,7 +361,7 @@ template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<compatibility::conjunction<
+    typename std::enable_if<future_std::conjunction<
         traits::has_emplace<ContainerType>, traits::treat_as_array<ContainerType>>::value>::type
 {
     detail::deserialize_json_array<default_insertion_policy>(json_value, container);
@@ -374,7 +371,7 @@ template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<compatibility::conjunction<
+    typename std::enable_if<future_std::conjunction<
         traits::has_emplace_back<ContainerType>,
         traits::treat_as_object<ContainerType>>::value>::type
 {
@@ -385,7 +382,7 @@ template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<compatibility::conjunction<
+    typename std::enable_if<future_std::conjunction<
         traits::has_emplace<ContainerType>, traits::treat_as_object<ContainerType>>::value>::type
 {
     detail::deserialize_json_object<default_insertion_policy>(json_value, container);

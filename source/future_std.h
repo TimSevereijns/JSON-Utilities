@@ -5,8 +5,10 @@
 /**
  * The functionality provided in this namespace emulates similar functionality found in C++17.
  */
-namespace compatibility
+namespace future_std
 {
+template <typename...> using void_t = void;
+
 template <typename...> struct conjunction : std::true_type
 {
 };
@@ -34,4 +36,4 @@ struct disjunction<DataType, OtherDataTypes...>
     : std::conditional<bool(DataType::value), DataType, disjunction<OtherDataTypes...>>::type
 {
 };
-} // namespace compatibility
+} // namespace future_std
