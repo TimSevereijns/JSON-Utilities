@@ -55,12 +55,17 @@ std::string type_to_string(const rapidjson::Value& value)
 
 template <typename DataType> struct value_extractor
 {
+    template <typename EncodingType, typename AllocatorType>
+    static bool extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    {
+        throw std::invalid_argument("Cannot extract unsupported type");
+    }
 };
 
 template <> struct value_extractor<bool>
 {
     template <typename EncodingType, typename AllocatorType>
-    static bool extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    static bool extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsBool()) {
             throw std::invalid_argument("todo");
@@ -73,7 +78,8 @@ template <> struct value_extractor<bool>
 template <> struct value_extractor<std::int32_t>
 {
     template <typename EncodingType, typename AllocatorType>
-    static std::int32_t extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    static std::int32_t
+    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsInt()) {
             throw std::invalid_argument("todo");
@@ -86,7 +92,8 @@ template <> struct value_extractor<std::int32_t>
 template <> struct value_extractor<std::uint32_t>
 {
     template <typename EncodingType, typename AllocatorType>
-    static std::uint32_t extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    static std::uint32_t
+    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsUint()) {
             throw std::invalid_argument("todo");
@@ -99,7 +106,8 @@ template <> struct value_extractor<std::uint32_t>
 template <> struct value_extractor<std::int64_t>
 {
     template <typename EncodingType, typename AllocatorType>
-    static std::int64_t extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    static std::int64_t
+    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsInt64()) {
             throw std::invalid_argument("todo");
@@ -112,7 +120,8 @@ template <> struct value_extractor<std::int64_t>
 template <> struct value_extractor<std::uint64_t>
 {
     template <typename EncodingType, typename AllocatorType>
-    static std::uint64_t extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    static std::uint64_t
+    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsUint64()) {
             throw std::invalid_argument("todo");
@@ -125,7 +134,8 @@ template <> struct value_extractor<std::uint64_t>
 template <> struct value_extractor<double>
 {
     template <typename EncodingType, typename AllocatorType>
-    static double extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    static double
+    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsDouble()) {
             throw std::invalid_argument("todo");
@@ -138,7 +148,8 @@ template <> struct value_extractor<double>
 template <> struct value_extractor<std::string>
 {
     template <typename EncodingType, typename AllocatorType>
-    static std::string extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    static std::string
+    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsString()) {
             throw std::invalid_argument("todo");
@@ -167,7 +178,7 @@ auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorTyp
 {
     return std::make_pair<std::string, typename PairType::second_type>(
         member.name.GetString(),
-        value_extractor<typename PairType::second_type>::extract(member.value));
+        value_extractor<typename PairType::second_type>::extract_or_throw(member.value));
 }
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
@@ -221,102 +232,10 @@ template <
     typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
 auto dispatch_insertion(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
-    typename std::enable_if<std::is_same<typename ContainerType::value_type, bool>::value>::type
+    typename std::enable_if<traits::treat_as_value<typename ContainerType::value_type>::value>::type
 {
-    if (!value.IsBool()) {
-        throw std::invalid_argument(
-            "Expected a boolean, got " + detail::type_to_string(value) + ".");
-    }
-
-    insert<InsertionPolicy>(value.GetBool(), container);
-}
-
-template <
-    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
-auto dispatch_insertion(
-    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
-    typename std::enable_if<std::is_same<typename ContainerType::value_type, int>::value>::type
-{
-    if (!value.IsInt()) {
-        throw std::invalid_argument(
-            "Expected an integer, got " + detail::type_to_string(value) + ".");
-    }
-
-    insert<InsertionPolicy>(value.GetInt(), container);
-}
-
-template <
-    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
-auto dispatch_insertion(
-    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
-    typename std::enable_if<
-        std::is_same<typename ContainerType::value_type, unsigned int>::value>::type
-{
-    if (!value.IsUint()) {
-        throw std::invalid_argument(
-            "Expected an unsigned integer, got " + detail::type_to_string(value) + ".");
-    }
-
-    insert<InsertionPolicy>(value.GetUint(), container);
-}
-
-template <
-    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
-auto dispatch_insertion(
-    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
-    typename std::enable_if<
-        std::is_same<typename ContainerType::value_type, std::int64_t>::value>::type
-{
-    if (!value.IsInt64()) {
-        throw std::invalid_argument(
-            "Expected a 64-bit integer, got " + detail::type_to_string(value) + ".");
-    }
-
-    insert<InsertionPolicy>(value.GetInt64(), container);
-}
-
-template <
-    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
-auto dispatch_insertion(
-    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
-    typename std::enable_if<
-        std::is_same<typename ContainerType::value_type, std::uint64_t>::value>::type
-{
-    if (!value.IsUint64()) {
-        throw std::invalid_argument(
-            "Expected an unsigned, 64-bit integer, got " + detail::type_to_string(value) + ".");
-    }
-
-    insert<InsertionPolicy>(value.GetUint64(), container);
-}
-
-template <
-    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
-auto dispatch_insertion(
-    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
-    typename std::enable_if<
-        std::is_same<typename ContainerType::value_type, std::string>::value>::type
-{
-    if (!value.IsString()) {
-        throw std::invalid_argument(
-            "Expected a string, got " + detail::type_to_string(value) + ".");
-    }
-
-    insert<InsertionPolicy>(value.GetString(), container);
-}
-
-template <
-    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
-auto dispatch_insertion(
-    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
-    typename std::enable_if<std::is_same<typename ContainerType::value_type, double>::value>::type
-{
-    if (!value.IsDouble()) {
-        throw std::invalid_argument(
-            "Expected a double, got " + detail::type_to_string(value) + ".");
-    }
-
-    insert<InsertionPolicy>(value.GetDouble(), container);
+    using desired_type = typename ContainerType::value_type;
+    insert<InsertionPolicy>(value_extractor<desired_type>::extract_or_throw(value), container);
 }
 
 template <
