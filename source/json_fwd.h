@@ -89,11 +89,6 @@ template <typename WriterType> void to_json(WriterType& writer, const std::files
 
 namespace deserializer
 {
-template <
-    typename InsertionPolicy, typename EncodingType, typename AllocatorType, typename ContainerType>
-void dispatch_insertion(
-    const rapidjson::GenericMember<EncodingType, AllocatorType>& member, ContainerType& container);
-
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,

@@ -178,17 +178,6 @@ void insert(DataType&& value, ContainerType& container)
     InsertionPolicy::insert(std::forward<DataType>(value), container);
 }
 
-template <typename PairType, typename EncodingType, typename AllocatorType>
-auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
-    typename std::enable_if<
-        traits::treat_as_value<typename PairType::second_type>::value,
-        std::pair<std::string, typename PairType::second_type>>::type
-{
-    return std::make_pair<std::string, typename PairType::second_type>(
-        member.name.GetString(),
-        value_extractor<typename PairType::second_type>::extract_or_throw(member.value));
-}
-
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 std::pair<std::string, ContainerType>
 construct_nested_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member)
@@ -204,6 +193,18 @@ construct_nested_pair(const rapidjson::GenericMember<EncodingType, AllocatorType
 
     return std::make_pair<std::string, ContainerType>(
         member.name.GetString(), std::move(container));
+}
+
+template <typename PairType, typename EncodingType, typename AllocatorType>
+auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
+    typename std::enable_if<
+        traits::treat_as_value<typename PairType::second_type>::value,
+        std::pair<std::string, typename PairType::second_type>>::type
+{
+    using desired_type = typename PairType::second_type;
+
+    return std::make_pair<std::string, desired_type>(
+        member.name.GetString(), value_extractor<desired_type>::extract_or_throw(member.value));
 }
 
 template <typename PairType, typename EncodingType, typename AllocatorType>
@@ -237,6 +238,15 @@ auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorTyp
 }
 
 template <
+    typename InsertionPolicy, typename EncodingType, typename AllocatorType, typename ContainerType>
+void dispatch_insertion(
+    const rapidjson::GenericMember<EncodingType, AllocatorType>& member, ContainerType& container)
+{
+    auto pair = to_key_value_pair<typename ContainerType::value_type>(member);
+    insert<InsertionPolicy>(std::move(pair), container);
+}
+
+template <
     typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
 auto dispatch_insertion(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
@@ -244,15 +254,6 @@ auto dispatch_insertion(
 {
     using desired_type = typename ContainerType::value_type;
     insert<InsertionPolicy>(value_extractor<desired_type>::extract_or_throw(value), container);
-}
-
-template <
-    typename InsertionPolicy, typename EncodingType, typename AllocatorType, typename ContainerType>
-void dispatch_insertion(
-    const rapidjson::GenericMember<EncodingType, AllocatorType>& member, ContainerType& container)
-{
-    auto pair = to_key_value_pair<typename ContainerType::value_type>(member);
-    insert<InsertionPolicy>(std::move(pair), container);
 }
 
 template <
