@@ -68,7 +68,8 @@ template <> struct value_extractor<bool>
     static bool extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsBool()) {
-            throw std::invalid_argument("todo");
+            throw std::invalid_argument(
+                "Expected a bool, got " + detail::type_to_string(value) + ".");
         }
 
         return value.GetBool();
@@ -82,7 +83,8 @@ template <> struct value_extractor<std::int32_t>
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsInt()) {
-            throw std::invalid_argument("todo");
+            throw std::invalid_argument(
+                "Expected a 32-bit integer, got " + detail::type_to_string(member.value) + ".");
         }
 
         return value.GetInt();
@@ -96,7 +98,9 @@ template <> struct value_extractor<std::uint32_t>
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsUint()) {
-            throw std::invalid_argument("todo");
+            throw std::invalid_argument(
+                "Expected an unsigned, 32-bit integer, got " +
+                detail::type_to_string(member.value) + ".");
         }
 
         return value.GetUint();
@@ -110,7 +114,8 @@ template <> struct value_extractor<std::int64_t>
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsInt64()) {
-            throw std::invalid_argument("todo");
+            throw std::invalid_argument(
+                "Expected a 64-bit integer, got " + detail::type_to_string(member.value) + ".");
         }
 
         return value.GetInt64();
@@ -124,7 +129,9 @@ template <> struct value_extractor<std::uint64_t>
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsUint64()) {
-            throw std::invalid_argument("todo");
+            throw std::invalid_argument(
+                "Expected an unsigned, 64-bit integer, got " +
+                detail::type_to_string(member.value) + ".");
         }
 
         return value.GetUint64();
@@ -138,7 +145,8 @@ template <> struct value_extractor<double>
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsDouble()) {
-            throw std::invalid_argument("todo");
+            throw std::invalid_argument(
+                "Expected a real, got " + detail::type_to_string(member.value) + ".");
         }
 
         return value.GetDouble();
@@ -152,7 +160,8 @@ template <> struct value_extractor<std::string>
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsString()) {
-            throw std::invalid_argument("todo");
+            throw std::invalid_argument(
+                "Expected a string, got " + detail::type_to_string(member.value) + ".");
         }
 
         return value.GetString();
