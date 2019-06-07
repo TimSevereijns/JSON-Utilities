@@ -53,6 +53,101 @@ std::string type_to_string(const rapidjson::Value& value)
     return "an unknown type";
 }
 
+template <typename DataType> struct value_extractor
+{
+};
+
+template <> struct value_extractor<bool>
+{
+    template <typename EncodingType, typename AllocatorType>
+    static bool extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    {
+        if (!value.IsBool()) {
+            throw std::invalid_argument("todo");
+        }
+
+        return value.GetBool();
+    }
+};
+
+template <> struct value_extractor<std::int32_t>
+{
+    template <typename EncodingType, typename AllocatorType>
+    static std::int32_t extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    {
+        if (!value.IsInt()) {
+            throw std::invalid_argument("todo");
+        }
+
+        return value.GetInt();
+    }
+};
+
+template <> struct value_extractor<std::uint32_t>
+{
+    template <typename EncodingType, typename AllocatorType>
+    static std::uint32_t extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    {
+        if (!value.IsUint()) {
+            throw std::invalid_argument("todo");
+        }
+
+        return value.GetUint();
+    }
+};
+
+template <> struct value_extractor<std::int64_t>
+{
+    template <typename EncodingType, typename AllocatorType>
+    static std::int64_t extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    {
+        if (!value.IsInt64()) {
+            throw std::invalid_argument("todo");
+        }
+
+        return value.GetInt64();
+    }
+};
+
+template <> struct value_extractor<std::uint64_t>
+{
+    template <typename EncodingType, typename AllocatorType>
+    static std::uint64_t extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    {
+        if (!value.IsUint64()) {
+            throw std::invalid_argument("todo");
+        }
+
+        return value.GetUint64();
+    }
+};
+
+template <> struct value_extractor<double>
+{
+    template <typename EncodingType, typename AllocatorType>
+    static double extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    {
+        if (!value.IsDouble()) {
+            throw std::invalid_argument("todo");
+        }
+
+        return value.GetDouble();
+    }
+};
+
+template <> struct value_extractor<std::string>
+{
+    template <typename EncodingType, typename AllocatorType>
+    static std::string extract(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    {
+        if (!value.IsString()) {
+            throw std::invalid_argument("todo");
+        }
+
+        return value.GetString();
+    }
+};
+
 template <typename InsertionPolicy, typename DataType, typename ContainerType>
 void insert(DataType&& value, ContainerType& container)
 {
@@ -64,71 +159,15 @@ void insert(DataType&& value, ContainerType& container)
     InsertionPolicy::insert(std::forward<DataType>(value), container);
 }
 
-template <typename ContainerType, typename EncodingType, typename AllocatorType>
-auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
-    typename std::enable_if<
-        std::is_same<typename ContainerType::second_type, int>::value,
-        std::pair<std::string, int>>::type
-{
-    return std::make_pair<std::string, int>(member.name.GetString(), member.value.GetInt());
-}
-
 template <typename PairType, typename EncodingType, typename AllocatorType>
 auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
     typename std::enable_if<
-        std::is_same<typename PairType::second_type, std::uint32_t>::value,
-        std::pair<std::string, std::uint32_t>>::type
+        traits::treat_as_value<typename PairType::second_type>::value,
+        std::pair<std::string, typename PairType::second_type>>::type
 {
-    return std::make_pair<std::string, std::uint32_t>(
-        member.name.GetString(), member.value.GetUint());
-}
-
-template <typename PairType, typename EncodingType, typename AllocatorType>
-auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
-    typename std::enable_if<
-        std::is_same<typename PairType::second_type, std::int64_t>::value,
-        std::pair<std::string, std::int64_t>>::type
-{
-    return std::make_pair<std::string, std::int64_t>(
-        member.name.GetString(), member.value.GetInt64());
-}
-
-template <typename PairType, typename EncodingType, typename AllocatorType>
-auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
-    typename std::enable_if<
-        std::is_same<typename PairType::second_type, std::uint64_t>::value,
-        std::pair<std::string, std::uint64_t>>::type
-{
-    return std::make_pair<std::string, std::uint64_t>(
-        member.name.GetString(), member.value.GetUint64());
-}
-
-template <typename PairType, typename EncodingType, typename AllocatorType>
-auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
-    typename std::enable_if<
-        std::is_same<typename PairType::second_type, double>::value,
-        std::pair<std::string, double>>::type
-{
-    return std::make_pair<std::string, double>(member.name.GetString(), member.value.GetDouble());
-}
-
-template <typename PairType, typename EncodingType, typename AllocatorType>
-auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
-    typename std::enable_if<
-        std::is_same<typename PairType::second_type, std::string>::value,
-        std::pair<std::string, std::string>>::type
-{
-    return std::make_pair<std::string, std::string>(
-        member.name.GetString(), member.value.GetString());
-}
-
-template <typename PairType, typename EncodingType, typename AllocatorType>
-auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
-    typename std::enable_if<
-        std::is_same<typename PairType::second_type, bool>::value,
-        std::pair<std::string, bool>>::type
-{
-    return std::make_pair<std::string, bool>(member.name.GetString(), member.value.GetBool());
+    return std::make_pair<std::string, typename PairType::second_type>(
+        member.name.GetString(),
+        value_extractor<typename PairType::second_type>::extract(member.value));
 }
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>

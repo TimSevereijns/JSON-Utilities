@@ -105,5 +105,13 @@ template <typename KeyType, typename ValueType>
 struct treat_as_object<std::vector<std::pair<KeyType, ValueType>>> : std::true_type
 {
 };
+
+template <typename DataType> struct treat_as_value
+{
+    using type =
+        std::negation<std::disjunction<treat_as_array<DataType>, treat_as_object<DataType>>>;
+
+    static constexpr bool value = type::value;
+};
 } // namespace traits
 } // namespace json_utils
