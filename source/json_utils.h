@@ -19,7 +19,8 @@ serialize(BufferType& buffer, WriterType& writer, const DataType& data)
 } // namespace detail
 
 template <typename EncodingType = rapidjson::UTF8<>, typename DataType>
-std::basic_string<typename EncodingType::Ch> serialize_to_json(const DataType& data)
+JSON_UTILS_NODISCARD std::basic_string<typename EncodingType::Ch>
+serialize_to_json(const DataType& data)
 {
     rapidjson::GenericStringBuffer<EncodingType> buffer;
     rapidjson::Writer<decltype(buffer)> writer{ buffer };
@@ -28,7 +29,8 @@ std::basic_string<typename EncodingType::Ch> serialize_to_json(const DataType& d
 }
 
 template <typename EncodingType = rapidjson::UTF8<>, typename DataType>
-std::basic_string<typename EncodingType::Ch> serialize_to_pretty_json(const DataType& data)
+JSON_UTILS_NODISCARD std::basic_string<typename EncodingType::Ch>
+serialize_to_pretty_json(const DataType& data)
 {
     rapidjson::GenericStringBuffer<EncodingType> buffer;
     rapidjson::PrettyWriter<decltype(buffer)> writer{ buffer };
@@ -36,7 +38,8 @@ std::basic_string<typename EncodingType::Ch> serialize_to_pretty_json(const Data
     return detail::serialize(buffer, writer, data);
 }
 
-template <typename ContainerType> ContainerType deserialize_from_json(const char* const json)
+template <typename ContainerType>
+JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const char* const json)
 {
     rapidjson::StringStream stringStream{ json };
     rapidjson::Document document;
@@ -58,7 +61,8 @@ template <typename ContainerType> ContainerType deserialize_from_json(const char
     return container;
 }
 
-template <typename ContainerType> ContainerType deserialize_from_json(const std::string& json)
+template <typename ContainerType>
+JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const std::string& json)
 {
     return deserialize_from_json<ContainerType>(json.c_str());
 }

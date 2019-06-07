@@ -56,7 +56,8 @@ std::string type_to_string(const rapidjson::Value& value)
 template <typename DataType> struct value_extractor
 {
     template <typename EncodingType, typename AllocatorType>
-    static bool extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    JSON_UTILS_NORETURN static bool
+    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         throw std::invalid_argument("Cannot extract unsupported type");
     }
@@ -84,7 +85,7 @@ template <> struct value_extractor<std::int32_t>
     {
         if (!value.IsInt()) {
             throw std::invalid_argument(
-                "Expected a 32-bit integer, got " + detail::type_to_string(member.value) + ".");
+                "Expected a 32-bit integer, got " + detail::type_to_string(value) + ".");
         }
 
         return value.GetInt();
@@ -99,8 +100,7 @@ template <> struct value_extractor<std::uint32_t>
     {
         if (!value.IsUint()) {
             throw std::invalid_argument(
-                "Expected an unsigned, 32-bit integer, got " +
-                detail::type_to_string(member.value) + ".");
+                "Expected an unsigned, 32-bit integer, got " + detail::type_to_string(value) + ".");
         }
 
         return value.GetUint();
@@ -115,7 +115,7 @@ template <> struct value_extractor<std::int64_t>
     {
         if (!value.IsInt64()) {
             throw std::invalid_argument(
-                "Expected a 64-bit integer, got " + detail::type_to_string(member.value) + ".");
+                "Expected a 64-bit integer, got " + detail::type_to_string(value) + ".");
         }
 
         return value.GetInt64();
@@ -130,8 +130,7 @@ template <> struct value_extractor<std::uint64_t>
     {
         if (!value.IsUint64()) {
             throw std::invalid_argument(
-                "Expected an unsigned, 64-bit integer, got " +
-                detail::type_to_string(member.value) + ".");
+                "Expected an unsigned, 64-bit integer, got " + detail::type_to_string(value) + ".");
         }
 
         return value.GetUint64();
@@ -146,7 +145,7 @@ template <> struct value_extractor<double>
     {
         if (!value.IsDouble()) {
             throw std::invalid_argument(
-                "Expected a real, got " + detail::type_to_string(member.value) + ".");
+                "Expected a real, got " + detail::type_to_string(value) + ".");
         }
 
         return value.GetDouble();
@@ -161,7 +160,7 @@ template <> struct value_extractor<std::string>
     {
         if (!value.IsString()) {
             throw std::invalid_argument(
-                "Expected a string, got " + detail::type_to_string(member.value) + ".");
+                "Expected a string, got " + detail::type_to_string(value) + ".");
         }
 
         return value.GetString();
