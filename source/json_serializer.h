@@ -53,41 +53,80 @@ void insert_key_value_pair(Writer& writer, const KeyType& key, const ValueType& 
 
 namespace serializer
 {
-template <typename Writer> void to_json(Writer& writer, bool data)
+template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer, bool data)
 {
     writer.Bool(data);
 }
 
-template <typename Writer> void to_json(Writer& writer, std::int32_t data)
+template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    std::int32_t data)
 {
     writer.Int(data);
 }
 
-template <typename Writer> void to_json(Writer& writer, std::uint32_t data)
+template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    std::uint32_t data)
 {
     writer.Uint(data);
 }
 
-template <typename Writer> void to_json(Writer& writer, std::int64_t data)
+template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    std::int64_t data)
 {
     writer.Int64(data);
 }
 
-template <typename Writer> void to_json(Writer& writer, std::uint64_t data)
+template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    std::uint64_t data)
 {
     writer.Uint64(data);
 }
 
-template <typename Writer, typename DataType>
-auto to_json(Writer& writer, DataType data) ->
-    typename std::enable_if<std::is_floating_point<DataType>::value>::type
+template <
+    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
+    typename DataType>
+auto to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    DataType data) -> typename std::enable_if<std::is_floating_point<DataType>::value>::type
 {
     writer.Double(data);
 }
 
-template <typename Writer>
-auto to_json(Writer& writer, const char* const data) ->
-    typename std::enable_if<std::is_same<char, typename Writer::Ch>::value>::type
+template <
+    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
+    typename CharacterType, typename CharacterTraits, typename Allocator>
+auto to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const std::basic_string<CharacterType, CharacterTraits, Allocator>& data)
+{
+    static_assert(
+        std::is_same<
+            CharacterType,
+            typename rapidjson::Writer<
+                OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value,
+        "The character type to be serialized differs from the character type of the "
+        "rapidjson::Writer object.");
+
+    writer.String(data.c_str());
+}
+
+template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
+auto to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const char* const data) ->
+    typename std::enable_if<std::is_same<
+        char, typename rapidjson::Writer<
+                  OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type
 {
     if (data == nullptr) {
         writer.Null();
@@ -97,9 +136,13 @@ auto to_json(Writer& writer, const char* const data) ->
     writer.String(data);
 }
 
-template <typename Writer>
-auto to_json(Writer& writer, const char16_t* const data) ->
-    typename std::enable_if<std::is_same<char16_t, typename Writer::Ch>::value>::type
+template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
+auto to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const char* const data) ->
+    typename std::enable_if<std::is_same<
+        char16_t, typename rapidjson::Writer<
+                      OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type
 {
     if (data == nullptr) {
         writer.Null();
@@ -109,9 +152,13 @@ auto to_json(Writer& writer, const char16_t* const data) ->
     writer.String(data);
 }
 
-template <typename Writer>
-auto to_json(Writer& writer, const char32_t* const data) ->
-    typename std::enable_if<std::is_same<char32_t, typename Writer::Ch>::value>::type
+template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
+auto to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const char* const data) ->
+    typename std::enable_if<std::is_same<
+        char32_t, typename rapidjson::Writer<
+                      OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type
 {
     if (data == nullptr) {
         writer.Null();
@@ -121,8 +168,12 @@ auto to_json(Writer& writer, const char32_t* const data) ->
     writer.String(data);
 }
 
-template <typename Writer, typename Type>
-void to_json(Writer& writer, const std::shared_ptr<Type>& pointer)
+template <
+    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
+    typename DataType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const std::shared_ptr<DataType>& pointer)
 {
     if (pointer == nullptr) {
         writer.Null();
@@ -133,8 +184,12 @@ void to_json(Writer& writer, const std::shared_ptr<Type>& pointer)
     to_json(writer, *pointer);
 }
 
-template <typename Writer, typename Type>
-void to_json(Writer& writer, const std::unique_ptr<Type>& pointer)
+template <
+    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
+    typename DataType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const std::unique_ptr<DataType>& pointer)
 {
     if (pointer == nullptr) {
         writer.Null();
@@ -145,8 +200,12 @@ void to_json(Writer& writer, const std::unique_ptr<Type>& pointer)
     to_json(writer, *pointer);
 }
 
-template <typename Writer, typename Type>
-void to_json(Writer& writer, const std::weak_ptr<Type>& weakPointer)
+template <
+    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
+    typename DataType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const std::weak_ptr<DataType>& weakPointer)
 {
     const auto strongPointer = weakPointer.lock();
     if (strongPointer == nullptr) {
@@ -158,24 +217,14 @@ void to_json(Writer& writer, const std::weak_ptr<Type>& weakPointer)
     to_json(writer, *strongPointer);
 }
 
-template <typename Writer, typename CharacterType, typename CharacterTraits, typename Allocator>
-void to_json(
-    Writer& writer, const std::basic_string<CharacterType, CharacterTraits, Allocator>& data)
-{
-    static_assert(
-        std::is_same<
-            typename std::basic_string<CharacterType, CharacterTraits, Allocator>::value_type,
-            typename Writer::Ch>::value,
-        "The character type to be serialized differs from the character type of the "
-        "rapidjson::Writer object.");
-
-    writer.String(data.c_str());
-}
-
 // @todo Add overload for a vector of pairs
 
-template <typename Writer, typename ContainerType>
-auto to_json(Writer& writer, const ContainerType& container) ->
+template <
+    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
+    typename ContainerType>
+auto to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const ContainerType& container) ->
     typename std::enable_if<traits::treat_as_array<ContainerType>::value>::type
 {
     writer.StartArray();
@@ -188,8 +237,12 @@ auto to_json(Writer& writer, const ContainerType& container) ->
     writer.EndArray();
 }
 
-template <typename Writer, typename ContainerType>
-auto to_json(Writer& writer, const ContainerType& container) ->
+template <
+    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
+    typename ContainerType>
+auto to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const ContainerType& container) ->
     typename std::enable_if<traits::treat_as_object<ContainerType>::value>::type
 {
     writer.StartObject();
@@ -202,21 +255,33 @@ auto to_json(Writer& writer, const ContainerType& container) ->
     writer.EndObject();
 }
 
-template <typename Writer, typename FirstType, typename SecondType>
-void to_json(Writer& writer, const std::pair<FirstType, SecondType>& pair)
+template <
+    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
+    typename FirstType, typename SecondType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const std::pair<FirstType, SecondType>& pair)
 {
     detail::insert_key_value_pair(writer, pair.first, pair.second);
 }
 
 #if __cplusplus >= 201703L // C++17
-template <typename Writer, typename CharacterType, typename CharacterTraits>
-void to_json(Writer& writer, const std::basic_string_view<CharacterType, CharacterTraits>& view)
+template <
+    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
+    typename CharacterType, typename CharacterTraits>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const std::basic_string_view<CharacterType, CharacterTraits>& view)
 {
     writer.String(view.data());
 }
 
-template <typename Writer, typename DataType>
-void to_json(Writer& writer, const std::optional<DataType>& data)
+template <
+    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
+    typename DataType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const std::optional<DataType>& data)
 {
     if (!data.has_value()) {
         writer.Null();
@@ -227,11 +292,17 @@ void to_json(Writer& writer, const std::optional<DataType>& data)
     to_json(writer, *data);
 }
 
-template <typename Writer> void to_json(Writer& writer, const std::filesystem::path& path)
+template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const std::filesystem::path& path)
 {
-    if constexpr (std::is_same_v<typename Writer::Ch, char>) {
+    using character_type =
+        typename rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch;
+
+    if constexpr (std::is_same_v<character_type, char>) {
         to_json(writer, path.string().c_str());
-    } else if (std::is_same_v<typename Writer::Ch, wchar_t>) {
+    } else if (std::is_same_v<character_type, wchar_t>) {
         to_json(writer, path.wstring().c_str());
     }
 }

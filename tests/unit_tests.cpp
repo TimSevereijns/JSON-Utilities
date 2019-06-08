@@ -86,7 +86,10 @@ class simple_widget
     std::string m_key;
 };
 
-template <typename Writer> void to_json(Writer& writer, const sample::simple_widget& widget)
+template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const sample::simple_widget& widget)
 {
     writer.StartObject();
 
@@ -162,7 +165,10 @@ class composite_widget
     simple_widget m_inner_widget;
 };
 
-template <typename Writer> void to_json(Writer& writer, const sample::composite_widget& widget)
+template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const sample::composite_widget& widget)
 {
     writer.StartObject();
 
@@ -233,7 +239,10 @@ class heterogeneous_widget
     std::vector<std::string> m_data;
 };
 
-template <typename Writer> void to_json(Writer& writer, const sample::heterogeneous_widget& widget)
+template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
+void to_json(
+    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
+    const sample::heterogeneous_widget& widget)
 {
     writer.StartObject();
     writer.Key("Timestamp");

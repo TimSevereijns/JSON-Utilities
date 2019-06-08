@@ -13,7 +13,7 @@
     #endif
 
     #ifndef JSON_UTILS_MAYBEUNUSED
-        #define JSON_UTILS_MAYBEUNUSED [[maybe_unused]]
+        #define JSON_UTILS_MAYBE_UNUSED [[maybe_unused]]
     #endif
 #elif
     #ifndef JSON_UTILS_NORETURN
@@ -62,6 +62,11 @@ template <typename DataType> struct disjunction<DataType> : DataType
 template <class DataType, class... OtherDataTypes>
 struct disjunction<DataType, OtherDataTypes...>
     : std::conditional<bool(DataType::value), DataType, disjunction<OtherDataTypes...>>::type
+{
+};
+
+template <class BoleanType>
+struct negation : std::bool_constant<!static_cast<bool>(BoleanType::value)>
 {
 };
 } // namespace future_std

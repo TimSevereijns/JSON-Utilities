@@ -290,8 +290,8 @@ void deserialize_json_object(
     }
 
     const auto& json_object = json_value.GetObject();
-    for (const auto& json_value : json_object) {
-        dispatch_insertion<InsertionPolicy>(json_value, container);
+    for (const auto& nested_json_value : json_object) {
+        dispatch_insertion<InsertionPolicy>(nested_json_value, container);
     }
 }
 
@@ -307,8 +307,8 @@ void deserialize_json_array(
     }
 
     const auto& json_array = json_value.GetArray();
-    for (const auto& json_value : json_array) {
-        dispatch_insertion<InsertionPolicy>(json_value, container);
+    for (const auto& nested_json_value : json_array) {
+        dispatch_insertion<InsertionPolicy>(nested_json_value, container);
     }
 }
 } // namespace detail
