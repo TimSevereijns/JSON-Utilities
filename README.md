@@ -71,17 +71,30 @@ Deserialization is also supported!
 
 Given that we don't (yet) have reflection in C++, there are obviously going to be some limitations, but certain use-cases can certainly be pretty straightforward.
 
-For instance, suppose you have a simple, flat JSON object. Here's how such an object might be deserialized:
+For instance, suppose you have a simple, flat JSON object:
+
+```JSON
+{
+    "object1": { 
+        "subKey1": 10, 
+        "subKey2": 20, 
+        "subKey3": 30 
+    },
+    "object2": { 
+        "subKey1": 40, 
+        "subKey2": 50, 
+        "subKey3": 60
+    }
+}
+```
+
+Here's how such an object might be deserialized:
 
 ```C++
-const std::string json =
-R"({)"
-R"(    "object1": { "subKey1": 10, "subKey2": 20, "subKey3": 30 }, )"
-R"(    "object2": { "subKey1": 40, "subKey2": 50, "subKey3": 60 }  )"
-R"(})";
-
 const auto map = json_utils::deserialize_from_json<std::map<std::string, int>>(json);
 ```
+
+That's it...
 
 The derialization logc will use the provided template parameters as a guide for what the JSON object should look like at runtime. If the template suggests that a JSON object should be next, and a different type is presented at runtime, then a `std::invalid_argument` exception will be thrown.
 
