@@ -106,7 +106,7 @@ void from_json(const rapidjson::Document& document, sample::simple_widget& widge
     }
 
     const auto member_iterator = document.FindMember("Purpose");
-    if (member_iterator == document.MemberEnd()) {
+    if (member_iterator == document.MemberEnd() || !member_iterator->value.IsString()) {
         return;
     }
 
@@ -146,7 +146,7 @@ class composite_widget
     {
     }
 
-    void set_inner_widget(sample::simple_widget widget)
+    void set_inner_widget(sample::simple_widget&& widget)
     {
         m_inner_widget = std::move(widget);
     }
@@ -187,7 +187,7 @@ void from_json(const rapidjson::Document& document, sample::composite_widget& wi
     }
 
     const auto member_iterator = document.FindMember("Inner Widget");
-    if (member_iterator == document.MemberEnd()) {
+    if (member_iterator == document.MemberEnd() || !member_iterator->value.IsObject()) {
         return;
     }
 
@@ -263,14 +263,14 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
     }
 
     const auto timestamp_iterator = document.FindMember("Timestamp");
-    if (timestamp_iterator == document.MemberEnd()) {
+    if (timestamp_iterator == document.MemberEnd() || !timestamp_iterator->value.IsString()) {
         return;
     }
 
     widget.set_timestamp(timestamp_iterator->value.GetString());
 
     const auto vector_iterator = document.FindMember("Data");
-    if (vector_iterator == document.MemberEnd()) {
+    if (vector_iterator == document.MemberEnd() || !vector_iterator->value.IsObject()) {
         return;
     }
 
@@ -625,6 +625,27 @@ TEST_CASE("Serializations of Composite Containrs")
             R"("Key Two":{"Subkey One":128.0,"Subkey Three":512.0,"Subkey Two":256.0})"
             R"(})");
     }
+
+    SECTION("With a More Complex, Nested Type")
+    {
+        const std::vector<std::pair<std::string, std::map<std::string, double>>> container = {
+            { "Key One", std::map<std::string, double>{ { "Subkey One", 16.0 },
+                                                        { "Subkey Two", 32.0 },
+                                                        { "Subkey Three", 64.0 } } },
+            { "Key Two", std::map<std::string, double>{ { "Subkey One", 128.0 },
+                                                        { "Subkey Two", 256.0 },
+                                                        { "Subkey Three", 512.0 } } }
+        };
+
+        const auto json = json_utils::serialize_to_pretty_json(container);
+
+        REQUIRE(
+            json ==
+            R"({)"
+            R"("Key One":{"Subkey One":16.0,"Subkey Three":64.0,"Subkey Two":32.0},)"
+            R"("Key Two":{"Subkey One":128.0,"Subkey Three":512.0,"Subkey Two":256.0})"
+            R"(})");
+    }
 }
 
 TEST_CASE("Serializing a Custom Type")
@@ -800,7 +821,7 @@ TEST_CASE("Deserialization into a std::vector<...>")
     }
 }
 
-TEST_CASE("Deserialization into a std::vector<std::pair<...>>")
+TEST_CASE("Deserialization into a std::vector<std::pair<std::string, ...>>")
 {
     SECTION("With a Single Entry")
     {
