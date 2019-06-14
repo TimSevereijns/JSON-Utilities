@@ -15,7 +15,7 @@
     #ifndef JSON_UTILS_MAYBEUNUSED
         #define JSON_UTILS_MAYBE_UNUSED [[maybe_unused]]
     #endif
-#elif
+#else
     #ifndef JSON_UTILS_NORETURN
         #define JSON_UTILS_NORETURN
     #endif
@@ -31,7 +31,8 @@
 // clang-format on
 
 /**
- * The functionality provided in this namespace emulates similar functionality found in C++17.
+ * The functionality provided in this namespace emulates similar functionality found in C++14 and
+ * C++17.
  */
 namespace future_std
 {
@@ -65,8 +66,12 @@ struct disjunction<DataType, OtherDataTypes...>
 {
 };
 
-template <class BoleanType>
-struct negation : std::bool_constant<!static_cast<bool>(BoleanType::value)>
+template <class DataType> struct negation : std::integral_constant<bool, !bool(DataType::value)>
 {
 };
+
+template <typename DataType, typename... Args> std::unique_ptr<DataType> make_unique(Args&&... args)
+{
+    return std::unique_ptr<DataType>(new DataType{ std::forward<Args>(args)... });
+}
 } // namespace future_std

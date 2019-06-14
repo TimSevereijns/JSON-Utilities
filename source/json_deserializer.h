@@ -25,10 +25,7 @@ struct back_insertion_policy
         container.emplace_back(std::forward<DataType>(data));
     }
 };
-} // namespace deserializer
 
-namespace deserializer
-{
 namespace detail
 {
 std::string type_to_string(const rapidjson::Value& value)

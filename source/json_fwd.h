@@ -1,6 +1,9 @@
 #pragma once
 
+#if __cplusplus >= 201703L // C++17
 #include <filesystem>
+#endif
+
 #include <map>
 #include <string>
 #include <type_traits>
@@ -55,7 +58,7 @@ auto to_json(
 template <
     typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
     typename CharacterType, typename CharacterTraits, typename Allocator>
-auto to_json(
+void to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
     const std::basic_string<CharacterType, CharacterTraits, Allocator>& data);
 

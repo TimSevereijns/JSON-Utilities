@@ -65,9 +65,9 @@ The resultant JSON string looks as follows:
 }
 ```
 
-Note, that the ordering of a `std::map<...>` likely isn't going to remain stable from insertion to serialization. JSON makes no guarantees about ordering either, though.
+Note, that the ordering of a `std::map<...>` likely isn't going to remain stable from insertion to serialization; JSON makes no guarantees about ordering either.
 
-If you'd rather store your data in a contiguous container, the example above can also be expressed a `std::vector<std::pair<...>>`:
+If you'd rather store your data in a contiguous container, the example above can also be expressed as a `std::vector<std::pair<...>>`:
 
 ```C++
 const std::vector<std::pair<std::string, std::map<std::string, double>>> container = {
@@ -82,7 +82,9 @@ const std::vector<std::pair<std::string, std::map<std::string, double>>> contain
 const auto json = json_utils::serialize_to_pretty_json(container);
 ```
 
-In short, a `std::vector<std::pair<..., ...>>` is treated as an object, while a `std::vector<...>` is treated as an array.
+Generally speaking, associative containers (like `std::map<...>` and `std::unordered_map<..>`) will be treated as JSON object, while non-associative containers (like `std::vector<...>`, `std::array<...>`, `std::set<...>`, `std::list<...>`, et cetera) will be treated as JSON arrays.
+
+An exception to this is a `std::vector<std::pair<...>>`, which is also treated as an object (since it's very similar to a `std::[unordered_]map`).
 
 ## Deserialization
 
@@ -101,7 +103,7 @@ const auto vector =
     json_utils::deserialize_from_json<std::vector<std::pair<std::string, int>>>(json);
 ```
 
-That's it...
+That's it.
 
 The derialization logic will use the provided template parameters as a guide for what the JSON object should look like at runtime. So, if the template suggests that, say, a JSON object should be present, and a different type is presented at runtime, then a `std::invalid_argument` exception will be thrown.
 
@@ -115,12 +117,6 @@ namespace sample
 class heterogeneous_widget
 {
 public:
-    heterogeneous_widget()
-    {
-        m_data = std::vector<std::string>{ "Test String One", "Test String Two",
-                                            "Test String Three" };
-    }
-
     const std::vector<std::string>& get_data() const
     {
         return m_data;
@@ -141,26 +137,20 @@ public:
         m_timestamp = std::move(timestamp);
     }
 
-    friend bool
-    operator==(const heterogeneous_widget& lhs, const heterogeneous_widget& rhs) noexcept
-    {
-        return lhs.m_timestamp == rhs.m_timestamp && lhs.m_data == rhs.m_data;
-    }
-
 private:
     std::string m_timestamp = "2019/05/29";
-    std::vector<std::string> m_data;
+    std::vector<std::string> m_data = { "Test String One", "Test String Two", "Test String Three" };
 };
 
 template <typename Writer>
 void to_json(Writer& writer, const sample::heterogeneous_widget& widget)
 {
     writer.StartObject();
+
     writer.Key("Timestamp");
     writer.String(widget.get_timestamp().c_str());
 
     writer.Key("Data");
-
     using json_utils::serializer::to_json;
     to_json(writer, widget.get_data());
 
@@ -180,17 +170,41 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
 
     widget.set_timestamp(timestamp_iterator->value.GetString());
 
-    const auto vector_iterator = document.FindMember("Data");
-    if (vector_iterator == document.MemberEnd() || !vector_iterator->value.IsObject()) {
+    const auto data_iterator = document.FindMember("Data");
+    if (data_iterator == document.MemberEnd() || !data_iterator->value.IsObject()) {
         return;
     }
 
     using json_utils::deserializer::from_json;
 
     std::vector<std::string> data;
-    from_json(vector_iterator->value, data);
+    from_json(data_iterator->value, data);
     
     widget.set_data(std::move(data));
 }
 }
+```
+
+Note that in order for ADL to find the correct overload, the `to_json(...)` and `from_json(...)` functions will need to be in the same namespace as the custome type that is to be serialized. With regard for the example shown above, that would be the `sample` namespace.
+
+## Compatibility
+
+This project aims to target C++11 and up. Where sensible, support for C++17 features (like `std::filesystem::path` and `std::optional<...>`) has been provided.
+
+## Building Instructions
+
+After checking out the source, run the following commands from the base directory to build in `debug`:
+
+```
+mkdir debug && cd debug
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make
+```
+
+Building in `release` is very similar:
+
+```
+mkdir release && cd release
+cmake -DCMAKE_BUILD_TYPE=Release ..
+make
 ```

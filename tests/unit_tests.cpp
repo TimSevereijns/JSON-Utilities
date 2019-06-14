@@ -1,12 +1,12 @@
 #define CATCH_CONFIG_MAIN // This tells Catch to provide a main() - only do this in one cpp file
 #include <catch2/catch.hpp>
 
+#include <deque>
 #include <iostream>
 #include <list>
 #include <map>
 #include <memory>
 #include <numeric>
-#include <queue>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -202,12 +202,6 @@ void from_json(const rapidjson::Document& document, sample::composite_widget& wi
 class heterogeneous_widget
 {
   public:
-    heterogeneous_widget()
-    {
-        m_data =
-            std::vector<std::string>{ "Test String One", "Test String Two", "Test String Three" };
-    }
-
     const std::vector<std::string>& get_data() const
     {
         return m_data;
@@ -236,7 +230,7 @@ class heterogeneous_widget
 
   private:
     std::string m_timestamp = "2019/05/29";
-    std::vector<std::string> m_data;
+    std::vector<std::string> m_data = { "Test String One", "Test String Two", "Test String Three" };
 };
 
 template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
@@ -269,15 +263,15 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
 
     widget.set_timestamp(timestamp_iterator->value.GetString());
 
-    const auto vector_iterator = document.FindMember("Data");
-    if (vector_iterator == document.MemberEnd() || !vector_iterator->value.IsObject()) {
+    const auto data_iterator = document.FindMember("Data");
+    if (data_iterator == document.MemberEnd() || !data_iterator->value.IsObject()) {
         return;
     }
 
     using json_utils::deserializer::from_json;
 
     std::vector<std::string> data;
-    from_json(vector_iterator->value, data);
+    from_json(data_iterator->value, data);
 
     widget.set_data(std::move(data));
 }
@@ -290,6 +284,7 @@ TEST_CASE("Trait Detection")
     {
         STATIC_REQUIRE(json_utils::traits::has_emplace_back<std::vector<int>>::value);
         STATIC_REQUIRE(json_utils::traits::has_emplace_back<std::list<int>>::value);
+        STATIC_REQUIRE(json_utils::traits::has_emplace_back<std::deque<int>>::value);
 
         STATIC_REQUIRE_FALSE(json_utils::traits::has_emplace_back<std::map<int, int>>::value);
         STATIC_REQUIRE_FALSE(json_utils::traits::has_emplace_back<std::set<int>>::value);
@@ -302,7 +297,6 @@ TEST_CASE("Trait Detection")
     {
         STATIC_REQUIRE(json_utils::traits::has_emplace<std::map<int, int>>::value);
         STATIC_REQUIRE(json_utils::traits::has_emplace<std::set<int>>::value);
-        STATIC_REQUIRE(json_utils::traits::has_emplace<std::queue<int>>::value);
 
         STATIC_REQUIRE_FALSE(json_utils::traits::has_emplace<std::vector<int>>::value);
         STATIC_REQUIRE_FALSE(json_utils::traits::has_emplace<std::list<int>>::value);
@@ -367,6 +361,14 @@ TEST_CASE("Serialization of std::vector<...>", "[Standard Containers]")
         const auto json = json_utils::serialize_to_json(container);
 
         REQUIRE(json == "[1,2,3,4,5]");
+    }
+
+    SECTION("Container of Bools")
+    {
+        const std::vector<bool> container = { true, false, false, true };
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == "[true,false,false,true]");
     }
 }
 
@@ -515,8 +517,8 @@ TEST_CASE("Handling Pointer Types")
     SECTION("Using std::unique_ptr<...>")
     {
         auto container = std::vector<std::unique_ptr<std::string>>();
-        container.emplace_back(std::make_unique<std::string>("Hello"));
-        container.emplace_back(std::make_unique<std::string>("World"));
+        container.emplace_back(future_std::make_unique<std::string>("Hello"));
+        container.emplace_back(future_std::make_unique<std::string>("World"));
 
         const auto json = json_utils::serialize_to_json(container);
 
@@ -526,7 +528,7 @@ TEST_CASE("Handling Pointer Types")
     SECTION("Using std::unique_ptr<...> Set to Null")
     {
         auto container = std::vector<std::unique_ptr<std::string>>();
-        container.emplace_back(std::make_unique<std::string>("Test"));
+        container.emplace_back(future_std::make_unique<std::string>("Test"));
         container.emplace_back(nullptr);
 
         const auto json = json_utils::serialize_to_json(container);
@@ -653,16 +655,18 @@ TEST_CASE("Serializing a Custom Type")
     SECTION("Custom Type as Key")
     {
         const std::vector<std::pair<sample::simple_widget, std::list<std::shared_ptr<std::string>>>>
-            container = {
-                { sample::simple_widget{ "Widget One" },
-                  { std::make_unique<std::string>("1"), std::make_unique<std::string>("2"),
-                    std::make_unique<std::string>("3"), std::make_unique<std::string>("4"),
-                    std::make_unique<std::string>("5"), nullptr } },
-                { sample::simple_widget{ "Widget Two" },
-                  { std::make_unique<std::string>("5"), std::make_unique<std::string>("6"),
-                    std::make_unique<std::string>("7"), std::make_unique<std::string>("8"),
-                    std::make_unique<std::string>("9") } }
-            };
+            container = { { sample::simple_widget{ "Widget One" },
+                            { future_std::make_unique<std::string>("1"),
+                              future_std::make_unique<std::string>("2"),
+                              future_std::make_unique<std::string>("3"),
+                              future_std::make_unique<std::string>("4"),
+                              future_std::make_unique<std::string>("5"), nullptr } },
+                          { sample::simple_widget{ "Widget Two" },
+                            { future_std::make_unique<std::string>("5"),
+                              future_std::make_unique<std::string>("6"),
+                              future_std::make_unique<std::string>("7"),
+                              future_std::make_unique<std::string>("8"),
+                              future_std::make_unique<std::string>("9") } } };
 
         const auto json = json_utils::serialize_to_json(container);
 

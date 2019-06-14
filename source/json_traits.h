@@ -108,8 +108,8 @@ struct treat_as_object<std::vector<std::pair<KeyType, ValueType>>> : std::true_t
 
 template <typename DataType> struct treat_as_value
 {
-    using type =
-        std::negation<future_std::disjunction<treat_as_array<DataType>, treat_as_object<DataType>>>;
+    using type = future_std::negation<
+        future_std::disjunction<treat_as_array<DataType>, treat_as_object<DataType>>>;
 
     static constexpr bool value = type::value;
 };
