@@ -1,6 +1,6 @@
 # JSON Utilities
 
-This repository provides a series of functions that wrap the `rapidjson` library to enable easier serialization and deserialization.
+> A series of functions that wrap the `rapidjson` library to enable easier serialization and deserialization.
 
 ## Serialization
 
