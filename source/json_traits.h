@@ -87,6 +87,11 @@ struct treat_as_array<std::vector<std::pair<KeyType, ValueType>>> : std::false_t
 {
 };
 
+template <typename DataType>
+struct treat_as_array<std::optional<DataType>> : treat_as_array<DataType>
+{
+};
+
 template <typename, typename = void> struct treat_as_object : std::false_type
 {
 };
@@ -103,6 +108,11 @@ struct treat_as_object<std::unordered_map<KeyType, ValueType>> : std::true_type
 
 template <typename KeyType, typename ValueType>
 struct treat_as_object<std::vector<std::pair<KeyType, ValueType>>> : std::true_type
+{
+};
+
+template <typename DataType>
+struct treat_as_object<std::optional<DataType>> : treat_as_object<DataType>
 {
 };
 

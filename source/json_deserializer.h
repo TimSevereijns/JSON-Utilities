@@ -164,6 +164,19 @@ template <> struct value_extractor<std::string>
     }
 };
 
+#if __cplusplus >= 201703L
+
+template <typename DataType> struct value_extractor<std::optional<DataType>>
+{
+    template <typename EncodingType, typename AllocatorType>
+    static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    {
+        return value_extractor<DataType>::extract_or_throw(value);
+    }
+};
+
+#endif
+
 template <typename InsertionPolicy, typename DataType, typename ContainerType>
 void insert(DataType&& value, ContainerType& container)
 {

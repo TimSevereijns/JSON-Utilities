@@ -185,7 +185,7 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
 }
 ```
 
-Note that in order for ADL to find the correct overload, the `to_json(...)` and `from_json(...)` functions will need to be in the same namespace as the custome type that is to be serialized. With regard for the example shown above, that would be the `sample` namespace.
+Note that in order for ADL to find the correct overload, the `to_json(...)` and `from_json(...)` functions will need to be in the same namespace as the custom type that is to be serialized. With regard for the example shown above, that would be the `sample` namespace.
 
 ## Compatibility
 

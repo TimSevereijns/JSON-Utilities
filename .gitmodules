@@ -1,5 +1,5 @@
-[submodule "third-party/rapid-json"]
-    path = third-party/rapid-json
+[submodule "third-party/rapidjson"]
+    path = third-party/rapidjson
     url = https://github.com/Tencent/rapidjson.git
     branch = v1.1.0
 [submodule "third-party/catch2"]

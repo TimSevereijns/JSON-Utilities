@@ -335,6 +335,31 @@ TEST_CASE("Trait Detection")
         STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array<char[8]>::value);
         STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array<wchar_t[8]>::value);
     }
+
+#if __cplusplus >= 201703L
+
+    SECTION("Values Wrapped in a std::optional<...>")
+    {
+        STATIC_REQUIRE(json_utils::traits::treat_as_value<std::optional<int>>::value);
+        STATIC_REQUIRE(json_utils::traits::treat_as_value<std::optional<double>>::value);
+        STATIC_REQUIRE(json_utils::traits::treat_as_value<std::optional<std::string>>::value);
+    }
+
+    SECTION("Objects Wrapped in a std::optional<...>")
+    {
+        STATIC_REQUIRE(json_utils::traits::treat_as_object<
+                       std::optional<std::map<std::string, std::string>>>::value);
+
+        STATIC_REQUIRE(json_utils::traits::treat_as_object<
+                       std::optional<std::vector<std::pair<std::string, std::string>>>>::value);
+    }
+
+    SECTION("Arrays Wrapped in a std::optional<...>")
+    {
+        STATIC_REQUIRE(json_utils::traits::treat_as_array<std::optional<std::vector<int>>>::value);
+    }
+
+#endif
 }
 
 TEST_CASE("Serialization of std::vector<...>", "[Standard Containers]")
@@ -1053,18 +1078,18 @@ TEST_CASE("Deserialization into a std::list<...>")
 
 TEST_CASE("Deserialization of C++17 Constructs")
 {
-    // using container_type = std::map<std::string, std::optional<int>>;
+    using container_type = std::vector<std::optional<int>>;
 
-    // SECTION("Array of std::optional<...>")
-    // {
-    //     const container_type container = { { "keyOne", std::optional<int>{ 101 } },
-    //                                        { "keyTwo", std::optional<int>{ 202 } } };
+    SECTION("Array of std::optional<...>")
+    {
+        const container_type container = { std::optional<int>{ 101 }, std::optional<int>{ 202 },
+                                           std::optional<int>{ 303 }, std::optional<int>{ 404 } };
 
-    //     const auto json = json_utils::serialize_to_json(container);
-    //     const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto json = json_utils::serialize_to_json(container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
-    //     REQUIRE(json == R"([101,202])");
-    // }
+        REQUIRE(json == R"([101,202,303,404])");
+    }
 }
 
 #endif
