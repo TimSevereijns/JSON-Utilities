@@ -276,6 +276,28 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
     widget.set_data(std::move(data));
 }
 } // namespace sample
+
+template <typename ContainerType>
+bool compare_container_of_pointers(
+    const ContainerType& source_container, const ContainerType& resultant_container)
+{
+    if (source_container.size() != resultant_container.size()) {
+        return false;
+    }
+
+    for (auto lhs = std::begin(source_container), rhs = std::begin(resultant_container);
+         lhs != std::end(source_container); ++lhs, ++rhs) {
+        if (*lhs != nullptr && *rhs != nullptr) {
+            if (**lhs != **rhs) {
+                return false;
+            }
+        } else if (*lhs != nullptr || *rhs != nullptr) {
+            return false;
+        }
+    }
+
+    return true;
+}
 } // namespace
 
 TEST_CASE("Trait Detection")
@@ -524,7 +546,7 @@ TEST_CASE("Serialization of C++17 Constructs")
         REQUIRE(json == R"(["Hello","World"])");
     }
 
-    SECTION("Array of std::optional<...>")
+    SECTION("Array of std::optional<...> without Nulls")
     {
         const std::vector<std::optional<int>> container = { std::optional<int>{ 101 },
                                                             std::optional<int>{ 202 } };
@@ -532,6 +554,17 @@ TEST_CASE("Serialization of C++17 Constructs")
         const auto json = json_utils::serialize_to_json(container);
 
         REQUIRE(json == R"([101,202])");
+    }
+
+    SECTION("Array of std::optional<...> with Nulls")
+    {
+        const std::vector<std::optional<int>> container = { std::optional<int>{ 101 }, std::nullopt,
+                                                            std::nullopt,
+                                                            std::optional<int>{ 202 } };
+
+        const auto json = json_utils::serialize_to_json(container);
+
+        REQUIRE(json == R"([101,null,null,202])");
     }
 }
 
@@ -1074,21 +1107,102 @@ TEST_CASE("Deserialization into a std::list<...>")
     }
 }
 
+TEST_CASE("Deserialization into std::unique_ptr<...>")
+{
+    using container_type = std::vector<std::unique_ptr<int>>;
+
+    SECTION("Array of std::unique_ptr<...> without Nulls")
+    {
+        container_type source_container;
+        source_container.emplace_back(future_std::make_unique<int>(1));
+        source_container.emplace_back(future_std::make_unique<int>(2));
+        source_container.emplace_back(future_std::make_unique<int>(3));
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
+        REQUIRE(is_equal);
+    }
+
+    SECTION("Array of std::unique_ptr<...> with Nulls")
+    {
+        container_type source_container;
+        source_container.emplace_back(future_std::make_unique<int>(1));
+        source_container.emplace_back(nullptr);
+        source_container.emplace_back(future_std::make_unique<int>(2));
+        source_container.emplace_back(nullptr);
+        source_container.emplace_back(future_std::make_unique<int>(3));
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
+        REQUIRE(is_equal);
+    }
+}
+
+TEST_CASE("Deserialization into std::shared_ptr<...>")
+{
+    using container_type = std::vector<std::shared_ptr<int>>;
+
+    SECTION("Array of std::shared_ptr<...> without Nulls")
+    {
+        const container_type source_container = { std::make_shared<int>(1),
+                                                  std::make_shared<int>(2),
+                                                  std::make_shared<int>(3) };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
+        REQUIRE(is_equal);
+    }
+
+    SECTION("Array of std::shared_ptr<...> with Nulls")
+    {
+        const container_type source_container = { std::make_shared<int>(1), nullptr,
+                                                  std::make_shared<int>(2), nullptr,
+                                                  std::make_shared<int>(3) };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
+        REQUIRE(is_equal);
+    }
+}
+
 #if __cplusplus >= 201703L // C++17
 
 TEST_CASE("Deserialization of C++17 Constructs")
 {
     using container_type = std::vector<std::optional<int>>;
 
-    SECTION("Array of std::optional<...>")
+    SECTION("Array of std::optional<...> without Nulls")
     {
-        const container_type container = { std::optional<int>{ 101 }, std::optional<int>{ 202 },
-                                           std::optional<int>{ 303 }, std::optional<int>{ 404 } };
+        const container_type source_container = { std::optional<int>{ 101 },
+                                                  std::optional<int>{ 202 },
+                                                  std::optional<int>{ 303 },
+                                                  std::optional<int>{ 404 } };
 
-        const auto json = json_utils::serialize_to_json(container);
+        const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
-        REQUIRE(json == R"([101,202,303,404])");
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Array of std::optional<...> with Nulls")
+    {
+        const container_type source_container = { std::optional<int>{ 101 }, std::nullopt,
+                                                  std::optional<int>{ 202 }, std::nullopt,
+                                                  std::optional<int>{ 303 }, std::nullopt,
+                                                  std::optional<int>{ 404 }, std::nullopt };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
     }
 }
 

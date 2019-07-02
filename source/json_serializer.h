@@ -302,7 +302,7 @@ void to_json(
 
     if constexpr (std::is_same_v<character_type, char>) {
         to_json(writer, path.string().c_str());
-    } else if (std::is_same_v<character_type, wchar_t>) {
+    } else if constexpr (std::is_same_v<character_type, wchar_t>) {
         to_json(writer, path.wstring().c_str());
     }
 }

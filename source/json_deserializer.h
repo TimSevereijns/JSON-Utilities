@@ -164,13 +164,47 @@ template <> struct value_extractor<std::string>
     }
 };
 
+template <typename DataType> struct value_extractor<std::unique_ptr<DataType>>
+{
+    template <typename EncodingType, typename AllocatorType>
+    static std::unique_ptr<DataType>
+    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    {
+        if (value.IsNull()) {
+            return nullptr;
+        }
+
+        return future_std::make_unique<DataType>(
+            value_extractor<DataType>::extract_or_throw(value));
+    }
+};
+
+template <typename DataType> struct value_extractor<std::shared_ptr<DataType>>
+{
+    template <typename EncodingType, typename AllocatorType>
+    static std::shared_ptr<DataType>
+    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    {
+        if (value.IsNull()) {
+            return nullptr;
+        }
+
+        return std::make_shared<DataType>(value_extractor<DataType>::extract_or_throw(value));
+    }
+};
+
 #if __cplusplus >= 201703L
 
 template <typename DataType> struct value_extractor<std::optional<DataType>>
 {
     template <typename EncodingType, typename AllocatorType>
-    static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    static std::optional<DataType>
+    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
+        if (value.IsNull()) {
+            return std::nullopt;
+        }
+
         return value_extractor<DataType>::extract_or_throw(value);
     }
 };
