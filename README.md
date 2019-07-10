@@ -201,7 +201,7 @@ const auto container =
 const auto json = json_utils::serialize_to_json(container);
 ```
 
-The resultant JSON will preserve a `nullptr` as a `null` JSON value: `["Hello","World","null"]`.
+The resultant JSON will preserve a `nullptr` as a `null` JSON value: `["Hello","World",null]`.
 
 Deserialization is simply the reverse:
 
