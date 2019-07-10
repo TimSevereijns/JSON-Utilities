@@ -173,7 +173,6 @@ void to_json(
     writer.StartObject();
 
     writer.Key("Inner Widget");
-
     using json_utils::serializer::to_json;
     to_json(writer, widget.get_inner_widget());
 
@@ -193,7 +192,7 @@ void from_json(const rapidjson::Document& document, sample::composite_widget& wi
 
     sample::simple_widget simple_widget;
 
-    using json_utils::serializer::to_json;
+    using json_utils::deserializer::from_json;
     from_json(*member_iterator, simple_widget);
 
     widget.set_inner_widget(std::move(simple_widget));
@@ -239,11 +238,11 @@ void to_json(
     const sample::heterogeneous_widget& widget)
 {
     writer.StartObject();
+
     writer.Key("Timestamp");
     writer.String(widget.get_timestamp().c_str());
 
     writer.Key("Data");
-
     using json_utils::serializer::to_json;
     to_json(writer, widget.get_data());
 
@@ -268,9 +267,8 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
         return;
     }
 
-    using json_utils::deserializer::from_json;
-
     std::vector<std::string> data;
+    using json_utils::deserializer::from_json;
     from_json(data_iterator->value, data);
 
     widget.set_data(std::move(data));
@@ -755,8 +753,6 @@ TEST_CASE("Serializing a Custom Type")
 
     SECTION("Custom Type as Value in std::vector<std::pair<...>>")
     {
-        // @note This test relies on Argument-Dependent Lookup in the serialization logic.
-
         const std::vector<std::pair<std::string, sample::simple_widget>> container = {
             std::make_pair<std::string, sample::simple_widget>(
                 "Widget", sample::simple_widget{ "JSON Serialization" })
@@ -1111,7 +1107,7 @@ TEST_CASE("Deserialization into std::unique_ptr<...>")
 {
     using container_type = std::vector<std::unique_ptr<int>>;
 
-    SECTION("Array of std::unique_ptr<...> without Nulls")
+    SECTION("JSON Array of Non-null Items to std::unique_ptr<...>")
     {
         container_type source_container;
         source_container.emplace_back(future_std::make_unique<int>(1));
@@ -1125,7 +1121,7 @@ TEST_CASE("Deserialization into std::unique_ptr<...>")
         REQUIRE(is_equal);
     }
 
-    SECTION("Array of std::unique_ptr<...> with Nulls")
+    SECTION("JSON Array of Potentially Null Items to std::unique_ptr<...>")
     {
         container_type source_container;
         source_container.emplace_back(future_std::make_unique<int>(1));
@@ -1146,7 +1142,7 @@ TEST_CASE("Deserialization into std::shared_ptr<...>")
 {
     using container_type = std::vector<std::shared_ptr<int>>;
 
-    SECTION("Array of std::shared_ptr<...> without Nulls")
+    SECTION("JSON Array of Non-null Items to std::shared_ptr<...>")
     {
         const container_type source_container = { std::make_shared<int>(1),
                                                   std::make_shared<int>(2),
@@ -1159,7 +1155,7 @@ TEST_CASE("Deserialization into std::shared_ptr<...>")
         REQUIRE(is_equal);
     }
 
-    SECTION("Array of std::shared_ptr<...> with Nulls")
+    SECTION("JSON Array of Potentially Null Items to std::shared_ptr<...>")
     {
         const container_type source_container = { std::make_shared<int>(1), nullptr,
                                                   std::make_shared<int>(2), nullptr,
@@ -1179,7 +1175,7 @@ TEST_CASE("Deserialization of C++17 Constructs")
 {
     using container_type = std::vector<std::optional<int>>;
 
-    SECTION("Array of std::optional<...> without Nulls")
+    SECTION("JSON Array of Non-null Items to std::optional<...>")
     {
         const container_type source_container = { std::optional<int>{ 101 },
                                                   std::optional<int>{ 202 },
@@ -1192,7 +1188,7 @@ TEST_CASE("Deserialization of C++17 Constructs")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("Array of std::optional<...> with Nulls")
+    SECTION("JSON Array of Potentially Null Items to std::optional<...>")
     {
         const container_type source_container = { std::optional<int>{ 101 }, std::nullopt,
                                                   std::optional<int>{ 202 }, std::nullopt,

@@ -105,7 +105,7 @@ const auto vector =
 
 That's it.
 
-The derialization logic will use the provided template parameters as a guide for what the JSON object should look like at runtime. So, if the template suggests that, say, a JSON object should be present, and a different type is presented at runtime, then a `std::invalid_argument` exception will be thrown.
+The derialization logic will use the provided template parameters as a guide for what the JSON object should look like at runtime. So, if the template suggests that, say, a JSON object should be present, and a different type is presented at runtime, an exception will be thrown.
 
 ## Customization and Handling of Custom Types
 
@@ -175,9 +175,8 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
         return;
     }
 
-    using json_utils::deserializer::from_json;
-
     std::vector<std::string> data;
+    using json_utils::deserializer::from_json;
     from_json(data_iterator->value, data);
     
     widget.set_data(std::move(data));
@@ -187,9 +186,46 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
 
 Note that in order for ADL to find the correct overload, the `to_json(...)` and `from_json(...)` functions will need to be in the same namespace as the custom type that is to be serialized. With regard for the example shown above, that would be the `sample` namespace.
 
-## Compatibility
+## Handling Nulls
 
-This project aims to target C++11 and up. Where sensible, support for C++17 features (like `std::filesystem::path` and `std::optional<...>`) has been provided.
+If you have a JSON object or array that might contain null values, you have a few deserialization choices. If you don't have access to C++17, you may opt to serialize from, and deserialize into, a container of smart pointers.
+
+Here's an example of serializing a container of `std::shared_ptr<std::string>` objects:
+
+```C++
+const auto container =
+    std::vector<std::shared_ptr<std::string>>{ std::make_shared<std::string>("Hello"),
+                                               std::make_shared<std::string>("World"),
+                                               nullptr };
+
+const auto json = json_utils::serialize_to_json(container);
+```
+
+The resultant JSON will preserve a `nullptr` as a `null` JSON value: `["Hello","World","null"]`.
+
+Deserialization is simply the reverse:
+
+```C++
+const auto container =
+   json_utils::deserialize_from_json<std::vector<std::shared_ptr<std::string>>>(json);
+```
+
+This works for both `std::shared_ptr<...>` and `std::unique_ptr<...>`.
+
+However, if you have access to C++17, you may wish to use a `std::optional<...>` instead.
+
+```C++
+using container_type = std::vector<std::optional<int>>;
+
+const container_type source_container = { std::optional<int>{ 101 },
+                                          std::optional<int>{ 202 },
+                                          std::optional<int>{ 303 },
+                                          std::nullopt,
+                                          std::optional<int>{ 505 } };
+
+const auto json = json_utils::serialize_to_json(source_container);
+const auto deserialization = json_utils::deserialize_from_json<container_type>(json);
+```
 
 ## Building Instructions
 

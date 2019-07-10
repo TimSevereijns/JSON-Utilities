@@ -131,6 +131,7 @@ void to_json(
     const std::pair<FirstType, SecondType>& pair);
 
 #if __cplusplus >= 201703L // C++17
+
 template <
     typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
     typename CharacterType, typename CharacterTraits>
@@ -149,6 +150,7 @@ template <typename OutputStreamType, typename SourceEncodingType, typename Targe
 void to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
     const std::filesystem::path& path);
+
 #endif
 } // namespace serializer
 

@@ -266,6 +266,7 @@ void to_json(
 }
 
 #if __cplusplus >= 201703L // C++17
+
 template <
     typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
     typename CharacterType, typename CharacterTraits>
@@ -306,6 +307,7 @@ void to_json(
         to_json(writer, path.wstring().c_str());
     }
 }
+
 #endif
 } // namespace serializer
 } // namespace json_utils
