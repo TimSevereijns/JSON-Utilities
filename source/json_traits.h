@@ -87,10 +87,14 @@ struct treat_as_array<std::vector<std::pair<KeyType, ValueType>>> : std::false_t
 {
 };
 
+#if __cplusplus >= 201703L // C++17
+
 template <typename DataType>
 struct treat_as_array<std::optional<DataType>> : treat_as_array<DataType>
 {
 };
+
+#endif
 
 template <typename, typename = void> struct treat_as_object : std::false_type
 {
@@ -111,10 +115,14 @@ struct treat_as_object<std::vector<std::pair<KeyType, ValueType>>> : std::true_t
 {
 };
 
+#if __cplusplus >= 201703L // C++17
+
 template <typename DataType>
 struct treat_as_object<std::optional<DataType>> : treat_as_object<DataType>
 {
 };
+
+#endif
 
 template <typename DataType> struct treat_as_value
 {
