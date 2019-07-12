@@ -5,8 +5,18 @@ enable_language(CXX)
 project(Json-Utils)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -Werror -Wpedantic --coverage")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -Wextra -Werror -Wpedantic")
+
+if (unix)
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -Werror -Wpedantic --coverage")
+	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -Wextra -Werror -Wpedantic")
+endif (unix)
+
+if (WIN32)
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /W4")
+	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /W4")
+endif (WIN32)
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_CXX_OUTPUT_EXTENSION_REPLACE ON)
 
 set(SOURCES
@@ -29,4 +39,6 @@ include_directories(${SOURCE_DIR} ${THIRD_PARTY})
 
 add_executable(Json-Utils ${SOURCES})
 
-target_link_libraries(Json-Utils stdc++)
+if (UNIX)
+	target_link_libraries(Json-Utils stdc++)
+endif (UNIX)
