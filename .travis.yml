@@ -8,15 +8,11 @@ addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
-    - llvm-toolchain-precise-3.8
     packages:
     - g++-6
-    - clang-7
 install:
 - "[ $CXX = g++ ] && export CXX=g++-6 || true"
-- "[ $CXX = clang++ ] && export CXX=clang++-7 || true"
 script:
-  - make
   - mkdir debug && cd debug
   - cmake -DCMAKE_BUILD_TYPE=Debug ..
   - make
