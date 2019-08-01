@@ -1,9 +1,8 @@
-dist: bionic
+dist: trusty
 sudo: false
 language: cpp
 compiler:
   - gcc
-  - clang
 addons:
   apt:
     sources:
