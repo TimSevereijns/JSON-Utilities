@@ -1,18 +1,18 @@
 dist: bionic
-sudo: false
+sudo: required
 language: cpp
 script:
   - mkdir debug && cd debug
-  - cmake -DCMAKE_BUILD_TYPE=Debug ..
+  - cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=$COMPILER ..
   - make
 matrix:
 include:
-  - os: linux
-    addons:
-      apt:
-        sources:
-          - ubuntu-toolchain-r-test
-        packages:
-          - g++-8
-    env:
-      - MATRIX_EVAL="CC=gcc-8 CXX=g++-8"
+  - compiler: clang
+  addons:
+    apt:
+      sources:
+        - ubuntu-toolchain-r-test
+        - llvm-toolchain-precise-3.7
+      packages:
+        - clang-3.7
+  env: COMPILER=clang++-3.7
