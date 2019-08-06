@@ -7,11 +7,11 @@ addons:
   apt:
     sources:
     - ubuntu-toolchain-r-test
-    - llvm-toolchain-precise-3.8
+    - llvm-toolchain-bionic-7.0
     packages:
-    - clang-3.8
+    - clang-7.0
 install:
-  - "[ $CXX = clang++ ] && export CXX=clang++-3.8 || true"
+  - "[ $CXX = clang++ ] && export CXX=clang++-7.0 || true"
 script:
   - mkdir debug && cd debug
   - cmake -DCMAKE_BUILD_TYPE=Debug ..
