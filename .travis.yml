@@ -1,17 +1,18 @@
 dist: bionic
 sudo: false
 language: cpp
-compiler:
-  - gcc
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    packages:
-    - g++-8
-install:
-- "[ $CXX = g++ ] && export CXX=g++-8 || true"
 script:
   - mkdir debug && cd debug
   - cmake -DCMAKE_BUILD_TYPE=Debug ..
   - make
+matrix:
+include:
+  - os: linux
+    addons:
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+        packages:
+          - g++-8
+    env:
+      - MATRIX_EVAL="CC=gcc-8 CXX=g++-8"
