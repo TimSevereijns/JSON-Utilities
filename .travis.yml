@@ -23,6 +23,8 @@ script:
   - cmake -DCMAKE_BUILD_TYPE=Debug ..
   - make
   - ./Json-Utils
+  - gcc --version
+  - lcov --version
   - lcov --capture --directory . --output-file coverage.info
   - lcov --remove coverage.info '/usr/*' '*/third-party/*' '*/tests/*' --output-file coverage.info
   - lcov --list coverage.info 
