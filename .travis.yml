@@ -20,8 +20,10 @@ install:
   - sudo apt-get install -qq gcc-8
   - sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 20
   - sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-8 20
+  - sudo update-alternatives --install /usr/bin/gcov gcov /usr/bin/gcov-8 20  
   - sudo update-alternatives --config gcc
   - sudo update-alternatives --config g++
+  - sudo update-alternatives --config gcov
 script:
   - mkdir debug && cd debug
   - cmake -DCMAKE_BUILD_TYPE=Debug ..
