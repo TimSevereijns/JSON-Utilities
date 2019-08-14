@@ -1,6 +1,8 @@
 # JSON Utilities
 
-> A fun side-project that provides a series of functions wrapping the `rapidjson` library, with the aim of simplifying serialization and deserialization.
+[![codecov](https://codecov.io/gh/TimSevereijns/JSON-Utilities/branch/master/graph/badge.svg)](https://codecov.io/gh/TimSevereijns/JSON-Utilities)
+
+> A small side-project that provides a series of utility functions built around the `rapidjson` library, with the aim of simplifying serialization and deserialization to as few lines as possible.
 
 ## Serialization
 
