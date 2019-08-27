@@ -4,12 +4,9 @@
 #include <filesystem>
 #endif
 
-#include <map>
 #include <string>
 #include <type_traits>
-#include <unordered_map>
 #include <utility>
-#include <vector>
 
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>

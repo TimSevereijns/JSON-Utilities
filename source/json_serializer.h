@@ -22,7 +22,8 @@ template <typename CharacterType> struct key_master
 
 template <> struct key_master<char>
 {
-    template <typename DataType> static std::string generate_key(const DataType& data)
+    template <typename DataType>
+    static std::string generate_key(const DataType& data) noexcept(noexcept(to_narrow_json_key))
     {
         using serializer::to_narrow_json_key;
         return to_narrow_json_key(data);
@@ -31,7 +32,8 @@ template <> struct key_master<char>
 
 template <> struct key_master<wchar_t>
 {
-    template <typename DataType> static std::wstring generate_key(const DataType& data)
+    template <typename DataType>
+    static std::wstring generate_key(const DataType& data) noexcept(noexcept(to_wide_json_key))
     {
         using serializer::to_wide_json_key;
         return to_wide_json_key(data);

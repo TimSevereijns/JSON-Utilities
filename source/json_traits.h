@@ -96,15 +96,6 @@ struct treat_as_array<std::basic_string<CharacterType, CharacterTraitsType, Allo
 {
 };
 
-#if __cplusplus >= 201703L // C++17
-
-template <typename DataType>
-struct treat_as_array<std::optional<DataType>> : treat_as_array<DataType>
-{
-};
-
-#endif
-
 template <typename, typename = void> struct treat_as_object : std::false_type
 {
 };
@@ -112,7 +103,7 @@ template <typename, typename = void> struct treat_as_object : std::false_type
 /**
  * @note Uses SFINAE to detect whether the input type has a `value_type` definition, and if it does,
  * additional type traits will determine whether we're dealing with a container whose value type is
- *a `std::pair<...>`.
+ * a `std::pair<...>`.
  **/
 template <typename DataType>
 struct treat_as_object<DataType, future_std::void_t<typename DataType::value_type>>
@@ -120,15 +111,6 @@ struct treat_as_object<DataType, future_std::void_t<typename DataType::value_typ
           is_pair<typename DataType::value_type>::value, std::true_type, std::false_type>::type
 {
 };
-
-#if __cplusplus >= 201703L // C++17
-
-template <typename DataType>
-struct treat_as_object<std::optional<DataType>> : treat_as_object<DataType>
-{
-};
-
-#endif
 
 template <typename DataType> struct treat_as_value
 {
