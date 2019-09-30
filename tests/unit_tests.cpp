@@ -422,10 +422,12 @@ TEST_CASE("Serialization of std::map<...>", "[Standard Containers]")
         const auto json = json_utils::serialize_to_json(container);
 
         // @note The exact serialization appears to depend on the STL implementation;
-        // i.e., libc appears to enumerate the values in the reverse order that MSVC
+        // i.e., libc appears to enumerate the values in the reverse order used by MSVC.
         // uses.
 
-        // REQUIRE(json == R"({"key_three":3,"key_two":2,"key_one":1})");
+        REQUIRE(json.find("\"key_one\":1") != std::string::npos);
+        REQUIRE(json.find("\"key_two\":2") != std::string::npos);
+        REQUIRE(json.find("\"key_three\":3") != std::string::npos);
     }
 }
 
