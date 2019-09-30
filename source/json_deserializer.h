@@ -2,12 +2,43 @@
 
 #include "json_fwd.h"
 
+#include <optional>
 #include <stdexcept>
 
 namespace json_utils
 {
 namespace deserializer
 {
+namespace detail
+{
+struct from_json_functor
+{
+    template <typename ContainerType, typename EncodingType, typename AllocatorType>
+    void operator()(
+        const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
+        ContainerType& container) const
+    {
+        from_json(json_value, container);
+    }
+
+    template <typename ContainerType, typename EncodingType, typename AllocatorType>
+    void operator()(
+        const rapidjson::GenericMember<EncodingType, AllocatorType>& json_value,
+        ContainerType& container) const
+    {
+        from_json(json_value, container);
+    }
+};
+} // namespace detail
+
+// To avoid ODR violations:
+template <class T> constexpr T static_const{};
+
+namespace
+{
+constexpr auto const& from_json = static_const<detail::from_json_functor>;
+}
+
 struct default_insertion_policy
 {
     template <typename DataType, typename ContainerType>
@@ -54,7 +85,7 @@ template <typename DataType> struct value_extractor
 {
     template <typename EncodingType, typename AllocatorType>
     JSON_UTILS_NORETURN static bool
-    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& /*value*/)
     {
         throw std::invalid_argument("Cannot extract unsupported type");
     }
@@ -355,7 +386,6 @@ void deserialize_json_array(
         dispatch_insertion<InsertionPolicy>(nested_json_value, container);
     }
 }
-} // namespace detail
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
@@ -365,7 +395,7 @@ auto from_json(
         traits::has_emplace_back<ContainerType>,
         traits::treat_as_array<ContainerType>>::value>::type
 {
-    detail::deserialize_json_array<back_insertion_policy>(json_value, container);
+    deserialize_json_array<back_insertion_policy>(json_value, container);
 }
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
@@ -375,7 +405,7 @@ auto from_json(
     typename std::enable_if<future_std::conjunction<
         traits::has_emplace<ContainerType>, traits::treat_as_array<ContainerType>>::value>::type
 {
-    detail::deserialize_json_array<default_insertion_policy>(json_value, container);
+    deserialize_json_array<default_insertion_policy>(json_value, container);
 }
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
@@ -386,7 +416,7 @@ auto from_json(
         traits::has_emplace_back<ContainerType>,
         traits::treat_as_object<ContainerType>>::value>::type
 {
-    detail::deserialize_json_object<back_insertion_policy>(json_value, container);
+    deserialize_json_object<back_insertion_policy>(json_value, container);
 }
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
@@ -396,7 +426,8 @@ auto from_json(
     typename std::enable_if<future_std::conjunction<
         traits::has_emplace<ContainerType>, traits::treat_as_object<ContainerType>>::value>::type
 {
-    detail::deserialize_json_object<default_insertion_policy>(json_value, container);
+    deserialize_json_object<default_insertion_policy>(json_value, container);
 }
+} // namespace detail
 } // namespace deserializer
 } // namespace json_utils

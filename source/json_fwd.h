@@ -153,6 +153,8 @@ void to_json(
 
 namespace deserializer
 {
+namespace detail
+{
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
@@ -182,5 +184,6 @@ auto from_json(
     ContainerType& container) ->
     typename std::enable_if<future_std::conjunction<
         traits::has_emplace<ContainerType>, traits::treat_as_object<ContainerType>>::value>::type;
+} // namespace detail
 } // namespace deserializer
 } // namespace json_utils

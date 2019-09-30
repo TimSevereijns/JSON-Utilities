@@ -55,8 +55,10 @@ JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const char* const json)
 
     ContainerType container;
 
-    using deserializer::from_json;
-    from_json(document, container);
+    // using deserializer::from_json;
+    // from_json(document, container);
+
+    deserializer::from_json(document, container);
 
     return container;
 }
