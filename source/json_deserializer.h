@@ -2,7 +2,6 @@
 
 #include "json_fwd.h"
 
-#include <optional>
 #include <stdexcept>
 
 namespace json_utils
@@ -31,12 +30,19 @@ struct from_json_functor
 };
 } // namespace detail
 
-// To avoid ODR violations:
-template <class T> constexpr T static_const{};
+// Template variables are required to have external linkage per the Standard.
+template <typename DataType> constexpr DataType external_linkage{};
 
 namespace
 {
-constexpr auto const& from_json = static_const<detail::from_json_functor>;
+// The anonymous namespace is needed to keep the reference "itself from being multiply defined."
+// Each reference will have internal linkage, but "the references all refer to the same object,"
+// and "since every mention [...] in all translation units refer to the same entity, there is no
+// ODR violation. Source: Suggested Design for Customization Points
+// [http://ericniebler.github.io/std/wg21/D4381.html]
+//
+// @note Use an inline variable when upgrading to C++17.
+constexpr const auto& from_json = external_linkage<detail::from_json_functor>;
 }
 
 struct default_insertion_policy
@@ -59,7 +65,7 @@ struct back_insertion_policy
 
 namespace detail
 {
-std::string type_to_string(const rapidjson::Value& value)
+inline std::string type_to_string(const rapidjson::Value& value)
 {
     switch (value.GetType()) {
         case rapidjson::Type::kArrayType:
@@ -94,11 +100,11 @@ template <typename DataType> struct value_extractor
 template <> struct value_extractor<bool>
 {
     template <typename EncodingType, typename AllocatorType>
-    static bool extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    JSON_UTILS_NODISCARD static bool
+    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsBool()) {
-            throw std::invalid_argument(
-                "Expected a bool, got " + detail::type_to_string(value) + ".");
+            throw std::invalid_argument("Expected a bool, got " + type_to_string(value) + ".");
         }
 
         return value.GetBool();
@@ -113,7 +119,7 @@ template <> struct value_extractor<std::int32_t>
     {
         if (!value.IsInt()) {
             throw std::invalid_argument(
-                "Expected a 32-bit integer, got " + detail::type_to_string(value) + ".");
+                "Expected a 32-bit integer, got " + type_to_string(value) + ".");
         }
 
         return value.GetInt();
@@ -128,7 +134,7 @@ template <> struct value_extractor<std::uint32_t>
     {
         if (!value.IsUint()) {
             throw std::invalid_argument(
-                "Expected an unsigned, 32-bit integer, got " + detail::type_to_string(value) + ".");
+                "Expected an unsigned, 32-bit integer, got " + type_to_string(value) + ".");
         }
 
         return value.GetUint();
@@ -143,7 +149,7 @@ template <> struct value_extractor<std::int64_t>
     {
         if (!value.IsInt64()) {
             throw std::invalid_argument(
-                "Expected a 64-bit integer, got " + detail::type_to_string(value) + ".");
+                "Expected a 64-bit integer, got " + type_to_string(value) + ".");
         }
 
         return value.GetInt64();
@@ -158,7 +164,7 @@ template <> struct value_extractor<std::uint64_t>
     {
         if (!value.IsUint64()) {
             throw std::invalid_argument(
-                "Expected an unsigned, 64-bit integer, got " + detail::type_to_string(value) + ".");
+                "Expected an unsigned, 64-bit integer, got " + type_to_string(value) + ".");
         }
 
         return value.GetUint64();
@@ -172,8 +178,7 @@ template <> struct value_extractor<double>
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsDouble()) {
-            throw std::invalid_argument(
-                "Expected a real, got " + detail::type_to_string(value) + ".");
+            throw std::invalid_argument("Expected a real, got " + type_to_string(value) + ".");
         }
 
         return value.GetDouble();
@@ -187,8 +192,7 @@ template <> struct value_extractor<std::string>
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsString()) {
-            throw std::invalid_argument(
-                "Expected a string, got " + detail::type_to_string(value) + ".");
+            throw std::invalid_argument("Expected a string, got " + type_to_string(value) + ".");
         }
 
         return value.GetString();
@@ -262,9 +266,7 @@ construct_nested_pair(const rapidjson::GenericMember<EncodingType, AllocatorType
         "Nested container must be default constructible.");
 
     ContainerType container;
-
-    using deserializer::from_json;
-    from_json(member.value, container);
+    deserializer::from_json(member.value, container);
 
     return std::make_pair<std::string, ContainerType>(
         member.name.GetString(), std::move(container));
@@ -290,7 +292,7 @@ auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorTyp
 {
     if (!member.value.IsObject()) {
         throw std::invalid_argument(
-            "Expected an object, got " + detail::type_to_string(member.value) + ".");
+            "Expected an object, got " + type_to_string(member.value) + ".");
     }
 
     using nested_container_type = typename PairType::second_type;
@@ -304,8 +306,7 @@ auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorTyp
         std::pair<std::string, typename PairType::second_type>>::type
 {
     if (!member.value.IsArray()) {
-        throw std::invalid_argument(
-            "Expected an array, got " + detail::type_to_string(member.value) + ".");
+        throw std::invalid_argument("Expected an array, got " + type_to_string(member.value) + ".");
     }
 
     using nested_container_type = typename PairType::second_type;
@@ -345,10 +346,9 @@ auto dispatch_insertion(
         "Nested container must be default constructible.");
 
     using nested_container_type = typename ContainerType::value_type;
-    nested_container_type nested_container;
 
-    using deserializer::from_json;
-    from_json(json_value, nested_container);
+    nested_container_type nested_container;
+    deserializer::from_json(json_value, nested_container);
 
     insert<InsertionPolicy>(std::move(nested_container), container);
 }
@@ -360,8 +360,7 @@ void deserialize_json_object(
     ContainerType& container)
 {
     if (!json_value.IsObject()) {
-        throw std::invalid_argument(
-            "Expected an object, got " + detail::type_to_string(json_value) + ".");
+        throw std::invalid_argument("Expected an object, got " + type_to_string(json_value) + ".");
     }
 
     const auto& json_object = json_value.GetObject();
@@ -377,8 +376,7 @@ void deserialize_json_array(
     ContainerType& container)
 {
     if (!json_value.IsArray()) {
-        throw std::invalid_argument(
-            "Expected an array, got " + detail::type_to_string(json_value) + ".");
+        throw std::invalid_argument("Expected an array, got " + type_to_string(json_value) + ".");
     }
 
     const auto& json_array = json_value.GetArray();

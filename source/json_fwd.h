@@ -4,6 +4,7 @@
 #include <filesystem>
 #endif
 
+#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -20,6 +21,8 @@
 namespace json_utils
 {
 namespace serializer
+{
+namespace detail
 {
 template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
 void to_json(
@@ -62,7 +65,7 @@ void to_json(
 template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
 auto to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const char* const data) ->
+    const char* data) ->
     typename std::enable_if<std::is_same<
         char, typename rapidjson::Writer<
                   OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type;
@@ -70,7 +73,7 @@ auto to_json(
 template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
 auto to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const char* const data) ->
+    const char* data) ->
     typename std::enable_if<std::is_same<
         char16_t, typename rapidjson::Writer<
                       OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type;
@@ -78,7 +81,7 @@ auto to_json(
 template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
 auto to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const char* const data) ->
+    const char* data) ->
     typename std::enable_if<std::is_same<
         char32_t, typename rapidjson::Writer<
                       OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type;
@@ -149,6 +152,7 @@ void to_json(
     const std::filesystem::path& path);
 
 #endif
+} // namespace detail
 } // namespace serializer
 
 namespace deserializer
