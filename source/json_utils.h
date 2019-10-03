@@ -11,9 +11,7 @@ template <typename WriterType, typename DataType, typename BufferType>
 const typename BufferType::Ch*
 serialize(BufferType& buffer, WriterType& writer, const DataType& data)
 {
-    using serializer::to_json;
-    to_json(writer, data);
-
+    serializer::to_json(writer, data);
     return buffer.GetString();
 }
 } // namespace detail
@@ -54,9 +52,7 @@ JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const char* const json)
         "The container must have a default constructible.");
 
     ContainerType container;
-
-    using deserializer::from_json;
-    from_json(document, container);
+    deserializer::from_json(document, container);
 
     return container;
 }

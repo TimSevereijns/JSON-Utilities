@@ -99,7 +99,10 @@ void to_json(
     writer.EndObject();
 }
 
-void from_json(const rapidjson::Document& document, sample::simple_widget& widget)
+template <typename EncodingType, typename AllocatorType>
+void from_json(
+    const rapidjson::GenericValue<EncodingType, AllocatorType>& document,
+    sample::simple_widget& widget)
 {
     if (!document.IsObject()) {
         return;
@@ -173,13 +176,15 @@ void to_json(
     writer.StartObject();
 
     writer.Key("Inner Widget");
-    using json_utils::serializer::to_json;
-    to_json(writer, widget.get_inner_widget());
+    json_utils::serializer::to_json(writer, widget.get_inner_widget());
 
     writer.EndObject();
 }
 
-void from_json(const rapidjson::Document& document, sample::composite_widget& widget)
+template <typename EncodingType, typename AllocatorType>
+void from_json(
+    const rapidjson::GenericValue<EncodingType, AllocatorType>& document,
+    sample::composite_widget& widget)
 {
     if (!document.IsObject()) {
         return;
@@ -191,9 +196,7 @@ void from_json(const rapidjson::Document& document, sample::composite_widget& wi
     }
 
     sample::simple_widget simple_widget;
-
-    using json_utils::deserializer::from_json;
-    from_json(*member_iterator, simple_widget);
+    json_utils::deserializer::from_json(*member_iterator, simple_widget);
 
     widget.set_inner_widget(std::move(simple_widget));
 }
@@ -243,13 +246,15 @@ void to_json(
     writer.String(widget.get_timestamp().c_str());
 
     writer.Key("Data");
-    using json_utils::serializer::to_json;
-    to_json(writer, widget.get_data());
+    json_utils::serializer::to_json(writer, widget.get_data());
 
     writer.EndObject();
 }
 
-void from_json(const rapidjson::Document& document, sample::heterogeneous_widget& widget)
+template <typename EncodingType, typename AllocatorType>
+void from_json(
+    const rapidjson::GenericValue<EncodingType, AllocatorType>& document,
+    sample::heterogeneous_widget& widget)
 {
     if (!document.IsObject()) {
         return;
@@ -268,8 +273,7 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
     }
 
     std::vector<std::string> data;
-    using json_utils::deserializer::from_json;
-    from_json(data_iterator->value, data);
+    json_utils::deserializer::from_json(data_iterator->value, data);
 
     widget.set_data(std::move(data));
 }
@@ -423,7 +427,6 @@ TEST_CASE("Serialization of std::map<...>", "[Standard Containers]")
 
         // @note The exact serialization appears to depend on the STL implementation;
         // i.e., libc appears to enumerate the values in the reverse order used by MSVC.
-        // uses.
 
         REQUIRE(json.find("\"key_one\":1") != std::string::npos);
         REQUIRE(json.find("\"key_two\":2") != std::string::npos);

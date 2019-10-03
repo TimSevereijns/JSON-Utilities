@@ -36,3 +36,5 @@ debug/*
 release/*
 
 .vscode/*
+
+CMakeLists.txt.user
