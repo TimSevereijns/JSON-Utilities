@@ -23,18 +23,22 @@ struct to_json_functor
 } // namespace detail
 
 // Template variables are required to have external linkage per the Standard.
-template <typename DataType> constexpr DataType external_linkage{};
+template <typename DataType> constexpr DataType apply_external_linkage{};
 
 namespace
 {
-// The anonymous namespace is needed to keep the reference "itself from being multiply defined."
-// Each reference will have internal linkage, but "the references all refer to the same object,"
-// and "since every mention [...] in all translation units refer to the same entity, there is no
-// ODR violation. Source: Suggested Design for Customization Points
+// Variables declared at global scope will have external linkage, so we'll need to use an anonymous
+// namespace to keep the enclosed reference "itself from being multiply defined." This works
+// because anonymous namespaces behave as if a unique identifier were chosen for each translation
+// unit in which it appears. As a result, the reference has internal linkage. However, since the
+// reference below refers to a variable template (which is required to have external linkage), "all
+// translation units [will] refer to the same entity," and therefore "there is no ODR violation."
+//
+// Source: Suggested Design for Customization Points
 // [http://ericniebler.github.io/std/wg21/D4381.html]
 //
-// @note Use an inline variable when upgrading to C++17.
-constexpr const auto& to_json = external_linkage<detail::to_json_functor>;
+// @note Use an `inline constexpr` variable when upgrading to C++17.
+constexpr const auto& to_json = apply_external_linkage<detail::to_json_functor>;
 } // namespace
 
 inline std::string to_narrow_json_key(const std::string& data) noexcept
@@ -58,7 +62,6 @@ template <> struct key_master<char>
     template <typename DataType>
     static std::string generate_key(const DataType& data) noexcept(noexcept(to_narrow_json_key))
     {
-        using serializer::to_narrow_json_key;
         return to_narrow_json_key(data);
     }
 };
@@ -68,7 +71,6 @@ template <> struct key_master<wchar_t>
     template <typename DataType>
     static std::wstring generate_key(const DataType& data) noexcept(noexcept(to_wide_json_key))
     {
-        using serializer::to_wide_json_key;
         return to_wide_json_key(data);
     }
 };

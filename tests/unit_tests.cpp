@@ -176,8 +176,7 @@ void to_json(
     writer.StartObject();
 
     writer.Key("Inner Widget");
-    using json_utils::serializer::to_json;
-    to_json(writer, widget.get_inner_widget());
+    json_utils::serializer::to_json(writer, widget.get_inner_widget());
 
     writer.EndObject();
 }
@@ -247,8 +246,7 @@ void to_json(
     writer.String(widget.get_timestamp().c_str());
 
     writer.Key("Data");
-    using json_utils::serializer::to_json;
-    to_json(writer, widget.get_data());
+    json_utils::serializer::to_json(writer, widget.get_data());
 
     writer.EndObject();
 }
@@ -275,8 +273,7 @@ void from_json(
     }
 
     std::vector<std::string> data;
-    using json_utils::deserializer::from_json;
-    from_json(data_iterator->value, data);
+    json_utils::deserializer::from_json(data_iterator->value, data);
 
     widget.set_data(std::move(data));
 }
