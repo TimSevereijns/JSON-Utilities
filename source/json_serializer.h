@@ -23,7 +23,7 @@ struct to_json_functor
 } // namespace detail
 
 // Template variables are required to have external linkage per the Standard.
-template <typename DataType> constexpr DataType apply_external_linkage{};
+template <typename DataType> constexpr DataType make_odr_safe{};
 
 namespace
 {
@@ -38,7 +38,7 @@ namespace
 // [http://ericniebler.github.io/std/wg21/D4381.html]
 //
 // @note Use an `inline constexpr` variable when upgrading to C++17.
-constexpr const auto& to_json = apply_external_linkage<detail::to_json_functor>;
+constexpr const auto& to_json = make_odr_safe<detail::to_json_functor>;
 } // namespace
 
 inline std::string to_narrow_json_key(const std::string& data) noexcept
@@ -139,10 +139,7 @@ void to_json(
     const std::basic_string<CharacterType, CharacterTraits, Allocator>& data)
 {
     static_assert(
-        std::is_same<
-            CharacterType,
-            typename rapidjson::Writer<
-                OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value,
+        std::is_same<CharacterType, typename SourceEncodingType::Ch>::value,
         "The character type to be serialized differs from the character type of the "
         "rapidjson::Writer object.");
 
@@ -152,10 +149,8 @@ void to_json(
 template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
 auto to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const char* const data) ->
-    typename std::enable_if<std::is_same<
-        char, typename rapidjson::Writer<
-                  OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type
+    const char* data) ->
+    typename std::enable_if<std::is_same<char, typename SourceEncodingType::Ch>::value>::type
 {
     if (data == nullptr) {
         writer.Null();
@@ -168,10 +163,8 @@ auto to_json(
 template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
 auto to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const char* const data) ->
-    typename std::enable_if<std::is_same<
-        char16_t, typename rapidjson::Writer<
-                      OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type
+    const char* data) ->
+    typename std::enable_if<std::is_same<char16_t, typename SourceEncodingType::Ch>::value>::type
 {
     if (data == nullptr) {
         writer.Null();
@@ -184,10 +177,8 @@ auto to_json(
 template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
 auto to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const char* const data) ->
-    typename std::enable_if<std::is_same<
-        char32_t, typename rapidjson::Writer<
-                      OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type
+    const char* data) ->
+    typename std::enable_if<std::is_same<char32_t, typename SourceEncodingType::Ch>::value>::type
 {
     if (data == nullptr) {
         writer.Null();
@@ -209,7 +200,7 @@ void to_json(
         return;
     }
 
-    serializer::to_json(writer, *pointer);
+    to_json(writer, *pointer);
 }
 
 template <
@@ -224,7 +215,7 @@ void to_json(
         return;
     }
 
-    serializer::to_json(writer, *pointer);
+    to_json(writer, *pointer);
 }
 
 template <
@@ -240,7 +231,7 @@ void to_json(
         return;
     }
 
-    serializer::to_json(writer, *strongPointer);
+    to_json(writer, *strongPointer);
 }
 
 template <
@@ -254,7 +245,7 @@ auto to_json(
     writer.StartArray();
 
     for (const auto& item : container) {
-        serializer::to_json(writer, item);
+        to_json(writer, item);
     }
 
     writer.EndArray();
@@ -271,7 +262,7 @@ auto to_json(
     writer.StartObject();
 
     for (const auto& item : container) {
-        serializer::to_json(writer, item);
+        to_json(writer, item);
     }
 
     writer.EndObject();
@@ -311,7 +302,7 @@ void to_json(
         return;
     }
 
-    serializer::to_json(writer, *data);
+    to_json(writer, *data);
 }
 
 template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>

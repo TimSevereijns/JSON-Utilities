@@ -4,6 +4,7 @@
 #include <filesystem>
 #endif
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <type_traits>
@@ -66,25 +67,19 @@ template <typename OutputStreamType, typename SourceEncodingType, typename Targe
 auto to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
     const char* data) ->
-    typename std::enable_if<std::is_same<
-        char, typename rapidjson::Writer<
-                  OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type;
+    typename std::enable_if<std::is_same<char, typename SourceEncodingType::Ch>::value>::type;
 
 template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
 auto to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
     const char* data) ->
-    typename std::enable_if<std::is_same<
-        char16_t, typename rapidjson::Writer<
-                      OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type;
+    typename std::enable_if<std::is_same<char16_t, typename SourceEncodingType::Ch>::value>::type;
 
 template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
 auto to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
     const char* data) ->
-    typename std::enable_if<std::is_same<
-        char32_t, typename rapidjson::Writer<
-                      OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type;
+    typename std::enable_if<std::is_same<char32_t, typename SourceEncodingType::Ch>::value>::type;
 
 template <
     typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,

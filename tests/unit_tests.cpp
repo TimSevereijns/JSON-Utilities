@@ -557,8 +557,8 @@ TEST_CASE("Handling Pointer Types")
     SECTION("Using std::unique_ptr<...>")
     {
         auto container = std::vector<std::unique_ptr<std::string>>();
-        container.emplace_back(future_std::make_unique<std::string>("Hello"));
-        container.emplace_back(future_std::make_unique<std::string>("World"));
+        container.emplace_back(std::make_unique<std::string>("Hello"));
+        container.emplace_back(std::make_unique<std::string>("World"));
 
         const auto json = json_utils::serialize_to_json(container);
 
@@ -568,7 +568,7 @@ TEST_CASE("Handling Pointer Types")
     SECTION("Using std::unique_ptr<...> Set to Null")
     {
         auto container = std::vector<std::unique_ptr<std::string>>();
-        container.emplace_back(future_std::make_unique<std::string>("Test"));
+        container.emplace_back(std::make_unique<std::string>("Test"));
         container.emplace_back(nullptr);
 
         const auto json = json_utils::serialize_to_json(container);
@@ -695,18 +695,16 @@ TEST_CASE("Serializing a Custom Type")
     SECTION("Custom Type as Key")
     {
         const std::vector<std::pair<sample::simple_widget, std::list<std::shared_ptr<std::string>>>>
-            container = { { sample::simple_widget{ "Widget One" },
-                            { future_std::make_unique<std::string>("1"),
-                              future_std::make_unique<std::string>("2"),
-                              future_std::make_unique<std::string>("3"),
-                              future_std::make_unique<std::string>("4"),
-                              future_std::make_unique<std::string>("5"), nullptr } },
-                          { sample::simple_widget{ "Widget Two" },
-                            { future_std::make_unique<std::string>("5"),
-                              future_std::make_unique<std::string>("6"),
-                              future_std::make_unique<std::string>("7"),
-                              future_std::make_unique<std::string>("8"),
-                              future_std::make_unique<std::string>("9") } } };
+            container = {
+                { sample::simple_widget{ "Widget One" },
+                  { std::make_unique<std::string>("1"), std::make_unique<std::string>("2"),
+                    std::make_unique<std::string>("3"), std::make_unique<std::string>("4"),
+                    std::make_unique<std::string>("5"), nullptr } },
+                { sample::simple_widget{ "Widget Two" },
+                  { std::make_unique<std::string>("5"), std::make_unique<std::string>("6"),
+                    std::make_unique<std::string>("7"), std::make_unique<std::string>("8"),
+                    std::make_unique<std::string>("9") } }
+            };
 
         const auto json = json_utils::serialize_to_json(container);
 
@@ -1094,9 +1092,9 @@ TEST_CASE("Deserialization into std::unique_ptr<...>")
     SECTION("JSON Array of Non-null Items to std::unique_ptr<...>")
     {
         container_type source_container;
-        source_container.emplace_back(future_std::make_unique<int>(1));
-        source_container.emplace_back(future_std::make_unique<int>(2));
-        source_container.emplace_back(future_std::make_unique<int>(3));
+        source_container.emplace_back(std::make_unique<int>(1));
+        source_container.emplace_back(std::make_unique<int>(2));
+        source_container.emplace_back(std::make_unique<int>(3));
 
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
@@ -1108,11 +1106,11 @@ TEST_CASE("Deserialization into std::unique_ptr<...>")
     SECTION("JSON Array of Potentially Null Items to std::unique_ptr<...>")
     {
         container_type source_container;
-        source_container.emplace_back(future_std::make_unique<int>(1));
+        source_container.emplace_back(std::make_unique<int>(1));
         source_container.emplace_back(nullptr);
-        source_container.emplace_back(future_std::make_unique<int>(2));
+        source_container.emplace_back(std::make_unique<int>(2));
         source_container.emplace_back(nullptr);
-        source_container.emplace_back(future_std::make_unique<int>(3));
+        source_container.emplace_back(std::make_unique<int>(3));
 
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);

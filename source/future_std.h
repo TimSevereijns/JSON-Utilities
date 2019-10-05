@@ -69,9 +69,4 @@ struct disjunction<DataType, OtherDataTypes...>
 template <class DataType> struct negation : std::integral_constant<bool, !bool(DataType::value)>
 {
 };
-
-template <typename DataType, typename... Args> std::unique_ptr<DataType> make_unique(Args&&... args)
-{
-    return std::unique_ptr<DataType>(new DataType{ std::forward<Args>(args)... });
-}
 } // namespace future_std

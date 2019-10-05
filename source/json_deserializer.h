@@ -31,7 +31,7 @@ struct from_json_functor
 } // namespace detail
 
 // Template variables are required to have external linkage per the Standard.
-template <typename DataType> constexpr DataType apply_external_linkage{};
+template <typename DataType> constexpr DataType make_odr_safe{};
 
 namespace
 {
@@ -46,7 +46,7 @@ namespace
 // [http://ericniebler.github.io/std/wg21/D4381.html]
 //
 // @note Use an `inline constexpr` variable when upgrading to C++17.
-constexpr const auto& from_json = apply_external_linkage<detail::from_json_functor>;
+constexpr const auto& from_json = make_odr_safe<detail::from_json_functor>;
 }
 
 struct default_insertion_policy
@@ -213,8 +213,7 @@ template <typename DataType> struct value_extractor<std::unique_ptr<DataType>>
             return nullptr;
         }
 
-        return future_std::make_unique<DataType>(
-            value_extractor<DataType>::extract_or_throw(value));
+        return std::make_unique<DataType>(value_extractor<DataType>::extract_or_throw(value));
     }
 };
 
