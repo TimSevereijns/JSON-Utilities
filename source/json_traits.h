@@ -66,9 +66,7 @@ template <typename, typename = void> struct treat_as_array : std::false_type
 template <typename DataType>
 struct treat_as_array<DataType, future_std::void_t<typename DataType::value_type>>
     : std::conditional<
-          future_std::conjunction<
-              is_container<DataType>,
-              future_std::negation<is_pair<typename DataType::value_type>>>::value,
+          is_container<DataType>::value && !is_pair<typename DataType::value_type>::value,
           std::true_type, std::false_type>::type
 {
 };
@@ -114,10 +112,8 @@ struct treat_as_object<DataType, future_std::void_t<typename DataType::value_typ
 
 template <typename DataType> struct treat_as_value
 {
-    using type = future_std::negation<
-        future_std::disjunction<treat_as_array<DataType>, treat_as_object<DataType>>>;
-
-    static constexpr bool value = type::value;
+    static constexpr bool value =
+        !(treat_as_array<DataType>::value || treat_as_object<DataType>::value);
 };
 } // namespace traits
 } // namespace json_utils
