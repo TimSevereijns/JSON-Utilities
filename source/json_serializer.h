@@ -310,12 +310,9 @@ void to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
     const std::filesystem::path& path)
 {
-    using character_type =
-        typename rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch;
-
-    if constexpr (std::is_same_v<character_type, char>) {
+    if constexpr (std::is_same_v<typename SourceEncodingType::Ch, char>) {
         to_json(writer, path.string().c_str());
-    } else if constexpr (std::is_same_v<character_type, wchar_t>) {
+    } else if constexpr (std::is_same_v<typename SourceEncodingType::Ch, wchar_t>) {
         to_json(writer, path.wstring().c_str());
     }
 }

@@ -101,12 +101,14 @@ template <typename, typename = void> struct treat_as_object : std::false_type
 /**
  * @note Uses SFINAE to detect whether the input type has a `value_type` definition, and if it does,
  * additional type traits will determine whether we're dealing with a container whose value type is
- * a `std::pair<...>`.
+ * a `std::pair<...>`. Anything that stores a `std::pair<...>` will therefore be treated as an
+ * acceptable sink for a JSON object.
  **/
 template <typename DataType>
 struct treat_as_object<DataType, future_std::void_t<typename DataType::value_type>>
     : std::conditional<
-          is_pair<typename DataType::value_type>::value, std::true_type, std::false_type>::type
+          is_container<DataType>::value && is_pair<typename DataType::value_type>::value,
+          std::true_type, std::false_type>::type
 {
 };
 

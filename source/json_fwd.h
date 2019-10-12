@@ -2,10 +2,10 @@
 
 #if __cplusplus >= 201703L // C++17
 #include <filesystem>
+#include <optional>
 #endif
 
 #include <memory>
-#include <optional>
 #include <string>
 #include <type_traits>
 #include <utility>
