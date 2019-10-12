@@ -4,8 +4,6 @@ enable_language(CXX)
 
 project(Json-Utils)
 
-set(CMAKE_CXX_STANDARD 14)
-
 if (UNIX)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra -Werror -Wpedantic --coverage")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -Wextra -Werror -Wpedantic")
@@ -35,10 +33,25 @@ set(THIRD_PARTY
     third-party/catch2/single_include
     third-party/rapidjson/include)
 
-include_directories(${SOURCE_DIR} ${THIRD_PARTY})
+add_executable(cpp14 ${SOURCES})
+add_executable(cpp17 ${SOURCES})
 
-add_executable(Json-Utils ${SOURCES})
+target_include_directories(cpp14 PUBLIC ${SOURCE_DIR} ${THIRD_PARTY})
+target_include_directories(cpp17 PUBLIC ${SOURCE_DIR} ${THIRD_PARTY})
+
+set_target_properties(cpp14 PROPERTIES
+    CXX_STANDARD 14
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
+
+set_target_properties(cpp17 PROPERTIES
+    CXX_STANDARD 17
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+)
 
 if (UNIX)
-    target_link_libraries(Json-Utils stdc++)
+    target_link_libraries(cpp14 stdc++)
+    target_link_libraries(cpp17 stdc++)
 endif (UNIX)

@@ -25,10 +25,11 @@ install:
   - sudo update-alternatives --config g++
   - sudo update-alternatives --config gcov
 script:
-  - mkdir debug && cd debug
+  - mkdir build && cd build
   - cmake -DCMAKE_BUILD_TYPE=Debug ..
-  - make
-  - ./Json-Utils
+  - make cpp14
+  - make cpp17
+  - ./cpp17
   - lcov --capture --directory . --output-file coverage.info
   - lcov --remove coverage.info '/usr/*' '*/third-party/*' '*/tests/*' --output-file coverage.info
   - lcov --list coverage.info 
