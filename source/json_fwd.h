@@ -2,9 +2,10 @@
 
 #if __cplusplus >= 201703L // C++17
 #include <filesystem>
+#include <optional>
 #endif
 
-#include <optional>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -66,25 +67,19 @@ template <typename OutputStreamType, typename SourceEncodingType, typename Targe
 auto to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
     const char* data) ->
-    typename std::enable_if<std::is_same<
-        char, typename rapidjson::Writer<
-                  OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type;
+    typename std::enable_if<std::is_same<char, typename SourceEncodingType::Ch>::value>::type;
 
 template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
 auto to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
     const char* data) ->
-    typename std::enable_if<std::is_same<
-        char16_t, typename rapidjson::Writer<
-                      OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type;
+    typename std::enable_if<std::is_same<char16_t, typename SourceEncodingType::Ch>::value>::type;
 
 template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
 auto to_json(
     rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
     const char* data) ->
-    typename std::enable_if<std::is_same<
-        char32_t, typename rapidjson::Writer<
-                      OutputStreamType, SourceEncodingType, TargetEncodingType>::Ch>::value>::type;
+    typename std::enable_if<std::is_same<char32_t, typename SourceEncodingType::Ch>::value>::type;
 
 template <
     typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
@@ -163,31 +158,33 @@ template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<future_std::conjunction<
-        traits::has_emplace_back<ContainerType>,
-        traits::treat_as_array<ContainerType>>::value>::type;
+    typename std::enable_if<
+        traits::has_emplace_back<ContainerType>::value &&
+        traits::treat_as_array<ContainerType>::value>::type;
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<future_std::conjunction<
-        traits::has_emplace<ContainerType>, traits::treat_as_array<ContainerType>>::value>::type;
+    typename std::enable_if<
+        traits::has_emplace<ContainerType>::value &&
+        traits::treat_as_array<ContainerType>::value>::type;
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<future_std::conjunction<
-        traits::has_emplace_back<ContainerType>,
-        traits::treat_as_object<ContainerType>>::value>::type;
+    typename std::enable_if<
+        traits::has_emplace_back<ContainerType>::value &&
+        traits::treat_as_object<ContainerType>::value>::type;
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<future_std::conjunction<
-        traits::has_emplace<ContainerType>, traits::treat_as_object<ContainerType>>::value>::type;
+    typename std::enable_if<
+        traits::has_emplace<ContainerType>::value &&
+        traits::treat_as_object<ContainerType>::value>::type;
 } // namespace detail
 } // namespace deserializer
 } // namespace json_utils

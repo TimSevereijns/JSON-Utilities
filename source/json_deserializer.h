@@ -31,7 +31,7 @@ struct from_json_functor
 } // namespace detail
 
 // Template variables are required to have external linkage per the Standard.
-template <typename DataType> constexpr DataType apply_external_linkage{};
+template <typename DataType> constexpr DataType make_odr_safe{};
 
 namespace
 {
@@ -46,7 +46,7 @@ namespace
 // [http://ericniebler.github.io/std/wg21/D4381.html]
 //
 // @note Use an `inline constexpr` variable when upgrading to C++17.
-constexpr const auto& from_json = apply_external_linkage<detail::from_json_functor>;
+constexpr const auto& from_json = make_odr_safe<detail::from_json_functor>;
 }
 
 struct default_insertion_policy
@@ -213,8 +213,7 @@ template <typename DataType> struct value_extractor<std::unique_ptr<DataType>>
             return nullptr;
         }
 
-        return future_std::make_unique<DataType>(
-            value_extractor<DataType>::extract_or_throw(value));
+        return std::make_unique<DataType>(value_extractor<DataType>::extract_or_throw(value));
     }
 };
 
@@ -341,9 +340,9 @@ template <
 auto dispatch_insertion(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<future_std::disjunction<
-        traits::treat_as_array<typename ContainerType::value_type>,
-        traits::treat_as_object<typename ContainerType::value_type>>::value>::type
+    typename std::enable_if<
+        traits::treat_as_array<typename ContainerType::value_type>::value ||
+        traits::treat_as_object<typename ContainerType::value_type>::value>::type
 {
     static_assert(
         std::is_default_constructible<typename ContainerType::value_type>::value,
@@ -393,9 +392,9 @@ template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<future_std::conjunction<
-        traits::has_emplace_back<ContainerType>,
-        traits::treat_as_array<ContainerType>>::value>::type
+    typename std::enable_if<
+        traits::has_emplace_back<ContainerType>::value &&
+        traits::treat_as_array<ContainerType>::value>::type
 {
     deserialize_json_array<back_insertion_policy>(json_value, container);
 }
@@ -404,8 +403,9 @@ template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<future_std::conjunction<
-        traits::has_emplace<ContainerType>, traits::treat_as_array<ContainerType>>::value>::type
+    typename std::enable_if<
+        traits::has_emplace<ContainerType>::value &&
+        traits::treat_as_array<ContainerType>::value>::type
 {
     deserialize_json_array<default_insertion_policy>(json_value, container);
 }
@@ -414,9 +414,9 @@ template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<future_std::conjunction<
-        traits::has_emplace_back<ContainerType>,
-        traits::treat_as_object<ContainerType>>::value>::type
+    typename std::enable_if<
+        traits::has_emplace_back<ContainerType>::value &&
+        traits::treat_as_object<ContainerType>::value>::type
 {
     deserialize_json_object<back_insertion_policy>(json_value, container);
 }
@@ -425,8 +425,9 @@ template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
-    typename std::enable_if<future_std::conjunction<
-        traits::has_emplace<ContainerType>, traits::treat_as_object<ContainerType>>::value>::type
+    typename std::enable_if<
+        traits::has_emplace<ContainerType>::value &&
+        traits::treat_as_object<ContainerType>::value>::type
 {
     deserialize_json_object<default_insertion_policy>(json_value, container);
 }

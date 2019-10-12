@@ -31,47 +31,9 @@
 // clang-format on
 
 /**
- * The functionality provided in this namespace emulates similar functionality found in C++14 and
- * C++17.
+ * The functionality provided in this namespace emulates similar functionality found in C++17.
  */
 namespace future_std
 {
 template <typename...> using void_t = void;
-
-template <typename...> struct conjunction : std::true_type
-{
-};
-
-template <typename DataType> struct conjunction<DataType> : DataType
-{
-};
-
-template <typename DataType, typename... OtherDataTypes>
-struct conjunction<DataType, OtherDataTypes...>
-    : std::conditional<bool(DataType::value), conjunction<OtherDataTypes...>, DataType>::type
-{
-};
-
-template <typename...> struct disjunction : std::true_type
-{
-};
-
-template <typename DataType> struct disjunction<DataType> : DataType
-{
-};
-
-template <class DataType, class... OtherDataTypes>
-struct disjunction<DataType, OtherDataTypes...>
-    : std::conditional<bool(DataType::value), DataType, disjunction<OtherDataTypes...>>::type
-{
-};
-
-template <class DataType> struct negation : std::integral_constant<bool, !bool(DataType::value)>
-{
-};
-
-template <typename DataType, typename... Args> std::unique_ptr<DataType> make_unique(Args&&... args)
-{
-    return std::unique_ptr<DataType>(new DataType{ std::forward<Args>(args)... });
-}
 } // namespace future_std
