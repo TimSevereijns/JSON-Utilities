@@ -513,6 +513,57 @@ TEST_CASE("Serialization of Numeric Types into JSON Object")
     }
 }
 
+TEST_CASE("Converting between string encodings")
+{
+    SECTION("Converting a std::vector<std::wstring> to narrow JSON")
+    {
+        const std::vector<std::wstring> container = { L"Hello", L"World" };
+        const auto json = json_utils::serialize_to_json<rapidjson::UTF16<>>(container);
+
+        REQUIRE(json == R"(["Hello","World"])");
+    }
+
+    SECTION("Converting a std::map<std::wstring, std::wstring> to pretty narrow JSON")
+    {
+        const std::map<std::wstring, std::wstring> container = { { L"Hello", L"World" },
+                                                                 { L"What's", L"Up" } };
+
+        const auto json = json_utils::serialize_to_pretty_json<rapidjson::UTF16<>>(container);
+
+        REQUIRE(
+            json ==
+            "{\n"
+            "    \"Hello\": \"World\",\n"
+            "    \"What's\": \"Up\"\n"
+            "}");
+    }
+
+    SECTION("Converting a std::vector<std::string> to wide JSON")
+    {
+        const std::vector<std::string> container = { "Hello", "World" };
+        const auto json =
+            json_utils::serialize_to_json<rapidjson::UTF8<>, rapidjson::UTF16<>>(container);
+
+        REQUIRE(json == L"[\"Hello\",\"World\"]");
+    }
+
+    SECTION("Converting a std::map<std::string, std::string> to pretty wide JSON")
+    {
+        const std::map<std::string, std::string> container = { { "Hello", "World" },
+                                                               { "What's", "Up" } };
+
+        const auto json =
+            json_utils::serialize_to_pretty_json<rapidjson::UTF8<>, rapidjson::UTF16<>>(container);
+
+        REQUIRE(
+            json ==
+            L"{\n"
+            L"    \"Hello\": \"World\",\n"
+            L"    \"What's\": \"Up\"\n"
+            L"}");
+    }
+}
+
 #if __cplusplus >= 201703L // C++17
 
 TEST_CASE("Serialization of C++17 Constructs")
@@ -624,7 +675,7 @@ TEST_CASE("Handling Pointer Types")
     }
 }
 
-TEST_CASE("Serializations of Composite Containrs")
+TEST_CASE("Serializations of Composite Containers")
 {
     SECTION("std::map<std::string, std::vector<std::shared_ptr<std::string>>>")
     {
@@ -683,10 +734,18 @@ TEST_CASE("Serializations of Composite Containrs")
 
         REQUIRE(
             json ==
-            R"({)"
-            R"("Key One":{"Subkey One":16.0,"Subkey Three":64.0,"Subkey Two":32.0},)"
-            R"("Key Two":{"Subkey One":128.0,"Subkey Three":512.0,"Subkey Two":256.0})"
-            R"(})");
+            "{\n"
+            "    \"Key One\": {\n"
+            "        \"Subkey One\": 16.0,\n"
+            "        \"Subkey Three\": 64.0,\n"
+            "        \"Subkey Two\": 32.0\n"
+            "    },\n"
+            "    \"Key Two\": {\n"
+            "        \"Subkey One\": 128.0,\n"
+            "        \"Subkey Three\": 512.0,\n"
+            "        \"Subkey Two\": 256.0\n"
+            "    }\n"
+            "}");
     }
 }
 

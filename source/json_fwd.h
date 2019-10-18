@@ -25,126 +25,66 @@ namespace serializer
 {
 namespace detail
 {
-template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
+template <typename WriterType> void to_json(WriterType& writer, bool data);
+
+template <typename WriterType> void to_json(WriterType& writer, std::int32_t data);
+
+template <typename WriterType> void to_json(WriterType& writer, std::uint32_t data);
+
+template <typename WriterType> void to_json(WriterType& writer, std::int64_t data);
+
+template <typename WriterType> void to_json(WriterType& writer, std::uint64_t data);
+
+template <typename WriterType, typename DataType>
+auto to_json(WriterType& writer, DataType data) ->
+    typename std::enable_if<std::is_floating_point<DataType>::value>::type;
+
+template <typename WriterType, typename CharacterType, typename CharacterTraits, typename Allocator>
 void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer, bool data);
+    WriterType& writer, const std::basic_string<CharacterType, CharacterTraits, Allocator>& data);
 
-template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    std::int32_t data);
+template <typename WriterType>
+auto to_json(WriterType& writer, const char* data) ->
+    typename std::enable_if<std::is_same<char, typename WriterType::Ch>::value>::type;
 
-template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    std::uint32_t data);
+template <typename WriterType>
+auto to_json(WriterType& writer, const char* data) ->
+    typename std::enable_if<std::is_same<char16_t, typename WriterType::Ch>::value>::type;
 
-template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    std::int64_t data);
+template <typename WriterType>
+auto to_json(WriterType& writer, const char* data) ->
+    typename std::enable_if<std::is_same<char32_t, typename WriterType::Ch>::value>::type;
 
-template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    std::uint64_t data);
+template <typename WriterType, typename DataType>
+void to_json(WriterType& writer, const std::shared_ptr<DataType>& pointer);
 
-template <
-    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
-    typename DataType>
-auto to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    DataType data) -> typename std::enable_if<std::is_floating_point<DataType>::value>::type;
+template <typename WriterType, typename DataType>
+void to_json(WriterType& writer, const std::unique_ptr<DataType>& pointer);
 
-template <
-    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
-    typename CharacterType, typename CharacterTraits, typename Allocator>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const std::basic_string<CharacterType, CharacterTraits, Allocator>& data);
+template <typename WriterType, typename DataType>
+void to_json(WriterType& writer, const std::weak_ptr<DataType>& weakPointer);
 
-template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
-auto to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const char* data) ->
-    typename std::enable_if<std::is_same<char, typename SourceEncodingType::Ch>::value>::type;
-
-template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
-auto to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const char* data) ->
-    typename std::enable_if<std::is_same<char16_t, typename SourceEncodingType::Ch>::value>::type;
-
-template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
-auto to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const char* data) ->
-    typename std::enable_if<std::is_same<char32_t, typename SourceEncodingType::Ch>::value>::type;
-
-template <
-    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
-    typename DataType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const std::shared_ptr<DataType>& pointer);
-
-template <
-    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
-    typename DataType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const std::unique_ptr<DataType>& pointer);
-
-template <
-    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
-    typename DataType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const std::weak_ptr<DataType>& weakPointer);
-
-template <
-    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
-    typename ContainerType>
-auto to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const ContainerType& container) ->
+template <typename WriterType, typename ContainerType>
+auto to_json(WriterType& writer, const ContainerType& container) ->
     typename std::enable_if<traits::treat_as_array<ContainerType>::value>::type;
 
-template <
-    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
-    typename ContainerType>
-auto to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const ContainerType& container) ->
+template <typename WriterType, typename ContainerType>
+auto to_json(WriterType& writer, const ContainerType& container) ->
     typename std::enable_if<traits::treat_as_object<ContainerType>::value>::type;
 
-template <
-    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
-    typename FirstType, typename SecondType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const std::pair<FirstType, SecondType>& pair);
+template <typename WriterType, typename FirstType, typename SecondType>
+void to_json(WriterType& writer, const std::pair<FirstType, SecondType>& pair);
 
 #if __cplusplus >= 201703L // C++17
 
-template <
-    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
-    typename CharacterType, typename CharacterTraits>
+template <typename WriterType, typename CharacterType, typename CharacterTraits>
 void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const std::basic_string_view<CharacterType, CharacterTraits>& view);
+    WriterType& writer, const std::basic_string_view<CharacterType, CharacterTraits>& view);
 
-template <
-    typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType,
-    typename DataType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const std::optional<DataType>& data);
+template <typename WriterType, typename DataType>
+void to_json(WriterType& writer, const std::optional<DataType>& data);
 
-template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const std::filesystem::path& path);
+template <typename WriterType> void to_json(WriterType& writer, const std::filesystem::path& path);
 
 #endif
 } // namespace detail

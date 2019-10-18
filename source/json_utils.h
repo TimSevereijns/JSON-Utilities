@@ -37,25 +37,32 @@ template <typename ContainerType, typename StreamType> ContainerType deserialize
 }
 } // namespace detail
 
-template <typename EncodingType = rapidjson::UTF8<>, typename DataType>
-JSON_UTILS_NODISCARD std::basic_string<typename EncodingType::Ch>
+template <
+    typename InputEncodingType = rapidjson::UTF8<>, typename OutputEncodingType = rapidjson::UTF8<>,
+    typename DataType>
+JSON_UTILS_NODISCARD std::basic_string<typename OutputEncodingType::Ch>
 serialize_to_json(const DataType& data)
 {
-    rapidjson::GenericStringBuffer<EncodingType> buffer;
-    rapidjson::Writer<decltype(buffer)> writer{ buffer };
+    rapidjson::GenericStringBuffer<OutputEncodingType> buffer;
+    rapidjson::Writer<decltype(buffer), InputEncodingType, OutputEncodingType> writer{ buffer };
 
     serializer::to_json(writer, data);
     return buffer.GetString();
 }
 
-template <typename EncodingType = rapidjson::UTF8<>, typename DataType>
-JSON_UTILS_NODISCARD std::basic_string<typename EncodingType::Ch>
+template <
+    typename InputEncodingType = rapidjson::UTF8<>, typename OutputEncodingType = rapidjson::UTF8<>,
+    typename DataType>
+JSON_UTILS_NODISCARD std::basic_string<typename OutputEncodingType::Ch>
 serialize_to_pretty_json(const DataType& data)
 {
-    rapidjson::GenericStringBuffer<EncodingType> buffer;
-    rapidjson::PrettyWriter<decltype(buffer)> writer{ buffer };
+    rapidjson::GenericStringBuffer<OutputEncodingType> buffer;
+    rapidjson::PrettyWriter<decltype(buffer), InputEncodingType, OutputEncodingType> writer{
+        buffer
+    };
 
     serializer::to_json(writer, data);
+
     return buffer.GetString();
 }
 
