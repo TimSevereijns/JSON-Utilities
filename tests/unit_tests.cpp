@@ -168,10 +168,8 @@ class composite_widget
     simple_widget m_inner_widget;
 };
 
-template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const sample::composite_widget& widget)
+template <typename WriterType>
+void to_json(WriterType& writer, const sample::composite_widget& widget)
 {
     writer.StartObject();
 
@@ -235,10 +233,8 @@ class heterogeneous_widget
     std::vector<std::string> m_data = { "Test String One", "Test String Two", "Test String Three" };
 };
 
-template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const sample::heterogeneous_widget& widget)
+template <typename WriterType>
+void to_json(WriterType& writer, const sample::heterogeneous_widget& widget)
 {
     writer.StartObject();
 
@@ -513,7 +509,7 @@ TEST_CASE("Serialization of Numeric Types into JSON Object")
     }
 }
 
-TEST_CASE("Converting between string encodings")
+TEST_CASE("Serialization using mixed encodings")
 {
     SECTION("Converting a std::vector<std::wstring> to narrow JSON")
     {
@@ -1337,6 +1333,45 @@ TEST_CASE("Deserialization of Custom Type")
     }
 }
 
+TEST_CASE("Deserialization using mixed encodings")
+{
+    SECTION("Converting a narrow JSON to a std::vector<std::wstring>")
+    {
+        using container_type = std::vector<std::wstring>;
+        const container_type container = { L"Hello", L"World" };
+
+        const auto json =
+            json_utils::serialize_to_json<rapidjson::UTF16<>, rapidjson::UTF8<>>(container);
+
+        STATIC_REQUIRE(std::is_same<std::decay<decltype(json)>::type, std::string>::value);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        STATIC_REQUIRE(
+            std::is_same<std::decay<decltype(resultant_container)>::type, container_type>::value);
+
+        REQUIRE(container == resultant_container);
+    }
+
+    SECTION("Converting a wide JSON to a std::vector<std::string>")
+    {
+        using container_type = std::vector<std::string>;
+        const container_type container = { "Hello", "World" };
+
+        const auto json =
+            json_utils::serialize_to_json<rapidjson::UTF8<>, rapidjson::UTF16<>>(container);
+
+        STATIC_REQUIRE(std::is_same<std::decay<decltype(json)>::type, std::wstring>::value);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        STATIC_REQUIRE(
+            std::is_same<std::decay<decltype(resultant_container)>::type, container_type>::value);
+
+        REQUIRE(container == resultant_container);
+    }
+}
+
 TEST_CASE("Error Handling")
 {
     SECTION("Malformed JSON")
@@ -1401,7 +1436,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Int, Got a Null")
+    SECTION("Expected an Int, Got Null")
     {
         const std::vector<std::shared_ptr<int>> source_container = { nullptr };
 

@@ -69,26 +69,46 @@ struct back_insertion_policy
 
 namespace detail
 {
-inline std::string type_to_string(const rapidjson::Value& value)
+template <typename JsonValueType> std::string type_to_string(const JsonValueType& value)
 {
     switch (value.GetType()) {
         case rapidjson::Type::kArrayType:
             return "an array";
+        case rapidjson::Type::kTrueType:
         case rapidjson::Type::kFalseType:
-            return "a false type";
+            return "a boolean";
         case rapidjson::Type::kNullType:
-            return "a null type";
+            return "null";
         case rapidjson::Type::kNumberType:
             return "a numeric type";
         case rapidjson::Type::kObjectType:
-            return "an object type";
+            return "an object";
         case rapidjson::Type::kStringType:
-            return "a string type";
-        case rapidjson::Type::kTrueType:
-            return "a true type";
+            return "a string";
     }
 
     return "an unknown type";
+}
+
+template <
+    typename StringType, typename InputEncodingType, typename OutputEncodingType,
+    typename EncodingType, typename AllocatorType>
+StringType transcode(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+{
+    rapidjson::GenericStringStream<InputEncodingType> source{ value.GetString() };
+    rapidjson::GenericStringBuffer<OutputEncodingType> target;
+
+    bool successfully_transcoded = true;
+    while (source.Peek() != '\0' && successfully_transcoded) {
+        successfully_transcoded =
+            rapidjson::Transcoder<InputEncodingType, OutputEncodingType>::Transcode(source, target);
+    }
+
+    if (!successfully_transcoded) {
+        throw std::invalid_argument("Failed to transcode strings.");
+    }
+
+    return target.GetString();
 }
 
 template <typename DataType> struct value_extractor
@@ -191,9 +211,12 @@ template <> struct value_extractor<double>
 
 template <> struct value_extractor<std::string>
 {
+    using ReturnType = std::string;
+
     template <typename EncodingType, typename AllocatorType>
-    static std::string
-    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+        -> typename std::enable_if<
+            std::is_same<typename EncodingType::Ch, char>::value, ReturnType>::type
     {
         if (!value.IsString()) {
             throw std::invalid_argument("Expected a string, got " + type_to_string(value) + ".");
@@ -201,7 +224,48 @@ template <> struct value_extractor<std::string>
 
         return value.GetString();
     }
+
+    template <typename EncodingType, typename AllocatorType>
+    static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+        -> typename std::enable_if<
+            std::is_same<typename EncodingType::Ch, wchar_t>::value, ReturnType>::type
+    {
+        if (!value.IsString()) {
+            throw std::invalid_argument("Expected a string, got " + type_to_string(value) + ".");
+        }
+
+        return transcode<ReturnType, rapidjson::UTF16<>, rapidjson::UTF8<>>(value);
+    }
 };
+
+template <> struct value_extractor<std::wstring>
+{
+    using ReturnType = std::wstring;
+
+    template <typename EncodingType, typename AllocatorType>
+    static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+        -> typename std::enable_if<
+            std::is_same<typename EncodingType::Ch, wchar_t>::value, ReturnType>::type
+    {
+        if (!value.IsString()) {
+            throw std::invalid_argument("Expected a string, got " + type_to_string(value) + ".");
+        }
+
+        return value.GetString();
+    }
+
+    template <typename EncodingType, typename AllocatorType>
+    static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+        -> typename std::enable_if<
+            std::is_same<typename EncodingType::Ch, char>::value, ReturnType>::type
+    {
+        if (!value.IsString()) {
+            throw std::invalid_argument("Expected a string, got " + type_to_string(value) + ".");
+        }
+
+        return transcode<ReturnType, rapidjson::UTF8<>, rapidjson::UTF16<>>(value);
+    }
+}; // namespace detail
 
 template <typename DataType> struct value_extractor<std::unique_ptr<DataType>>
 {
