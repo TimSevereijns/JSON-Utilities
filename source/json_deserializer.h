@@ -95,6 +95,8 @@ template <
     typename EncodingType, typename AllocatorType>
 StringType transcode(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
 {
+    assert(value.IsString());
+
     rapidjson::GenericStringStream<InputEncodingType> source{ value.GetString() };
     rapidjson::GenericStringBuffer<OutputEncodingType> target;
 
@@ -212,12 +214,12 @@ template <> struct value_extractor<double>
 
 template <> struct value_extractor<std::string>
 {
-    using return_type = std::string;
+    using value_type = std::string;
 
     template <typename EncodingType, typename AllocatorType>
     static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
         -> typename std::enable_if<
-            std::is_same<typename EncodingType::Ch, char>::value, return_type>::type
+            std::is_same<typename EncodingType::Ch, char>::value, value_type>::type
     {
         if (!value.IsString()) {
             throw std::invalid_argument("Expected a string, got " + type_to_string(value) + ".");
@@ -229,24 +231,24 @@ template <> struct value_extractor<std::string>
     template <typename EncodingType, typename AllocatorType>
     static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
         -> typename std::enable_if<
-            std::is_same<typename EncodingType::Ch, wchar_t>::value, return_type>::type
+            std::is_same<typename EncodingType::Ch, wchar_t>::value, value_type>::type
     {
         if (!value.IsString()) {
             throw std::invalid_argument("Expected a string, got " + type_to_string(value) + ".");
         }
 
-        return transcode<return_type, rapidjson::UTF16<>, rapidjson::UTF8<>>(value);
+        return transcode<value_type, rapidjson::UTF16<>, rapidjson::UTF8<>>(value);
     }
 };
 
 template <> struct value_extractor<std::wstring>
 {
-    using return_type = std::wstring;
+    using value_type = std::wstring;
 
     template <typename EncodingType, typename AllocatorType>
     static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
         -> typename std::enable_if<
-            std::is_same<typename EncodingType::Ch, wchar_t>::value, return_type>::type
+            std::is_same<typename EncodingType::Ch, wchar_t>::value, value_type>::type
     {
         if (!value.IsString()) {
             throw std::invalid_argument("Expected a string, got " + type_to_string(value) + ".");
@@ -258,13 +260,13 @@ template <> struct value_extractor<std::wstring>
     template <typename EncodingType, typename AllocatorType>
     static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
         -> typename std::enable_if<
-            std::is_same<typename EncodingType::Ch, char>::value, return_type>::type
+            std::is_same<typename EncodingType::Ch, char>::value, value_type>::type
     {
         if (!value.IsString()) {
             throw std::invalid_argument("Expected a string, got " + type_to_string(value) + ".");
         }
 
-        return transcode<return_type, rapidjson::UTF8<>, rapidjson::UTF16<>>(value);
+        return transcode<value_type, rapidjson::UTF8<>, rapidjson::UTF16<>>(value);
     }
 }; // namespace detail
 
@@ -325,60 +327,57 @@ void insert(DataType&& value, ContainerType& container)
     InsertionPolicy::insert(std::forward<DataType>(value), container);
 }
 
-template <typename ContainerType, typename EncodingType, typename AllocatorType>
-std::pair<std::string, ContainerType>
-construct_nested_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member)
+template <typename PairType, typename EncodingType, typename AllocatorType>
+PairType construct_nested_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member)
 {
+    using key_type = typename std::decay<typename PairType::first_type>::type;
+    using nested_type = typename PairType::second_type;
+
     static_assert(
-        std::is_default_constructible<ContainerType>::value,
+        std::is_default_constructible<nested_type>::value,
         "Nested container must be default constructible.");
 
-    ContainerType container;
+    nested_type container;
     deserializer::from_json(member.value, container);
 
-    return std::make_pair<std::string, ContainerType>(
-        member.name.GetString(), std::move(container));
+    return { value_extractor<key_type>::extract_or_throw(member.name), std::move(container) };
 }
 
 template <typename PairType, typename EncodingType, typename AllocatorType>
 auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
     typename std::enable_if<
-        traits::treat_as_value<typename PairType::second_type>::value,
-        std::pair<std::string, typename PairType::second_type>>::type
+        traits::treat_as_value<typename PairType::second_type>::value, PairType>::type
 {
-    using desired_type = typename PairType::second_type;
+    using key_type = typename std::decay<typename PairType::first_type>::type;
+    using value_type = typename PairType::second_type;
 
-    return std::make_pair<std::string, desired_type>(
-        member.name.GetString(), value_extractor<desired_type>::extract_or_throw(member.value));
+    return { value_extractor<key_type>::extract_or_throw(member.name),
+             value_extractor<value_type>::extract_or_throw(member.value) };
 }
 
 template <typename PairType, typename EncodingType, typename AllocatorType>
 auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
     typename std::enable_if<
-        traits::treat_as_object<typename PairType::second_type>::value,
-        std::pair<std::string, typename PairType::second_type>>::type
+        traits::treat_as_object<typename PairType::second_type>::value, PairType>::type
 {
     if (!member.value.IsObject()) {
         throw std::invalid_argument(
             "Expected an object, got " + type_to_string(member.value) + ".");
     }
 
-    using nested_container_type = typename PairType::second_type;
-    return construct_nested_pair<nested_container_type>(member);
+    return construct_nested_pair<PairType>(member);
 }
 
 template <typename PairType, typename EncodingType, typename AllocatorType>
 auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
     typename std::enable_if<
-        traits::treat_as_array<typename PairType::second_type>::value,
-        std::pair<std::string, typename PairType::second_type>>::type
+        traits::treat_as_array<typename PairType::second_type>::value, PairType>::type
 {
     if (!member.value.IsArray()) {
         throw std::invalid_argument("Expected an array, got " + type_to_string(member.value) + ".");
     }
 
-    using nested_container_type = typename PairType::second_type;
-    return construct_nested_pair<nested_container_type>(member);
+    return construct_nested_pair<PairType>(member);
 }
 
 template <

@@ -1340,15 +1340,10 @@ TEST_CASE("Deserialization using mixed encodings")
         using container_type = std::vector<std::wstring>;
         const container_type container = { L"Hello", L"World" };
 
-        const auto json =
+        const std::string json =
             json_utils::serialize_to_json<rapidjson::UTF16<>, rapidjson::UTF8<>>(container);
 
-        STATIC_REQUIRE(std::is_same<std::decay<decltype(json)>::type, std::string>::value);
-
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
-
-        STATIC_REQUIRE(
-            std::is_same<std::decay<decltype(resultant_container)>::type, container_type>::value);
 
         REQUIRE(container == resultant_container);
     }
@@ -1358,17 +1353,28 @@ TEST_CASE("Deserialization using mixed encodings")
         using container_type = std::vector<std::string>;
         const container_type container = { "Hello", "World" };
 
-        const auto json =
+        const std::wstring json =
             json_utils::serialize_to_json<rapidjson::UTF8<>, rapidjson::UTF16<>>(container);
-
-        STATIC_REQUIRE(std::is_same<std::decay<decltype(json)>::type, std::wstring>::value);
 
         const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
 
-        STATIC_REQUIRE(
-            std::is_same<std::decay<decltype(resultant_container)>::type, container_type>::value);
-
         REQUIRE(container == resultant_container);
+    }
+
+    SECTION("Transcoding Japanese Unicode")
+    {
+        using container_type = std::map<std::string, std::string>;
+        const container_type dictionary = { { "Test", "\343\203\206\343\202\271\343\203\210" },
+                                            { "Translation", "\347\277\273\350\250\263" },
+                                            { "\343\203\206\343\202\271\343\203\210", "Test" },
+                                            { "\347\277\273\350\250\263", "Translation" } };
+
+        const std::wstring json =
+            json_utils::serialize_to_json<rapidjson::UTF8<>, rapidjson::UTF16<>>(dictionary);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(dictionary == resultant_container);
     }
 }
 

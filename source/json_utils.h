@@ -71,10 +71,10 @@ serialize_to_pretty_json(const DataType& data)
 template <typename ContainerType>
 JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const char* const json)
 {
-    using EncodingType = rapidjson::UTF8<>;
+    using encoding_type = rapidjson::UTF8<>;
 
-    rapidjson::GenericStringStream<EncodingType> string_stream{ json };
-    return detail::deserialize<ContainerType, EncodingType>(string_stream);
+    rapidjson::GenericStringStream<encoding_type> string_stream{ json };
+    return detail::deserialize<ContainerType, encoding_type>(string_stream);
 }
 
 template <typename ContainerType>
@@ -86,10 +86,10 @@ JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const std::string& json
 template <typename ContainerType>
 JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const wchar_t* const json)
 {
-    using EncodingType = rapidjson::UTF16<>;
+    using encoding_type = rapidjson::UTF16<>;
 
-    rapidjson::GenericStringStream<EncodingType> string_stream{ json };
-    return detail::deserialize<ContainerType, EncodingType>(string_stream);
+    rapidjson::GenericStringStream<encoding_type> string_stream{ json };
+    return detail::deserialize<ContainerType, encoding_type>(string_stream);
 }
 
 template <typename ContainerType>
@@ -100,12 +100,16 @@ JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const std::wstring& jso
 
 #if __cplusplus >= 201703L
 
-template <typename EncodingType = rapidjson::UTF8<>, typename DataType>
+template <
+    typename InputEncodingType = rapidjson::UTF8<>, typename OutputEncodingType = rapidjson::UTF8<>,
+    typename DataType>
 void serialize_to_json(const DataType& data, const std::filesystem::path& path)
 {
     std::ofstream file_stream{ path };
     rapidjson::OStreamWrapper stream_wrapper{ file_stream };
-    rapidjson::Writer<decltype(stream_wrapper)> writer{ stream_wrapper };
+    rapidjson::Writer<decltype(stream_wrapper), InputEncodingType, OutputEncodingType> writer{
+        stream_wrapper
+    };
 
     serializer::to_json(writer, data);
 }
