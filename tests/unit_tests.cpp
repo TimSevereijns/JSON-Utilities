@@ -168,10 +168,8 @@ class composite_widget
     simple_widget m_inner_widget;
 };
 
-template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const sample::composite_widget& widget)
+template <typename WriterType>
+void to_json(WriterType& writer, const sample::composite_widget& widget)
 {
     writer.StartObject();
 
@@ -235,10 +233,8 @@ class heterogeneous_widget
     std::vector<std::string> m_data = { "Test String One", "Test String Two", "Test String Three" };
 };
 
-template <typename OutputStreamType, typename SourceEncodingType, typename TargetEncodingType>
-void to_json(
-    rapidjson::Writer<OutputStreamType, SourceEncodingType, TargetEncodingType>& writer,
-    const sample::heterogeneous_widget& widget)
+template <typename WriterType>
+void to_json(WriterType& writer, const sample::heterogeneous_widget& widget)
 {
     writer.StartObject();
 
@@ -513,6 +509,57 @@ TEST_CASE("Serialization of Numeric Types into JSON Object")
     }
 }
 
+TEST_CASE("Serialization using mixed encodings")
+{
+    SECTION("Converting a std::vector<std::wstring> to narrow JSON")
+    {
+        const std::vector<std::wstring> container = { L"Hello", L"World" };
+        const auto json = json_utils::serialize_to_json<rapidjson::UTF16<>>(container);
+
+        REQUIRE(json == R"(["Hello","World"])");
+    }
+
+    SECTION("Converting a std::map<std::wstring, std::wstring> to pretty narrow JSON")
+    {
+        const std::map<std::wstring, std::wstring> container = { { L"Hello", L"World" },
+                                                                 { L"What's", L"Up" } };
+
+        const auto json = json_utils::serialize_to_pretty_json<rapidjson::UTF16<>>(container);
+
+        REQUIRE(
+            json ==
+            "{\n"
+            "    \"Hello\": \"World\",\n"
+            "    \"What's\": \"Up\"\n"
+            "}");
+    }
+
+    SECTION("Converting a std::vector<std::string> to wide JSON")
+    {
+        const std::vector<std::string> container = { "Hello", "World" };
+        const auto json =
+            json_utils::serialize_to_json<rapidjson::UTF8<>, rapidjson::UTF16<>>(container);
+
+        REQUIRE(json == L"[\"Hello\",\"World\"]");
+    }
+
+    SECTION("Converting a std::map<std::string, std::string> to pretty wide JSON")
+    {
+        const std::map<std::string, std::string> container = { { "Hello", "World" },
+                                                               { "What's", "Up" } };
+
+        const auto json =
+            json_utils::serialize_to_pretty_json<rapidjson::UTF8<>, rapidjson::UTF16<>>(container);
+
+        REQUIRE(
+            json ==
+            L"{\n"
+            L"    \"Hello\": \"World\",\n"
+            L"    \"What's\": \"Up\"\n"
+            L"}");
+    }
+}
+
 #if __cplusplus >= 201703L // C++17
 
 TEST_CASE("Serialization of C++17 Constructs")
@@ -624,7 +671,7 @@ TEST_CASE("Handling Pointer Types")
     }
 }
 
-TEST_CASE("Serializations of Composite Containrs")
+TEST_CASE("Serializations of Composite Containers")
 {
     SECTION("std::map<std::string, std::vector<std::shared_ptr<std::string>>>")
     {
@@ -683,10 +730,18 @@ TEST_CASE("Serializations of Composite Containrs")
 
         REQUIRE(
             json ==
-            R"({)"
-            R"("Key One":{"Subkey One":16.0,"Subkey Three":64.0,"Subkey Two":32.0},)"
-            R"("Key Two":{"Subkey One":128.0,"Subkey Three":512.0,"Subkey Two":256.0})"
-            R"(})");
+            "{\n"
+            "    \"Key One\": {\n"
+            "        \"Subkey One\": 16.0,\n"
+            "        \"Subkey Three\": 64.0,\n"
+            "        \"Subkey Two\": 32.0\n"
+            "    },\n"
+            "    \"Key Two\": {\n"
+            "        \"Subkey One\": 128.0,\n"
+            "        \"Subkey Three\": 512.0,\n"
+            "        \"Subkey Two\": 256.0\n"
+            "    }\n"
+            "}");
     }
 }
 
@@ -1278,6 +1333,51 @@ TEST_CASE("Deserialization of Custom Type")
     }
 }
 
+TEST_CASE("Deserialization using mixed encodings")
+{
+    SECTION("Converting a narrow JSON to a std::vector<std::wstring>")
+    {
+        using container_type = std::vector<std::wstring>;
+        const container_type container = { L"Hello", L"World" };
+
+        const std::string json =
+            json_utils::serialize_to_json<rapidjson::UTF16<>, rapidjson::UTF8<>>(container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(container == resultant_container);
+    }
+
+    SECTION("Converting a wide JSON to a std::vector<std::string>")
+    {
+        using container_type = std::vector<std::string>;
+        const container_type container = { "Hello", "World" };
+
+        const std::wstring json =
+            json_utils::serialize_to_json<rapidjson::UTF8<>, rapidjson::UTF16<>>(container);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(container == resultant_container);
+    }
+
+    SECTION("Transcoding Japanese Unicode")
+    {
+        using container_type = std::map<std::string, std::string>;
+        const container_type dictionary = { { "Test", "\343\203\206\343\202\271\343\203\210" },
+                                            { "Translation", "\347\277\273\350\250\263" },
+                                            { "\343\203\206\343\202\271\343\203\210", "Test" },
+                                            { "\347\277\273\350\250\263", "Translation" } };
+
+        const std::wstring json =
+            json_utils::serialize_to_json<rapidjson::UTF8<>, rapidjson::UTF16<>>(dictionary);
+
+        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+
+        REQUIRE(dictionary == resultant_container);
+    }
+}
+
 TEST_CASE("Error Handling")
 {
     SECTION("Malformed JSON")
@@ -1342,7 +1442,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Int, Got a Null")
+    SECTION("Expected an Int, Got Null")
     {
         const std::vector<std::shared_ptr<int>> source_container = { nullptr };
 

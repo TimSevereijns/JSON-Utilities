@@ -84,9 +84,7 @@ const std::vector<std::pair<std::string, std::map<std::string, double>>> contain
 const auto json = json_utils::serialize_to_pretty_json(container);
 ```
 
-Generally speaking, associative containers (like `std::map<...>` and `std::unordered_map<..>`) will be treated as JSON object, while non-associative containers (like `std::vector<...>`, `std::array<...>`, `std::set<...>`, `std::list<...>`, et cetera) will be treated as JSON arrays.
-
-An exception to this is a `std::vector<std::pair<...>>`, which is also treated as an object (since it's very similar to a `std::[unordered_]map`).
+Generally speaking, any container whose `value_type` is a `std::pair<..., ...>` will be treated as a sink for a JSON object.
 
 ## Deserialization
 
@@ -153,7 +151,6 @@ void to_json(Writer& writer, const sample::heterogeneous_widget& widget)
     writer.String(widget.get_timestamp().c_str());
 
     writer.Key("Data");
-    using json_utils::serializer::to_json;
     to_json(writer, widget.get_data());
 
     writer.EndObject();
@@ -178,7 +175,6 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
     }
 
     std::vector<std::string> data;
-    using json_utils::deserializer::from_json;
     from_json(data_iterator->value, data);
     
     widget.set_data(std::move(data));
