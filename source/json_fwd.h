@@ -43,17 +43,9 @@ template <typename WriterType, typename CharacterType, typename CharacterTraits,
 void to_json(
     WriterType& writer, const std::basic_string<CharacterType, CharacterTraits, Allocator>& data);
 
-template <typename WriterType>
-auto to_json(WriterType& writer, const char* data) ->
-    typename std::enable_if<std::is_same<char, typename WriterType::Ch>::value>::type;
+template <typename WriterType> auto to_json(WriterType& writer, const char* data);
 
-template <typename WriterType>
-auto to_json(WriterType& writer, const char* data) ->
-    typename std::enable_if<std::is_same<char16_t, typename WriterType::Ch>::value>::type;
-
-template <typename WriterType>
-auto to_json(WriterType& writer, const char* data) ->
-    typename std::enable_if<std::is_same<char32_t, typename WriterType::Ch>::value>::type;
+template <typename WriterType> auto to_json(WriterType& writer, const wchar_t* data);
 
 template <typename WriterType, typename DataType>
 void to_json(WriterType& writer, const std::shared_ptr<DataType>& pointer);

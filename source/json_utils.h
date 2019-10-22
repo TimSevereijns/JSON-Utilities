@@ -114,12 +114,16 @@ void serialize_to_json(const DataType& data, const std::filesystem::path& path)
     serializer::to_json(writer, data);
 }
 
-template <typename EncodingType = rapidjson::UTF8<>, typename DataType>
+template <
+    typename InputEncodingType = rapidjson::UTF8<>, typename OutputEncodingType = rapidjson::UTF8<>,
+    typename DataType>
 void serialize_to_pretty_json(const DataType& data, const std::filesystem::path& path)
 {
     std::ofstream file_stream{ path };
     rapidjson::OStreamWrapper stream_wrapper{ file_stream };
-    rapidjson::PrettyWriter<decltype(stream_wrapper)> writer{ stream_wrapper };
+    rapidjson::PrettyWriter<decltype(stream_wrapper), InputEncodingType, OutputEncodingType> writer{
+        stream_wrapper
+    };
 
     serializer::to_json(writer, data);
 }

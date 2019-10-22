@@ -268,7 +268,7 @@ template <> struct value_extractor<std::wstring>
 
         return transcode<value_type, rapidjson::UTF8<>, rapidjson::UTF16<>>(value);
     }
-}; // namespace detail
+};
 
 template <typename DataType> struct value_extractor<std::unique_ptr<DataType>>
 {
