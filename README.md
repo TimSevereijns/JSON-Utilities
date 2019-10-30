@@ -2,7 +2,7 @@
 
 [![codecov](https://codecov.io/gh/TimSevereijns/JSON-Utilities/branch/master/graph/badge.svg)](https://codecov.io/gh/TimSevereijns/JSON-Utilities)
 
-> A small side-project that provides a series of utility functions built around the `rapidjson` library, with the aim of simplifying serialization and deserialization to as few lines as possible.
+> A series of utility functions built around the popular `rapidjson` library, with the aim of simplifying serialization and deserialization to as few lines as possible.
 
 ## Serialization
 
@@ -67,7 +67,7 @@ The resultant JSON string looks as follows:
 }
 ```
 
-Note, that the ordering of a `std::map<...>` likely isn't going to remain stable from insertion to serialization; JSON makes no guarantees about ordering either.
+Note, that the ordering of a `std::unordered_map<...>` likely isn't going to remain stable from insertion to serialization; JSON makes no guarantees about ordering either.
 
 If you'd rather store your data in a contiguous container, the example above can also be expressed as a `std::vector<std::pair<...>>`:
 
@@ -84,32 +84,29 @@ const std::vector<std::pair<std::string, std::map<std::string, double>>> contain
 const auto json = json_utils::serialize_to_pretty_json(container);
 ```
 
-Generally speaking, any container whose `value_type` is a `std::pair<..., ...>` will be treated as a sink for a JSON object.
+Generally speaking, any container type whose `value_type` is a `std::pair<..., ...>` can be used as a deserialization target for JSON objects.
 
 ## Deserialization
 
 Deserialization is also supported!
 
-Suppose we want to take the JSON object from the snippet above and transform it back into a C++ container. It's as simple as specifying the STL type you want to deserialize it into:
+Suppose we want to take the JSON object from the snippet above and transform it back into a C++ object. It's as simple as specifying the type you want to deserialize the JSON string into. The JSON object above can be deserialized into a variety of C++ STL types. The following are all valid options:
 
 ```C++
-const auto map = json_utils::deserialize_from_json<std::map<std::string, int>>(json);
+const auto foo = json_utils::deserialize_from_json<std::map<std::string, int>>(json);
+
+const auto bar = json_utils::deserialize_from_json<std::list<std::pair<std::string, int>>>(json);
+
+const auto baz = json_utils::deserialize_from_json<std::vector<std::pair<std::string, int>>>(json);
 ```
 
-Or, alternatively:
-
-```C++
-const auto vector =
-    json_utils::deserialize_from_json<std::vector<std::pair<std::string, int>>>(json);
-```
-
-That's it.
-
-The derialization logic will use the provided template parameters as a guide for what the JSON object should look like at runtime. So, if the template suggests that, say, a JSON object should be present, and a different type is presented at runtime, an exception will be thrown.
+The derialization logic will use the provided template parameters as a guide for what the JSON object should look like at runtime. If the deserialization target type doesn't match the runtime input, an exception will be thrown.
 
 ## Customization and Handling of Custom Types
 
-Since you'll probably want to serialize something other than plain-old datatypes (PODs), homogeneous arrays, or homogenous objects, you can use argument dependent lookup (ADL) to provide handling for custom types.
+Since you'll probably want to serialize and deserialize custom, non-STL types, you can overload the `to_json(...)` and `from_json(...)` functions to achieve your needs.
+
+Note that there is an inherit asymetry in the current design. The serialization logic relies on a SAX serializer, while the deserializer will parse the entire JSON string into a DOM before transforming it into the user-specified type.
 
 ```C++
 namespace sample
@@ -151,7 +148,7 @@ void to_json(Writer& writer, const sample::heterogeneous_widget& widget)
     writer.String(widget.get_timestamp().c_str());
 
     writer.Key("Data");
-    to_json(writer, widget.get_data());
+    json_utils::serializer::to_json(writer, widget.get_data());
 
     writer.EndObject();
 }
@@ -175,7 +172,7 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
     }
 
     std::vector<std::string> data;
-    from_json(data_iterator->value, data);
+    json_utils::deserializer::from_json(data_iterator->value, data);
     
     widget.set_data(std::move(data));
 }
@@ -183,6 +180,8 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
 ```
 
 Note that in order for ADL to find the correct overload, the `to_json(...)` and `from_json(...)` functions will need to be in the same namespace as the custom type that is to be serialized. With regard for the example shown above, that would be the `sample` namespace.
+
+If you're prefer to keep some of your class's internals private, you may opt to befriend the appropriate overload of either `to_json(...)` or `from_json(...)` so that these functions can access your private members.
 
 ## Handling Nulls
 
