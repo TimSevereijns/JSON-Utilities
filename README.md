@@ -181,7 +181,7 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
 
 Note that in order for ADL to find the correct overload, the `to_json(...)` and `from_json(...)` functions will need to be in the same namespace as the custom type that is to be serialized. With regard for the example shown above, that would be the `sample` namespace.
 
-If you're prefer to keep some of your class's internals private, you may opt to befriend the appropriate overload of either `to_json(...)` or `from_json(...)` so that these functions can access your private members.
+If you'd prefer to keep some of your class's internals private, you may opt to befriend the appropriate overload of either `to_json(...)` or `from_json(...)`. This will allow those functions can access your private members.
 
 ## Handling Nulls
 
