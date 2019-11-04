@@ -4,3 +4,6 @@
 [submodule "third-party/rapidjson"]
     path = third-party/rapidjson
     url = https://github.com/Tencent/rapidjson.git
+[submodule "third-party/doctest"]
+	path = third-party/doctest
+	url = https://github.com/onqtam/doctest.git

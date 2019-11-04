@@ -30,6 +30,7 @@ set(SOURCE_DIR
     source)
 
 set(THIRD_PARTY
+    third-party/doctest
     third-party/catch2/single_include
     third-party/rapidjson/include)
 

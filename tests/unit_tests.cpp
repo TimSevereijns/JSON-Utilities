@@ -1,5 +1,8 @@
-#define CATCH_CONFIG_MAIN // This tells Catch to provide a main() - only do this in one cpp file
-#include <catch2/catch.hpp>
+//#define CATCH_CONFIG_MAIN // This tells Catch to provide a main() - only do this in one cpp file
+//#include <catch2/catch.hpp>
+
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include <doctest/doctest.h>
 
 #include <deque>
 #include <iostream>
@@ -300,66 +303,65 @@ bool compare_container_of_pointers(
 
 TEST_CASE("Trait Detection")
 {
-    SECTION("Container Has emplace_back(...)")
+    SUBCASE("Container Has emplace_back(...)")
     {
-        STATIC_REQUIRE(json_utils::traits::has_emplace_back<std::vector<int>>::value);
-        STATIC_REQUIRE(json_utils::traits::has_emplace_back<std::list<int>>::value);
-        STATIC_REQUIRE(json_utils::traits::has_emplace_back<std::deque<int>>::value);
+        REQUIRE(json_utils::traits::has_emplace_back<std::vector<int>>::value);
+        REQUIRE(json_utils::traits::has_emplace_back<std::list<int>>::value);
+        REQUIRE(json_utils::traits::has_emplace_back<std::deque<int>>::value);
 
-        STATIC_REQUIRE_FALSE(json_utils::traits::has_emplace_back<std::map<int, int>>::value);
-        STATIC_REQUIRE_FALSE(json_utils::traits::has_emplace_back<std::set<int>>::value);
+        REQUIRE_FALSE(json_utils::traits::has_emplace_back<std::map<int, int>>::value);
+        REQUIRE_FALSE(json_utils::traits::has_emplace_back<std::set<int>>::value);
 
-        STATIC_REQUIRE_FALSE(json_utils::traits::has_emplace_back<std::map<int, int>>::value);
-        STATIC_REQUIRE_FALSE(json_utils::traits::has_emplace_back<std::set<int>>::value);
+        REQUIRE_FALSE(json_utils::traits::has_emplace_back<std::map<int, int>>::value);
+        REQUIRE_FALSE(json_utils::traits::has_emplace_back<std::set<int>>::value);
     }
 
-    SECTION("Container Has emplace(...)")
+    SUBCASE("Container Has emplace(...)")
     {
-        STATIC_REQUIRE(json_utils::traits::has_emplace<std::map<int, int>>::value);
-        STATIC_REQUIRE(json_utils::traits::has_emplace<std::set<int>>::value);
+        REQUIRE(json_utils::traits::has_emplace<std::map<int, int>>::value);
+        REQUIRE(json_utils::traits::has_emplace<std::set<int>>::value);
 
-        STATIC_REQUIRE_FALSE(json_utils::traits::has_emplace<std::vector<int>>::value);
-        STATIC_REQUIRE_FALSE(json_utils::traits::has_emplace<std::list<int>>::value);
+        REQUIRE_FALSE(json_utils::traits::has_emplace<std::vector<int>>::value);
+        REQUIRE_FALSE(json_utils::traits::has_emplace<std::list<int>>::value);
     }
 
-    SECTION("Containers to be Treated as JSON Arrays")
+    SUBCASE("Containers to be Treated as JSON Arrays")
     {
-        STATIC_REQUIRE(json_utils::traits::treat_as_array<std::vector<int>>::value);
-        STATIC_REQUIRE(json_utils::traits::treat_as_array<int[8]>::value);
+        REQUIRE(json_utils::traits::treat_as_array<std::vector<int>>::value);
+        REQUIRE(json_utils::traits::treat_as_array<int[8]>::value);
     }
 
-    SECTION("Containers to be Treated as JSON Objects")
+    SUBCASE("Containers to be Treated as JSON Objects")
     {
-        STATIC_REQUIRE(json_utils::traits::treat_as_object<std::map<int, int>>::value);
+        REQUIRE(json_utils::traits::treat_as_object<std::map<int, int>>::value);
 
-        STATIC_REQUIRE(
+        REQUIRE(
             json_utils::traits::treat_as_object<std::unordered_map<std::string, double>>::value);
     }
 
-    SECTION("Treat std::vector<std::pair<...>> is a JSON Object")
+    SUBCASE("Treat std::vector<std::pair<...>> is a JSON Object")
     {
-        STATIC_REQUIRE(
+        REQUIRE(
             json_utils::traits::treat_as_object<std::vector<std::pair<std::string, int>>>::value);
 
-        STATIC_REQUIRE(
+        REQUIRE(
             json_utils::traits::treat_as_object<std::vector<std::pair<std::wstring, int>>>::value);
 
-        STATIC_REQUIRE(
-            json_utils::traits::treat_as_object<std::vector<std::pair<double, char>>>::value);
+        REQUIRE(json_utils::traits::treat_as_object<std::vector<std::pair<double, char>>>::value);
     }
 
-    SECTION("Strings are Special")
+    SUBCASE("Strings are Special")
     {
-        STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array<std::string>::value);
-        STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array<std::wstring>::value);
-        STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array<char[8]>::value);
-        STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array<wchar_t[8]>::value);
+        REQUIRE_FALSE(json_utils::traits::treat_as_array<std::string>::value);
+        REQUIRE_FALSE(json_utils::traits::treat_as_array<std::wstring>::value);
+        REQUIRE_FALSE(json_utils::traits::treat_as_array<char[8]>::value);
+        REQUIRE_FALSE(json_utils::traits::treat_as_array<wchar_t[8]>::value);
     }
 }
 
-TEST_CASE("Serialization of std::vector<...>", "[Standard Containers]")
+TEST_CASE("Serialization of std::vector<...>")
 {
-    SECTION("Empty Container")
+    SUBCASE("Empty Container")
     {
         const std::vector<int> container;
         const auto json = json_utils::serialize_to_json(container);
@@ -367,7 +369,7 @@ TEST_CASE("Serialization of std::vector<...>", "[Standard Containers]")
         REQUIRE(json == "[]");
     }
 
-    SECTION("Container of One Element")
+    SUBCASE("Container of One Element")
     {
         const std::vector<int> container = { 1 };
         const auto json = json_utils::serialize_to_json(container);
@@ -375,7 +377,7 @@ TEST_CASE("Serialization of std::vector<...>", "[Standard Containers]")
         REQUIRE(json == "[1]");
     }
 
-    SECTION("Container of Multiple Elements")
+    SUBCASE("Container of Multiple Elements")
     {
         const std::vector<int> container = { 1, 2, 3, 4, 5 };
         const auto json = json_utils::serialize_to_json(container);
@@ -383,7 +385,7 @@ TEST_CASE("Serialization of std::vector<...>", "[Standard Containers]")
         REQUIRE(json == "[1,2,3,4,5]");
     }
 
-    SECTION("Container of Bools")
+    SUBCASE("Container of Bools")
     {
         const std::vector<bool> container = { true, false, false, true };
         const auto json = json_utils::serialize_to_json(container);
@@ -392,9 +394,9 @@ TEST_CASE("Serialization of std::vector<...>", "[Standard Containers]")
     }
 }
 
-TEST_CASE("Serialization of std::map<...>", "[Standard Containers]")
+TEST_CASE("Serialization of std::map<...>")
 {
-    SECTION("Empty Container")
+    SUBCASE("Empty Container")
     {
         const std::map<std::string, int> container;
         const auto json = json_utils::serialize_to_json(container);
@@ -402,7 +404,7 @@ TEST_CASE("Serialization of std::map<...>", "[Standard Containers]")
         REQUIRE(json == "{}");
     }
 
-    SECTION("Container of One Element")
+    SUBCASE("Container of One Element")
     {
         const std::map<std::string, int> container = {
             { "The meaning of life, the universe, and everything", 42 }
@@ -413,7 +415,7 @@ TEST_CASE("Serialization of std::map<...>", "[Standard Containers]")
         REQUIRE(json == R"({"The meaning of life, the universe, and everything":42})");
     }
 
-    SECTION("Container of Multiple Elements")
+    SUBCASE("Container of Multiple Elements")
     {
         const std::unordered_map<std::string, int> container = { { "key_one", 1 },
                                                                  { "key_two", 2 },
@@ -432,7 +434,7 @@ TEST_CASE("Serialization of std::map<...>", "[Standard Containers]")
 
 TEST_CASE("Serialization of JSON Value Types")
 {
-    SECTION("Array of bool")
+    SUBCASE("Array of bool")
     {
         const std::vector<bool> container = { false, true };
         const auto json = json_utils::serialize_to_json(container);
@@ -440,7 +442,7 @@ TEST_CASE("Serialization of JSON Value Types")
         REQUIRE(json == "[false,true]");
     }
 
-    SECTION("Array of const char*")
+    SUBCASE("Array of const char*")
     {
         const char* message_one = "Message One";
         const char* message_two = "Message Two";
@@ -451,7 +453,7 @@ TEST_CASE("Serialization of JSON Value Types")
         REQUIRE(json == R"(["Message One","Message Two"])");
     }
 
-    SECTION("Array of const char*, with nullptr")
+    SUBCASE("Array of const char*, with nullptr")
     {
         const char* message_one = "Message One";
         const char* message_two = nullptr;
@@ -465,22 +467,22 @@ TEST_CASE("Serialization of JSON Value Types")
 
 TEST_CASE("Serialization of Numeric Types into JSON Array")
 {
-    SECTION("Array of std::int32_t")
+    SUBCASE("Array of std::int32_t")
     {
         test_serialization_of_numerics<std::int32_t>();
     }
 
-    SECTION("Array of std::uin32_t")
+    SUBCASE("Array of std::uin32_t")
     {
         test_serialization_of_numerics<std::uint32_t>();
     }
 
-    SECTION("Array of std::int64_t")
+    SUBCASE("Array of std::int64_t")
     {
         test_serialization_of_numerics<std::int64_t>();
     }
 
-    SECTION("Array of std::uint64_t")
+    SUBCASE("Array of std::uint64_t")
     {
         test_serialization_of_numerics<std::uint64_t>();
     }
@@ -488,22 +490,22 @@ TEST_CASE("Serialization of Numeric Types into JSON Array")
 
 TEST_CASE("Serialization of Numeric Types into JSON Object")
 {
-    SECTION("Array of std::int32_t")
+    SUBCASE("Array of std::int32_t")
     {
         test_serialization_of_numerics<std::int32_t>();
     }
 
-    SECTION("Array of std::uin32_t")
+    SUBCASE("Array of std::uin32_t")
     {
         test_serialization_of_numerics<std::uint32_t>();
     }
 
-    SECTION("Array of std::int64_t")
+    SUBCASE("Array of std::int64_t")
     {
         test_serialization_of_numerics<std::int64_t>();
     }
 
-    SECTION("Array of std::uint64_t")
+    SUBCASE("Array of std::uint64_t")
     {
         test_serialization_of_numerics<std::uint64_t>();
     }
@@ -511,7 +513,7 @@ TEST_CASE("Serialization of Numeric Types into JSON Object")
 
 TEST_CASE("Serialization using mixed encodings")
 {
-    SECTION("Converting a std::vector<std::wstring> to narrow JSON")
+    SUBCASE("Converting a std::vector<std::wstring> to narrow JSON")
     {
         const std::vector<std::wstring> container = { L"Hello", L"World" };
         const auto json = json_utils::serialize_to_json<rapidjson::UTF16<>>(container);
@@ -519,7 +521,7 @@ TEST_CASE("Serialization using mixed encodings")
         REQUIRE(json == R"(["Hello","World"])");
     }
 
-    SECTION("Converting a std::map<std::wstring, std::wstring> to pretty narrow JSON")
+    SUBCASE("Converting a std::map<std::wstring, std::wstring> to pretty narrow JSON")
     {
         const std::map<std::wstring, std::wstring> container = { { L"Hello", L"World" },
                                                                  { L"What's", L"Up" } };
@@ -534,7 +536,7 @@ TEST_CASE("Serialization using mixed encodings")
             "}");
     }
 
-    SECTION("Converting a std::vector<std::string> to wide JSON")
+    SUBCASE("Converting a std::vector<std::string> to wide JSON")
     {
         const std::vector<std::string> container = { "Hello", "World" };
         const auto json =
@@ -543,7 +545,7 @@ TEST_CASE("Serialization using mixed encodings")
         REQUIRE(json == L"[\"Hello\",\"World\"]");
     }
 
-    SECTION("Converting a std::map<std::string, std::string> to pretty wide JSON")
+    SUBCASE("Converting a std::map<std::string, std::string> to pretty wide JSON")
     {
         const std::map<std::string, std::string> container = { { "Hello", "World" },
                                                                { "What's", "Up" } };
@@ -564,7 +566,7 @@ TEST_CASE("Serialization using mixed encodings")
 
 TEST_CASE("Serialization of C++17 Constructs")
 {
-    SECTION("Array of std::string_view")
+    SUBCASE("Array of std::string_view")
     {
         constexpr std::string_view hello = "Hello";
         constexpr std::string_view world = "World";
@@ -575,7 +577,7 @@ TEST_CASE("Serialization of C++17 Constructs")
         REQUIRE(json == R"(["Hello","World"])");
     }
 
-    SECTION("Array of std::optional<...> without Nulls")
+    SUBCASE("Array of std::optional<...> without Nulls")
     {
         const std::vector<std::optional<int>> container = { std::optional<int>{ 101 },
                                                             std::optional<int>{ 202 } };
@@ -585,7 +587,7 @@ TEST_CASE("Serialization of C++17 Constructs")
         REQUIRE(json == R"([101,202])");
     }
 
-    SECTION("Array of std::optional<...> with Nulls")
+    SUBCASE("Array of std::optional<...> with Nulls")
     {
         const std::vector<std::optional<int>> container = { std::optional<int>{ 101 }, std::nullopt,
                                                             std::nullopt,
@@ -601,7 +603,7 @@ TEST_CASE("Serialization of C++17 Constructs")
 
 TEST_CASE("Handling Pointer Types")
 {
-    SECTION("Using std::unique_ptr<...>")
+    SUBCASE("Using std::unique_ptr<...>")
     {
         auto container = std::vector<std::unique_ptr<std::string>>();
         container.emplace_back(std::make_unique<std::string>("Hello"));
@@ -612,7 +614,7 @@ TEST_CASE("Handling Pointer Types")
         REQUIRE(json == R"(["Hello","World"])");
     }
 
-    SECTION("Using std::unique_ptr<...> Set to Null")
+    SUBCASE("Using std::unique_ptr<...> Set to Null")
     {
         auto container = std::vector<std::unique_ptr<std::string>>();
         container.emplace_back(std::make_unique<std::string>("Test"));
@@ -623,7 +625,7 @@ TEST_CASE("Handling Pointer Types")
         REQUIRE(json == R"(["Test",null])");
     }
 
-    SECTION("Using std::shared_ptr<...>")
+    SUBCASE("Using std::shared_ptr<...>")
     {
         const auto container =
             std::vector<std::shared_ptr<std::string>>{ std::make_shared<std::string>("Hello"),
@@ -634,7 +636,7 @@ TEST_CASE("Handling Pointer Types")
         REQUIRE(json == R"(["Hello","World"])");
     }
 
-    SECTION("Using std::shared_ptr<...> Set to Null")
+    SUBCASE("Using std::shared_ptr<...> Set to Null")
     {
         const auto container =
             std::vector<std::shared_ptr<std::string>>{ std::make_shared<std::string>("Test"),
@@ -645,7 +647,7 @@ TEST_CASE("Handling Pointer Types")
         REQUIRE(json == R"(["Test",null])");
     }
 
-    SECTION("Using std::weak_ptr<...>")
+    SUBCASE("Using std::weak_ptr<...>")
     {
         const auto pointer_one = std::make_shared<std::string>("Hello");
         const auto pointer_two = std::make_shared<std::string>("World");
@@ -657,7 +659,7 @@ TEST_CASE("Handling Pointer Types")
         REQUIRE(json == R"(["Hello","World"])");
     }
 
-    SECTION("Using std::weak_ptr<...> Set to Null")
+    SUBCASE("Using std::weak_ptr<...> Set to Null")
     {
         const auto pointer_one = std::make_shared<std::string>("Test");
 
@@ -673,7 +675,7 @@ TEST_CASE("Handling Pointer Types")
 
 TEST_CASE("Serializations of Composite Containers")
 {
-    SECTION("std::map<std::string, std::vector<std::shared_ptr<std::string>>>")
+    SUBCASE("std::map<std::string, std::vector<std::shared_ptr<std::string>>>")
     {
         const std::map<std::string, std::vector<std::shared_ptr<std::string>>> container = {
             { "Key One",
@@ -694,7 +696,7 @@ TEST_CASE("Serializations of Composite Containers")
             R"({"Key One":["Value 1.A","Value 1.B","Value 1.C"],"Key Two":["Value 2.A","Value 2.B"]})");
     }
 
-    SECTION("std::map<std::string, std::map<std::string, double>>")
+    SUBCASE("std::map<std::string, std::map<std::string, double>>")
     {
         const std::map<std::string, std::map<std::string, double>> container = {
             { "Key One", std::map<std::string, double>{ { "Subkey One", 16.0 },
@@ -715,7 +717,7 @@ TEST_CASE("Serializations of Composite Containers")
             R"(})");
     }
 
-    SECTION("With a More Complex, Nested Type")
+    SUBCASE("With a More Complex, Nested Type")
     {
         const std::vector<std::pair<std::string, std::map<std::string, double>>> container = {
             { "Key One", std::map<std::string, double>{ { "Subkey One", 16.0 },
@@ -747,7 +749,7 @@ TEST_CASE("Serializations of Composite Containers")
 
 TEST_CASE("Serializing a Custom Type")
 {
-    SECTION("Custom Type as Key")
+    SUBCASE("Custom Type as Key")
     {
         const std::vector<std::pair<sample::simple_widget, std::list<std::shared_ptr<std::string>>>>
             container = {
@@ -768,7 +770,7 @@ TEST_CASE("Serializing a Custom Type")
             R"({"Widget One":["1","2","3","4","5",null],"Widget Two":["5","6","7","8","9"]})");
     }
 
-    SECTION("Custom Type with Nested Custom Type")
+    SUBCASE("Custom Type with Nested Custom Type")
     {
         const std::vector<sample::composite_widget> container = { sample::composite_widget{
             "JSON Serialization" } };
@@ -778,7 +780,7 @@ TEST_CASE("Serializing a Custom Type")
         REQUIRE(json == R"([{"Inner Widget":{"Purpose":"JSON Serialization"}}])");
     }
 
-    SECTION("Custom Type as Value in std::vector<...>")
+    SUBCASE("Custom Type as Value in std::vector<...>")
     {
         const std::vector<sample::simple_widget> container = { sample::simple_widget{
             "JSON Serialization" } };
@@ -788,7 +790,7 @@ TEST_CASE("Serializing a Custom Type")
         REQUIRE(json == R"([{"Purpose":"JSON Serialization"}])");
     }
 
-    SECTION("Custom Type as Value in std::vector<std::pair<...>>")
+    SUBCASE("Custom Type as Value in std::vector<std::pair<...>>")
     {
         const std::vector<std::pair<std::string, sample::simple_widget>> container = {
             std::make_pair<std::string, sample::simple_widget>(
@@ -803,22 +805,22 @@ TEST_CASE("Serializing a Custom Type")
 
 TEST_CASE("Deserialization of JSON Array into Vector of Numerics")
 {
-    SECTION("Array of std::int32_t")
+    SUBCASE("Array of std::int32_t")
     {
         test_array_deserialization_of_numerics<std::int32_t>();
     }
 
-    SECTION("Array of std::uin32_t")
+    SUBCASE("Array of std::uin32_t")
     {
         test_array_deserialization_of_numerics<std::uint32_t>();
     }
 
-    SECTION("Array of std::int64_t")
+    SUBCASE("Array of std::int64_t")
     {
         test_array_deserialization_of_numerics<std::int64_t>();
     }
 
-    SECTION("Array of std::uint64_t")
+    SUBCASE("Array of std::uint64_t")
     {
         test_array_deserialization_of_numerics<std::uint64_t>();
     }
@@ -826,22 +828,22 @@ TEST_CASE("Deserialization of JSON Array into Vector of Numerics")
 
 TEST_CASE("Deserialization of JSON Object into Map of Numerics")
 {
-    SECTION("Array of std::int32_t")
+    SUBCASE("Array of std::int32_t")
     {
         test_object_deserialization_of_numerics<std::int32_t>();
     }
 
-    SECTION("Array of std::uin32_t")
+    SUBCASE("Array of std::uin32_t")
     {
         test_object_deserialization_of_numerics<std::uint32_t>();
     }
 
-    SECTION("Array of std::int64_t")
+    SUBCASE("Array of std::int64_t")
     {
         test_object_deserialization_of_numerics<std::int64_t>();
     }
 
-    SECTION("Array of std::uint64_t")
+    SUBCASE("Array of std::uint64_t")
     {
         test_object_deserialization_of_numerics<std::uint64_t>();
     }
@@ -849,7 +851,7 @@ TEST_CASE("Deserialization of JSON Object into Map of Numerics")
 
 TEST_CASE("Deserialization into a std::vector<...>")
 {
-    SECTION("Empty JSON Array")
+    SUBCASE("Empty JSON Array")
     {
         using container_type = std::vector<int>;
 
@@ -860,7 +862,7 @@ TEST_CASE("Deserialization into a std::vector<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Array with Single Element")
+    SUBCASE("JSON Array with Single Element")
     {
         using container_type = std::vector<int>;
 
@@ -871,7 +873,7 @@ TEST_CASE("Deserialization into a std::vector<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Array with Numerous Elements")
+    SUBCASE("JSON Array with Numerous Elements")
     {
         using container_type = std::vector<int>;
 
@@ -882,7 +884,7 @@ TEST_CASE("Deserialization into a std::vector<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Array of Doubles")
+    SUBCASE("JSON Array of Doubles")
     {
         using container_type = std::vector<double>;
 
@@ -893,7 +895,7 @@ TEST_CASE("Deserialization into a std::vector<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Array of Strings")
+    SUBCASE("JSON Array of Strings")
     {
         using container_type = std::vector<std::string>;
 
@@ -904,7 +906,7 @@ TEST_CASE("Deserialization into a std::vector<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Array of Strings")
+    SUBCASE("JSON Array of Strings")
     {
         using container_type = std::vector<bool>;
 
@@ -918,7 +920,7 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
 TEST_CASE("Deserialization into a std::vector<std::pair<std::string, ...>>")
 {
-    SECTION("With a Single Entry")
+    SUBCASE("With a Single Entry")
     {
         using container_type = std::vector<std::pair<std::string, int>>;
 
@@ -929,7 +931,7 @@ TEST_CASE("Deserialization into a std::vector<std::pair<std::string, ...>>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("With Multiple Entries")
+    SUBCASE("With Multiple Entries")
     {
         using container_type = std::vector<std::pair<std::string, int>>;
 
@@ -943,7 +945,7 @@ TEST_CASE("Deserialization into a std::vector<std::pair<std::string, ...>>")
 
 TEST_CASE("Deserialization into a std::vector<std::vector<...>>")
 {
-    SECTION("With a Single Entry")
+    SUBCASE("With a Single Entry")
     {
         using container_type = std::vector<std::vector<int>>;
 
@@ -954,7 +956,7 @@ TEST_CASE("Deserialization into a std::vector<std::vector<...>>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("With Multiple Entries")
+    SUBCASE("With Multiple Entries")
     {
         using container_type = std::vector<std::vector<int>>;
 
@@ -968,7 +970,7 @@ TEST_CASE("Deserialization into a std::vector<std::vector<...>>")
 
 TEST_CASE("Deserialization into a std::map<...>")
 {
-    SECTION("Empty JSON Object")
+    SUBCASE("Empty JSON Object")
     {
         using container_type = std::map<std::string, int>;
 
@@ -979,7 +981,7 @@ TEST_CASE("Deserialization into a std::map<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Object with Single Element")
+    SUBCASE("JSON Object with Single Element")
     {
         using container_type = std::map<std::string, int>;
 
@@ -990,7 +992,7 @@ TEST_CASE("Deserialization into a std::map<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Object with Numerous Elements")
+    SUBCASE("JSON Object with Numerous Elements")
     {
         using container_type = std::map<std::string, int>;
 
@@ -1004,7 +1006,7 @@ TEST_CASE("Deserialization into a std::map<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Object of Doubles")
+    SUBCASE("JSON Object of Doubles")
     {
         using container_type = std::map<std::string, double>;
 
@@ -1018,7 +1020,7 @@ TEST_CASE("Deserialization into a std::map<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Object of Strings")
+    SUBCASE("JSON Object of Strings")
     {
         using container_type = std::map<std::string, std::string>;
 
@@ -1032,7 +1034,7 @@ TEST_CASE("Deserialization into a std::map<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Object of Booleans")
+    SUBCASE("JSON Object of Booleans")
     {
         using container_type = std::map<std::string, bool>;
 
@@ -1049,7 +1051,7 @@ TEST_CASE("Deserialization into a std::map<...>")
 
 TEST_CASE("Deserialization into a std::map<std::string, std::vector<...>>")
 {
-    SECTION("With a Single Entry")
+    SUBCASE("With a Single Entry")
     {
         using container_type = std::map<std::string, std::vector<int>>;
 
@@ -1060,7 +1062,7 @@ TEST_CASE("Deserialization into a std::map<std::string, std::vector<...>>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("With Multiple Entries")
+    SUBCASE("With Multiple Entries")
     {
         using container_type = std::map<std::string, std::vector<int>>;
 
@@ -1076,7 +1078,7 @@ TEST_CASE("Deserialization into a std::map<std::string, std::vector<...>>")
 
 TEST_CASE("Deserialization into a std::map<std::string, std::map<std::string, int>>")
 {
-    SECTION("With a Single Entry")
+    SUBCASE("With a Single Entry")
     {
         using container_type = std::map<std::string, std::map<std::string, int>>;
 
@@ -1089,7 +1091,7 @@ TEST_CASE("Deserialization into a std::map<std::string, std::map<std::string, in
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("With Multiple Entries")
+    SUBCASE("With Multiple Entries")
     {
         using container_type = std::map<std::string, std::map<std::string, int>>;
 
@@ -1109,7 +1111,7 @@ TEST_CASE("Deserialization into a std::list<...>")
 {
     using container_type = std::list<std::string>;
 
-    SECTION("Empty JSON Object")
+    SUBCASE("Empty JSON Object")
     {
         const container_type source_container = {};
         const auto json = json_utils::serialize_to_json(source_container);
@@ -1118,7 +1120,7 @@ TEST_CASE("Deserialization into a std::list<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Object with Single Element")
+    SUBCASE("JSON Object with Single Element")
     {
         const container_type source_container = { "Hello" };
         const auto json = json_utils::serialize_to_json(source_container);
@@ -1127,7 +1129,7 @@ TEST_CASE("Deserialization into a std::list<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Object with Numerous Elements")
+    SUBCASE("JSON Object with Numerous Elements")
     {
         const container_type source_container = {
             "Hello, ", "World.", "This ", "is ", "a ", "test."
@@ -1144,7 +1146,7 @@ TEST_CASE("Deserialization into std::unique_ptr<...>")
 {
     using container_type = std::vector<std::unique_ptr<int>>;
 
-    SECTION("JSON Array of Non-null Items to std::unique_ptr<...>")
+    SUBCASE("JSON Array of Non-null Items to std::unique_ptr<...>")
     {
         container_type source_container;
         source_container.emplace_back(std::make_unique<int>(1));
@@ -1158,7 +1160,7 @@ TEST_CASE("Deserialization into std::unique_ptr<...>")
         REQUIRE(is_equal);
     }
 
-    SECTION("JSON Array of Potentially Null Items to std::unique_ptr<...>")
+    SUBCASE("JSON Array of Potentially Null Items to std::unique_ptr<...>")
     {
         container_type source_container;
         source_container.emplace_back(std::make_unique<int>(1));
@@ -1179,7 +1181,7 @@ TEST_CASE("Deserialization into std::shared_ptr<...>")
 {
     using container_type = std::vector<std::shared_ptr<int>>;
 
-    SECTION("JSON Array of Non-null Items to std::shared_ptr<...>")
+    SUBCASE("JSON Array of Non-null Items to std::shared_ptr<...>")
     {
         const container_type source_container = { std::make_shared<int>(1),
                                                   std::make_shared<int>(2),
@@ -1192,7 +1194,7 @@ TEST_CASE("Deserialization into std::shared_ptr<...>")
         REQUIRE(is_equal);
     }
 
-    SECTION("JSON Array of Potentially Null Items to std::shared_ptr<...>")
+    SUBCASE("JSON Array of Potentially Null Items to std::shared_ptr<...>")
     {
         const container_type source_container = { std::make_shared<int>(1), nullptr,
                                                   std::make_shared<int>(2), nullptr,
@@ -1212,7 +1214,7 @@ TEST_CASE("Deserialization of C++17 Constructs")
 {
     using container_type = std::vector<std::optional<int>>;
 
-    SECTION("JSON Array of Non-null Items to std::optional<...>")
+    SUBCASE("JSON Array of Non-null Items to std::optional<...>")
     {
         const container_type source_container = { std::optional<int>{ 101 },
                                                   std::optional<int>{ 202 },
@@ -1225,7 +1227,7 @@ TEST_CASE("Deserialization of C++17 Constructs")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Array of Potentially Null Items to std::optional<...>")
+    SUBCASE("JSON Array of Potentially Null Items to std::optional<...>")
     {
         const container_type source_container = { std::optional<int>{ 101 }, std::nullopt,
                                                   std::optional<int>{ 202 }, std::nullopt,
@@ -1245,7 +1247,7 @@ TEST_CASE("Deserialization into a std::set<...>")
 {
     using container_type = std::set<std::string>;
 
-    SECTION("Empty JSON Object")
+    SUBCASE("Empty JSON Object")
     {
         const container_type source_container = {};
         const auto json = json_utils::serialize_to_json(source_container);
@@ -1254,7 +1256,7 @@ TEST_CASE("Deserialization into a std::set<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Object with Single Element")
+    SUBCASE("JSON Object with Single Element")
     {
         const container_type source_container = { "Hello" };
         const auto json = json_utils::serialize_to_json(source_container);
@@ -1263,7 +1265,7 @@ TEST_CASE("Deserialization into a std::set<...>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Object with Numerous Elements")
+    SUBCASE("JSON Object with Numerous Elements")
     {
         const container_type source_container = {
             "Hello, ", "World.", "This ", "is ", "a ", "test."
@@ -1280,7 +1282,7 @@ TEST_CASE("Deserialization into a std::set<std::map<std::string, int>>")
 {
     using container_type = std::set<std::map<std::string, int>>;
 
-    SECTION("JSON Array with Single Element")
+    SUBCASE("JSON Array with Single Element")
     {
         const container_type source_container = { std::map<std::string, int>{ { "value", 10 } } };
         const auto json = json_utils::serialize_to_json(source_container);
@@ -1289,7 +1291,7 @@ TEST_CASE("Deserialization into a std::set<std::map<std::string, int>>")
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("JSON Array with Multiple Elements")
+    SUBCASE("JSON Array with Multiple Elements")
     {
         const container_type source_container = { std::map<std::string, int>{ { "value", 10 } },
                                                   std::map<std::string, int>{ { "value", 20 } } };
@@ -1303,7 +1305,7 @@ TEST_CASE("Deserialization into a std::set<std::map<std::string, int>>")
 
 TEST_CASE("Deserialization of Custom Type")
 {
-    SECTION("JSON Object to sample::widget")
+    SUBCASE("JSON Object to sample::widget")
     {
         const sample::simple_widget widget{ "JSON Demonstration" };
         const auto json = json_utils::serialize_to_json(widget);
@@ -1312,7 +1314,7 @@ TEST_CASE("Deserialization of Custom Type")
         REQUIRE(widget == deserialization);
     }
 
-    SECTION("JSON Object to sample::composite_widget")
+    SUBCASE("JSON Object to sample::composite_widget")
     {
         const sample::composite_widget widget{ "JSON Demonstration" };
         const auto json = json_utils::serialize_to_json(widget);
@@ -1322,7 +1324,7 @@ TEST_CASE("Deserialization of Custom Type")
         REQUIRE(widget == deserialization);
     }
 
-    SECTION("JSON Object to sample::heterogeneous_widget")
+    SUBCASE("JSON Object to sample::heterogeneous_widget")
     {
         const sample::heterogeneous_widget widget;
         const auto json = json_utils::serialize_to_json(widget);
@@ -1335,7 +1337,7 @@ TEST_CASE("Deserialization of Custom Type")
 
 TEST_CASE("Deserialization using mixed encodings")
 {
-    SECTION("Converting a narrow JSON to a std::vector<std::wstring>")
+    SUBCASE("Converting a narrow JSON to a std::vector<std::wstring>")
     {
         using container_type = std::vector<std::wstring>;
         const container_type container = { L"Hello", L"World" };
@@ -1348,7 +1350,7 @@ TEST_CASE("Deserialization using mixed encodings")
         REQUIRE(container == resultant_container);
     }
 
-    SECTION("Converting a wide JSON to a std::vector<std::string>")
+    SUBCASE("Converting a wide JSON to a std::vector<std::string>")
     {
         using container_type = std::vector<std::string>;
         const container_type container = { "Hello", "World" };
@@ -1361,7 +1363,7 @@ TEST_CASE("Deserialization using mixed encodings")
         REQUIRE(container == resultant_container);
     }
 
-    SECTION("Transcoding Japanese Unicode")
+    SUBCASE("Transcoding Japanese Unicode")
     {
         using container_type = std::map<std::string, std::string>;
         const container_type dictionary = { { "Test", "\343\203\206\343\202\271\343\203\210" },
@@ -1380,7 +1382,7 @@ TEST_CASE("Deserialization using mixed encodings")
 
 TEST_CASE("Error Handling")
 {
-    SECTION("Malformed JSON")
+    SUBCASE("Malformed JSON")
     {
         const auto lambda = [] {
             const auto json = R"("missing":"brackets")";
@@ -1391,7 +1393,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Int, Got a Bool")
+    SUBCASE("Expected an Int, Got a Bool")
     {
         const std::vector<bool> source_container = { false, true };
         const auto json = json_utils::serialize_to_json(source_container);
@@ -1403,7 +1405,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an UInt, Got a Bool")
+    SUBCASE("Expected an UInt, Got a Bool")
     {
         const std::vector<bool> source_container = { false, true };
         const auto json = json_utils::serialize_to_json(source_container);
@@ -1416,7 +1418,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected a String, Got a Bool")
+    SUBCASE("Expected a String, Got a Bool")
     {
         const std::vector<bool> source_container = { false, true };
         const auto json = json_utils::serialize_to_json(source_container);
@@ -1429,7 +1431,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an UInt, Got a String")
+    SUBCASE("Expected an UInt, Got a String")
     {
         const std::vector<std::string> source_container = { "Invalid", "Argument" };
         const auto json = json_utils::serialize_to_json(source_container);
@@ -1442,7 +1444,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Int, Got Null")
+    SUBCASE("Expected an Int, Got Null")
     {
         const std::vector<std::shared_ptr<int>> source_container = { nullptr };
 
@@ -1456,7 +1458,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Double, Got an Object")
+    SUBCASE("Expected an Double, Got an Object")
     {
         const std::vector<std::map<std::string, bool>> source_container = {
             std::map<std::string, bool>{ { "keyOne", false } },
@@ -1473,7 +1475,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Nested Object, Got a Bool")
+    SUBCASE("Expected an Nested Object, Got a Bool")
     {
         const std::map<std::string, bool> source_container = { { "keyOne", false },
                                                                { "keyTwo", false } };
@@ -1488,7 +1490,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Nested Array, Got a Bool")
+    SUBCASE("Expected an Nested Array, Got a Bool")
     {
         const std::map<std::string, bool> source_container = { { "keyOne", false },
                                                                { "keyTwo", false } };
@@ -1503,7 +1505,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Double, Got an Array")
+    SUBCASE("Expected an Double, Got an Array")
     {
         const std::vector<std::vector<bool>> source_container = { { false, false },
                                                                   { true, true } };
@@ -1518,7 +1520,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Array, Got a Bool")
+    SUBCASE("Expected an Array, Got a Bool")
     {
         const std::vector<bool> source_container = { true, false };
         const auto json = json_utils::serialize_to_json(source_container);
@@ -1531,7 +1533,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Object, Got a Bool")
+    SUBCASE("Expected an Object, Got a Bool")
     {
         const std::vector<bool> source_container = { true, false };
         const auto json = json_utils::serialize_to_json(source_container);
@@ -1544,7 +1546,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Bool, Got a Int")
+    SUBCASE("Expected an Bool, Got a Int")
     {
         constexpr auto min = std::numeric_limits<std::uint32_t>::min();
         constexpr auto max = std::numeric_limits<std::uint32_t>::max();
@@ -1559,7 +1561,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Int, Got a UInt")
+    SUBCASE("Expected an Int, Got a UInt")
     {
         constexpr auto min = std::numeric_limits<std::uint32_t>::min();
         constexpr auto max = std::numeric_limits<std::uint32_t>::max();
@@ -1575,7 +1577,7 @@ TEST_CASE("Error Handling")
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 
-    SECTION("Expected an Int64, Got a UInt64")
+    SUBCASE("Expected an Int64, Got a UInt64")
     {
         constexpr auto min = std::numeric_limits<std::uint64_t>::min();
         constexpr auto max = std::numeric_limits<std::uint64_t>::max();
