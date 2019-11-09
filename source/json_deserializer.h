@@ -117,7 +117,7 @@ StringType transcode(const rapidjson::GenericValue<EncodingType, AllocatorType>&
 template <typename DataType> struct value_extractor
 {
     template <typename EncodingType, typename AllocatorType>
-    JSON_UTILS_NORETURN static bool
+    static bool
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& /*value*/)
     {
         throw std::invalid_argument("Cannot extract unsupported type");
@@ -127,8 +127,7 @@ template <typename DataType> struct value_extractor
 template <> struct value_extractor<bool>
 {
     template <typename EncodingType, typename AllocatorType>
-    JSON_UTILS_NODISCARD static bool
-    extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
+    static bool extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
         if (!value.IsBool()) {
             throw std::invalid_argument("Expected a bool, got " + type_to_string(value) + ".");

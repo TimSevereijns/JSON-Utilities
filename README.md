@@ -2,7 +2,7 @@
 
 [![codecov](https://codecov.io/gh/TimSevereijns/JSON-Utilities/branch/master/graph/badge.svg)](https://codecov.io/gh/TimSevereijns/JSON-Utilities)
 
-> A series of utility functions built around the popular `rapidjson` library, with the aim of simplifying serialization and deserialization to as few lines as possible.
+> A series of utility functions built around the popular `rapidjson` library that aim to simplify serialization and deserialization.
 
 ## Serialization
 
@@ -90,17 +90,15 @@ Generally speaking, any container type whose `value_type` is a `std::pair<..., .
 
 Deserialization is also supported!
 
-Suppose we want to take the JSON object from the snippet above and transform it back into a C++ object. It's as simple as specifying the type you want to deserialize the JSON string into. The JSON object above can be deserialized into a variety of C++ STL types. The following are all valid options:
+Suppose we have a simple JSON object (containing integer values) that we'd like to deserialize. Deserialization is as simple as specifying the type you want to deserialize the JSON string into. The following are all valid options, given our simple example:
 
 ```C++
 const auto foo = json_utils::deserialize_from_json<std::map<std::string, int>>(json);
-
 const auto bar = json_utils::deserialize_from_json<std::list<std::pair<std::string, int>>>(json);
-
 const auto baz = json_utils::deserialize_from_json<std::vector<std::pair<std::string, int>>>(json);
 ```
 
-The derialization logic will use the provided template parameters as a guide for what the JSON object should look like at runtime. If the deserialization target type doesn't match the runtime input, an exception will be thrown.
+The derialization logic will use the provided template parameters as a guide for what the JSON document should look like at runtime. If the deserialization target type doesn't match the runtime input, an exception will be thrown.
 
 ## Customization and Handling of Custom Types
 
@@ -181,7 +179,7 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
 
 Note that in order for ADL to find the correct overload, the `to_json(...)` and `from_json(...)` functions will need to be in the same namespace as the custom type that is to be serialized. With regard for the example shown above, that would be the `sample` namespace.
 
-If you'd prefer to keep some of your class's internals private, you may opt to befriend the appropriate overload of either `to_json(...)` or `from_json(...)`. This will allow those functions can access your private members.
+If you'd prefer to keep some of your class's internals private, you may opt to befriend the appropriate overload of either `to_json(...)` and `from_json(...)` so that only these functions can access your private members and functions.
 
 ## Handling Nulls
 
@@ -231,7 +229,7 @@ After checking out the source, run the following commands from the base director
 ```
 mkdir debug && cd debug
 cmake -DCMAKE_BUILD_TYPE=Debug ..
-make
+make [cpp14|cpp17]
 ```
 
 Building in `release` is very similar:
@@ -239,5 +237,5 @@ Building in `release` is very similar:
 ```
 mkdir release && cd release
 cmake -DCMAKE_BUILD_TYPE=Release ..
-make
+make [cpp14|cpp17]
 ```
