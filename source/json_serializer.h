@@ -16,13 +16,15 @@ struct to_json_functor
         to_json(writer, std::forward<DataType>(data));
     }
 };
-} // namespace detail
 
 // Template variables are required to have external linkage per the Standard.
 template <typename DataType> constexpr DataType make_odr_safe{};
+} // namespace detail
 
 namespace
 {
+// Using a Neibloid customization point.
+//
 // Variables declared at global scope will have external linkage, so we'll need to use an anonymous
 // namespace to keep the enclosed reference "itself from being multiply defined." This works
 // because anonymous namespaces behave as if a unique identifier were chosen for each translation
@@ -34,7 +36,7 @@ namespace
 // [http://ericniebler.github.io/std/wg21/D4381.html]
 //
 // @note Use an `inline constexpr` variable when upgrading to C++17.
-constexpr const auto& to_json = make_odr_safe<detail::to_json_functor>;
+constexpr const auto& to_json = detail::make_odr_safe<detail::to_json_functor>;
 } // namespace
 
 inline std::string to_narrow_json_key(const std::string& data) noexcept
@@ -49,11 +51,11 @@ inline std::wstring to_wide_json_key(const std::wstring& data) noexcept
 
 namespace detail
 {
-template <typename CharacterType> struct key_master
+template <typename CharacterType> struct locksmith
 {
 };
 
-template <> struct key_master<char>
+template <> struct locksmith<char>
 {
     template <typename DataType>
     static std::string generate_key(const DataType& data) noexcept(noexcept(to_narrow_json_key))
@@ -62,7 +64,7 @@ template <> struct key_master<char>
     }
 };
 
-template <> struct key_master<wchar_t>
+template <> struct locksmith<wchar_t>
 {
     template <typename DataType>
     static std::wstring generate_key(const DataType& data) noexcept(noexcept(to_wide_json_key))
@@ -74,7 +76,7 @@ template <> struct key_master<wchar_t>
 template <typename Writer, typename KeyType, typename ValueType>
 void insert_key_value_pair(Writer& writer, const KeyType& key, const ValueType& value)
 {
-    writer.Key(key_master<typename Writer::Ch>::generate_key(key).c_str());
+    writer.Key(locksmith<typename Writer::Ch>::generate_key(key).c_str());
     serializer::to_json(writer, value);
 }
 
@@ -178,7 +180,7 @@ void to_json(WriterType& writer, const std::weak_ptr<DataType>& weakPointer)
 
 template <typename WriterType, typename ContainerType>
 auto to_json(WriterType& writer, const ContainerType& container) ->
-    typename std::enable_if<traits::treat_as_array<ContainerType>::value>::type
+    typename std::enable_if<traits::treat_as_array_sink<ContainerType>::value>::type
 {
     writer.StartArray();
 
@@ -191,7 +193,7 @@ auto to_json(WriterType& writer, const ContainerType& container) ->
 
 template <typename WriterType, typename ContainerType>
 auto to_json(WriterType& writer, const ContainerType& container) ->
-    typename std::enable_if<traits::treat_as_object<ContainerType>::value>::type
+    typename std::enable_if<traits::treat_as_object_sink<ContainerType>::value>::type
 {
     writer.StartObject();
 

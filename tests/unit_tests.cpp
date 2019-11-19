@@ -324,36 +324,36 @@ TEST_CASE("Trait Detection")
 
     SECTION("Containers to be Treated as JSON Arrays")
     {
-        STATIC_REQUIRE(json_utils::traits::treat_as_array<std::vector<int>>::value);
-        STATIC_REQUIRE(json_utils::traits::treat_as_array<int[8]>::value);
+        STATIC_REQUIRE(json_utils::traits::treat_as_array_sink<std::vector<int>>::value);
+        STATIC_REQUIRE(json_utils::traits::treat_as_array_sink<int[8]>::value);
     }
 
     SECTION("Containers to be Treated as JSON Objects")
     {
-        STATIC_REQUIRE(json_utils::traits::treat_as_object<std::map<int, int>>::value);
+        STATIC_REQUIRE(json_utils::traits::treat_as_object_sink<std::map<int, int>>::value);
 
         STATIC_REQUIRE(
-            json_utils::traits::treat_as_object<std::unordered_map<std::string, double>>::value);
+            json_utils::traits::treat_as_object_sink<std::unordered_map<std::string, double>>::value);
     }
 
     SECTION("Treat std::vector<std::pair<...>> is a JSON Object")
     {
         STATIC_REQUIRE(
-            json_utils::traits::treat_as_object<std::vector<std::pair<std::string, int>>>::value);
+            json_utils::traits::treat_as_object_sink<std::vector<std::pair<std::string, int>>>::value);
 
         STATIC_REQUIRE(
-            json_utils::traits::treat_as_object<std::vector<std::pair<std::wstring, int>>>::value);
+            json_utils::traits::treat_as_object_sink<std::vector<std::pair<std::wstring, int>>>::value);
 
         STATIC_REQUIRE(
-            json_utils::traits::treat_as_object<std::vector<std::pair<double, char>>>::value);
+            json_utils::traits::treat_as_object_sink<std::vector<std::pair<double, char>>>::value);
     }
 
     SECTION("Strings are Special")
     {
-        STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array<std::string>::value);
-        STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array<std::wstring>::value);
-        STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array<char[8]>::value);
-        STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array<wchar_t[8]>::value);
+        STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array_sink<std::string>::value);
+        STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array_sink<std::wstring>::value);
+        STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array_sink<char[8]>::value);
+        STATIC_REQUIRE_FALSE(json_utils::traits::treat_as_array_sink<wchar_t[8]>::value);
     }
 }
 

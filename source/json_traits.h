@@ -54,7 +54,7 @@ struct is_pair<std::pair<FirstType, SecondType>> : std::true_type
 {
 };
 
-template <typename, typename = void> struct treat_as_array : std::false_type
+template <typename, typename = void> struct treat_as_array_sink : std::false_type
 {
 };
 
@@ -64,37 +64,33 @@ template <typename, typename = void> struct treat_as_array : std::false_type
  * something other than a `std::pair<...>`.
  **/
 template <typename DataType>
-struct treat_as_array<DataType, future_std::void_t<typename DataType::value_type>>
+struct treat_as_array_sink<DataType, future_std::void_t<typename DataType::value_type>>
     : std::conditional<
           is_container<DataType>::value && !is_pair<typename DataType::value_type>::value,
           std::true_type, std::false_type>::type
 {
 };
 
-template <typename... Args> struct treat_as_array<std::tuple<Args...>> : std::true_type
-{
-};
-
 template <typename ArrayType, std::size_t ArraySize>
-struct treat_as_array<ArrayType[ArraySize]> : std::true_type
+struct treat_as_array_sink<ArrayType[ArraySize]> : std::true_type
 {
 };
 
-template <std::size_t ArraySize> struct treat_as_array<char[ArraySize]> : std::false_type
+template <std::size_t ArraySize> struct treat_as_array_sink<char[ArraySize]> : std::false_type
 {
 };
 
-template <std::size_t ArraySize> struct treat_as_array<wchar_t[ArraySize]> : std::false_type
+template <std::size_t ArraySize> struct treat_as_array_sink<wchar_t[ArraySize]> : std::false_type
 {
 };
 
 template <typename CharacterType, typename CharacterTraitsType, typename AllocatorType>
-struct treat_as_array<std::basic_string<CharacterType, CharacterTraitsType, AllocatorType>>
+struct treat_as_array_sink<std::basic_string<CharacterType, CharacterTraitsType, AllocatorType>>
     : std::false_type
 {
 };
 
-template <typename, typename = void> struct treat_as_object : std::false_type
+template <typename, typename = void> struct treat_as_object_sink : std::false_type
 {
 };
 
@@ -105,17 +101,17 @@ template <typename, typename = void> struct treat_as_object : std::false_type
  * acceptable sink for a JSON object.
  **/
 template <typename DataType>
-struct treat_as_object<DataType, future_std::void_t<typename DataType::value_type>>
+struct treat_as_object_sink<DataType, future_std::void_t<typename DataType::value_type>>
     : std::conditional<
           is_container<DataType>::value && is_pair<typename DataType::value_type>::value,
           std::true_type, std::false_type>::type
 {
 };
 
-template <typename DataType> struct treat_as_value
+template <typename DataType> struct treat_as_value_sink
 {
     static constexpr bool value =
-        !(treat_as_array<DataType>::value || treat_as_object<DataType>::value);
+        !(treat_as_array_sink<DataType>::value || treat_as_object_sink<DataType>::value);
 };
 } // namespace traits
 } // namespace json_utils

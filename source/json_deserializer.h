@@ -28,13 +28,15 @@ struct from_json_functor
         from_json(json_value, container);
     }
 };
-} // namespace detail
 
 // Template variables are required to have external linkage per the Standard.
 template <typename DataType> constexpr DataType make_odr_safe{};
+} // namespace detail
 
 namespace
 {
+// Using a Neibloid customization point.
+//
 // Variables declared at global scope will have external linkage, so we'll need to use an anonymous
 // namespace to keep the enclosed reference "itself from being multiply defined." This works
 // because anonymous namespaces behave as if a unique identifier were chosen for each translation
@@ -46,7 +48,7 @@ namespace
 // [http://ericniebler.github.io/std/wg21/D4381.html]
 //
 // @note Use an `inline constexpr` variable when upgrading to C++17.
-constexpr const auto& from_json = make_odr_safe<detail::from_json_functor>;
+constexpr const auto& from_json = detail::make_odr_safe<detail::from_json_functor>;
 }
 
 struct default_insertion_policy
@@ -345,7 +347,7 @@ PairType construct_nested_pair(const rapidjson::GenericMember<EncodingType, Allo
 template <typename PairType, typename EncodingType, typename AllocatorType>
 auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
     typename std::enable_if<
-        traits::treat_as_value<typename PairType::second_type>::value, PairType>::type
+        traits::treat_as_value_sink<typename PairType::second_type>::value, PairType>::type
 {
     using key_type = typename std::decay<typename PairType::first_type>::type;
     using value_type = typename PairType::second_type;
@@ -357,7 +359,7 @@ auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorTyp
 template <typename PairType, typename EncodingType, typename AllocatorType>
 auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
     typename std::enable_if<
-        traits::treat_as_object<typename PairType::second_type>::value, PairType>::type
+        traits::treat_as_object_sink<typename PairType::second_type>::value, PairType>::type
 {
     if (!member.value.IsObject()) {
         throw std::invalid_argument(
@@ -370,7 +372,7 @@ auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorTyp
 template <typename PairType, typename EncodingType, typename AllocatorType>
 auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
     typename std::enable_if<
-        traits::treat_as_array<typename PairType::second_type>::value, PairType>::type
+        traits::treat_as_array_sink<typename PairType::second_type>::value, PairType>::type
 {
     if (!member.value.IsArray()) {
         throw std::invalid_argument("Expected an array, got " + type_to_string(member.value) + ".");
@@ -392,7 +394,8 @@ template <
     typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
 auto dispatch_insertion(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
-    typename std::enable_if<traits::treat_as_value<typename ContainerType::value_type>::value>::type
+    typename std::enable_if<
+        traits::treat_as_value_sink<typename ContainerType::value_type>::value>::type
 {
     using desired_type = typename ContainerType::value_type;
     insert<InsertionPolicy>(value_extractor<desired_type>::extract_or_throw(value), container);
@@ -404,8 +407,8 @@ auto dispatch_insertion(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container) ->
     typename std::enable_if<
-        traits::treat_as_array<typename ContainerType::value_type>::value ||
-        traits::treat_as_object<typename ContainerType::value_type>::value>::type
+        traits::treat_as_array_sink<typename ContainerType::value_type>::value ||
+        traits::treat_as_object_sink<typename ContainerType::value_type>::value>::type
 {
     static_assert(
         std::is_default_constructible<typename ContainerType::value_type>::value,
@@ -457,7 +460,7 @@ auto from_json(
     ContainerType& container) ->
     typename std::enable_if<
         traits::has_emplace_back<ContainerType>::value &&
-        traits::treat_as_array<ContainerType>::value>::type
+        traits::treat_as_array_sink<ContainerType>::value>::type
 {
     deserialize_json_array<back_insertion_policy>(json_value, container);
 }
@@ -468,7 +471,7 @@ auto from_json(
     ContainerType& container) ->
     typename std::enable_if<
         traits::has_emplace<ContainerType>::value &&
-        traits::treat_as_array<ContainerType>::value>::type
+        traits::treat_as_array_sink<ContainerType>::value>::type
 {
     deserialize_json_array<default_insertion_policy>(json_value, container);
 }
@@ -479,7 +482,7 @@ auto from_json(
     ContainerType& container) ->
     typename std::enable_if<
         traits::has_emplace_back<ContainerType>::value &&
-        traits::treat_as_object<ContainerType>::value>::type
+        traits::treat_as_object_sink<ContainerType>::value>::type
 {
     deserialize_json_object<back_insertion_policy>(json_value, container);
 }
@@ -490,7 +493,7 @@ auto from_json(
     ContainerType& container) ->
     typename std::enable_if<
         traits::has_emplace<ContainerType>::value &&
-        traits::treat_as_object<ContainerType>::value>::type
+        traits::treat_as_object_sink<ContainerType>::value>::type
 {
     deserialize_json_object<default_insertion_policy>(json_value, container);
 }

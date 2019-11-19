@@ -58,11 +58,11 @@ void to_json(WriterType& writer, const std::weak_ptr<DataType>& weakPointer);
 
 template <typename WriterType, typename ContainerType>
 auto to_json(WriterType& writer, const ContainerType& container) ->
-    typename std::enable_if<traits::treat_as_array<ContainerType>::value>::type;
+    typename std::enable_if<traits::treat_as_array_sink<ContainerType>::value>::type;
 
 template <typename WriterType, typename ContainerType>
 auto to_json(WriterType& writer, const ContainerType& container) ->
-    typename std::enable_if<traits::treat_as_object<ContainerType>::value>::type;
+    typename std::enable_if<traits::treat_as_object_sink<ContainerType>::value>::type;
 
 template <typename WriterType, typename FirstType, typename SecondType>
 void to_json(WriterType& writer, const std::pair<FirstType, SecondType>& pair);
@@ -92,7 +92,7 @@ auto from_json(
     ContainerType& container) ->
     typename std::enable_if<
         traits::has_emplace_back<ContainerType>::value &&
-        traits::treat_as_array<ContainerType>::value>::type;
+        traits::treat_as_array_sink<ContainerType>::value>::type;
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
@@ -100,7 +100,7 @@ auto from_json(
     ContainerType& container) ->
     typename std::enable_if<
         traits::has_emplace<ContainerType>::value &&
-        traits::treat_as_array<ContainerType>::value>::type;
+        traits::treat_as_array_sink<ContainerType>::value>::type;
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
@@ -108,7 +108,7 @@ auto from_json(
     ContainerType& container) ->
     typename std::enable_if<
         traits::has_emplace_back<ContainerType>::value &&
-        traits::treat_as_object<ContainerType>::value>::type;
+        traits::treat_as_object_sink<ContainerType>::value>::type;
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
@@ -116,7 +116,7 @@ auto from_json(
     ContainerType& container) ->
     typename std::enable_if<
         traits::has_emplace<ContainerType>::value &&
-        traits::treat_as_object<ContainerType>::value>::type;
+        traits::treat_as_object_sink<ContainerType>::value>::type;
 } // namespace detail
 } // namespace deserializer
 } // namespace json_utils
