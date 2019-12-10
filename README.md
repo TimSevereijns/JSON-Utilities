@@ -50,7 +50,7 @@ const std::map<std::string, std::map<std::string, double>> container = {
 const auto json = json_utils::serialize_to_pretty_json(container);
 ```
 
-The resultant JSON string looks as follows:
+The resultant JSON string looks is as follows:
 
 ```JSON
 {
@@ -84,19 +84,27 @@ const std::vector<std::pair<std::string, std::map<std::string, double>>> contain
 const auto json = json_utils::serialize_to_pretty_json(container);
 ```
 
-Generally speaking, any container type whose `value_type` is a `std::pair<..., ...>` can be used as a deserialization target for JSON objects.
+Generally speaking, any container type whose `value_type` is a `std::pair<..., ...>` will be converted to a JSON object.
 
 ## Deserialization
 
 Deserialization is also supported!
 
-Suppose we have a simple JSON object (containing integer values) that we'd like to deserialize. Deserialization is as simple as specifying the type you want to deserialize the JSON string into. The following are all valid options, given our simple example:
+Suppose we have a simple JSON object (containing integer values) that we'd like to deserialize:
+
+```JSON
+{"key_one":1,"key_two":2,"key_three":3}
+```
+
+Deserialization is as simple as specifying the type you want to deserialize the JSON string into. The following are all valid options, given our simple example:
 
 ```C++
 const auto foo = json_utils::deserialize_from_json<std::map<std::string, int>>(json);
 const auto bar = json_utils::deserialize_from_json<std::list<std::pair<std::string, int>>>(json);
 const auto baz = json_utils::deserialize_from_json<std::vector<std::pair<std::string, int>>>(json);
 ```
+
+Note that because we're attempting to deserialize a JSON object, we'll need to specify a C++ container type whose `value_type` is a `std::pair<std::string, int>`.
 
 The derialization logic will use the provided template parameters as a guide for what the JSON document should look like at runtime. If the deserialization target type doesn't match the runtime input, an exception will be thrown.
 
