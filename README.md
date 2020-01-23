@@ -50,7 +50,7 @@ const std::map<std::string, std::map<std::string, double>> container = {
 const auto json = json_utils::serialize_to_pretty_json(container);
 ```
 
-The resultant JSON string looks is as follows:
+The resultant JSON string is as follows:
 
 ```JSON
 {
