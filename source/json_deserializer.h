@@ -35,7 +35,7 @@ template <typename DataType> constexpr DataType make_odr_safe{};
 
 namespace
 {
-// Using a Neibloid customization point.
+// Using a Niebloid customization point.
 //
 // Variables declared at global scope will have external linkage, so we'll need to use an anonymous
 // namespace to keep the enclosed reference "itself from being multiply defined." This works
