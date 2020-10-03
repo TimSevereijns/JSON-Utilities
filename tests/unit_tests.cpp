@@ -1220,7 +1220,7 @@ TEST_CASE("Deserialization of C++17 Constructs")
                                                   std::optional<int>{ 404 } };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1233,7 +1233,7 @@ TEST_CASE("Deserialization of C++17 Constructs")
                                                   std::optional<int>{ 404 }, std::nullopt };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
