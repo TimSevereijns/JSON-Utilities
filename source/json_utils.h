@@ -129,7 +129,7 @@ void serialize_to_pretty_json(const DataType& data, const std::filesystem::path&
 }
 
 template <typename ContainerType>
-JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const std::filesystem::path& path)
+JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const std::filesystem::path& path)
 {
     std::ifstream file_stream{ path };
     rapidjson::IStreamWrapper stream_wrapper{ file_stream };
