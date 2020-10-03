@@ -10,7 +10,7 @@
 
 #endif
 
-#include "json_deserializer.h"
+#include "json_dom_deserializer.h"
 #include "json_serializer.h"
 
 namespace json_utils
@@ -69,7 +69,7 @@ serialize_to_pretty_json(const DataType& data)
 }
 
 template <typename ContainerType>
-JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const char* const json)
+JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const char* const json)
 {
     using encoding_type = rapidjson::UTF8<>;
 
@@ -78,13 +78,13 @@ JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const char* const json)
 }
 
 template <typename ContainerType>
-JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const std::string& json)
+JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const std::string& json)
 {
-    return deserialize_from_json<ContainerType>(json.c_str());
+    return deserialize_via_dom<ContainerType>(json.c_str());
 }
 
 template <typename ContainerType>
-JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const wchar_t* const json)
+JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const wchar_t* const json)
 {
     using encoding_type = rapidjson::UTF16<>;
 
@@ -93,9 +93,9 @@ JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const wchar_t* const js
 }
 
 template <typename ContainerType>
-JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const std::wstring& json)
+JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const std::wstring& json)
 {
-    return deserialize_from_json<ContainerType>(json.c_str());
+    return deserialize_via_dom<ContainerType>(json.c_str());
 }
 
 #if __cplusplus >= 201703L
