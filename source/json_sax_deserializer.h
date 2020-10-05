@@ -10,6 +10,47 @@
 
 #include "json_traits.h"
 
+namespace traits
+{
+template <typename, typename = void> struct has_value_type : std::false_type
+{
+};
+
+template <typename Type>
+struct has_value_type<Type, future_std::void_t<typename Type::value_type>> : std::true_type
+{
+};
+} // namespace traits
+
+namespace detail
+{
+// Inspired by: https://quuxplusone.github.io/blog/2018/07/23/metafilter/
+
+template <typename DataType, typename = void> struct stack_tuple;
+
+// Base case
+template <typename DataType>
+struct stack_tuple<
+    DataType, typename std::enable_if<!traits::has_value_type<DataType>::value>::type>
+{
+    using type = std::tuple<>;
+};
+
+// Recursive case
+template <typename DataType>
+struct stack_tuple<DataType, typename std::enable_if<traits::has_value_type<DataType>::value>::type>
+{
+    using type = std::conditional_t<
+        traits::is_container<DataType>::value,
+        decltype(std::tuple_cat(
+            std::declval<std::tuple<DataType>>(),
+            std::declval<typename stack_tuple<typename DataType::value_type>::type>())),
+        typename stack_tuple<typename DataType::value_type>::type>;
+};
+
+template <typename ContainerType> using stack_tuple_t = typename stack_tuple<ContainerType>::type;
+} // namespace detail
+
 template <typename ContainerType> class base_handler
 {
   public:
@@ -168,59 +209,83 @@ template <typename ContainerType> class array_handler : public base_handler<Cont
     }
 };
 
-template <typename ContainerType> struct object_handler
+template <typename ContainerType> class array_handler : public base_handler<ContainerType>
 {
-    object_handler() : m_state(kExpectObjectStart)
+  public:
+    bool on_default() override
     {
+        return true;
     }
 
-    bool StartObject() override
+    bool on_null() override
     {
-        switch (m_state) {
-            case kExpectObjectStart:
-                m_state = kExpectNameOrObjectEnd;
-                return true;
-            default:
-                return false;
-        }
+        return true;
     }
 
-    bool String(const char* str, rapidjson::SizeType length, bool) override
+    bool on_bool(bool value) override
     {
-        switch (m_state) {
-            case kExpectNameOrObjectEnd:
-                m_name = std::string(str, length);
-                m_state = kExpectValue;
-                return true;
-            case kExpectValue:
-                messages_.insert(MessageMap::value_type(m_name, std::string(str, length)));
-                m_state = kExpectNameOrObjectEnd;
-                return true;
-            default:
-                return false;
-        }
+        return true;
     }
 
-    bool EndObject(rapidjson::SizeType) override
+    bool on_int(int value) override
     {
-        return m_state == kExpectNameOrObjectEnd;
+        return true;
     }
 
-    bool Default() override
+    bool on_uint(unsigned int value) override
     {
-        return false;
-    } // All other events are invalid.
+        return true;
+    }
 
-    ContainerType m_container;
-
-    enum State
+    bool on_int_64(std::int64_t value) override
     {
-        kExpectObjectStart,
-        kExpectNameOrObjectEnd,
-        kExpectValue,
-    } m_state;
+        return true;
+    }
 
-    std::string m_name;
+    bool on_uint_64(std::uint64_t value) override
+    {
+        return true;
+    }
+
+    bool on_double(double value) override
+    {
+        return true;
+    }
+
+    bool on_raw_number(const Ch* value, SizeType length, bool should_copy) override
+    {
+        return true;
+    }
+
+    bool on_string(const Ch* value, SizeType length, bool should_copy) override
+    {
+        return true;
+    }
+
+    bool on_object_start() override
+    {
+        return true;
+    }
+
+    bool on_key(const Ch* value, SizeType length, bool should_copy) override
+    {
+        return true;
+    }
+
+    bool on_object_end(SizeType length) override
+    {
+        return true;
+    }
+
+    bool on_array_start() override
+    {
+        return true;
+    }
+
+    bool on_array_end(SizeType length) override
+    {
+        return true;
+    }
 };
 
 template <typename ContainerType>
@@ -230,96 +295,103 @@ class delegating_handler
   public:
     bool Default()
     {
-        return m_active_handler.Default();
+        return true;
     }
 
     bool Null()
     {
-        return m_active_handler.Null();
+        return true;
     }
 
     bool Bool(bool value)
     {
-        return m_active_handler.Bool(value);
+        return true;
     }
 
     bool Int(int value)
     {
-        return m_active_handler.Int(value);
+        return true;
     }
 
     bool Uint(unsigned int value)
     {
-        return m_active_handler.Uint(value);
+        return true;
     }
 
     bool Int64(std::int64_t value)
     {
-        return m_active_handler.Int64(value);
+        return true;
     }
 
     bool Uint64(std::uint64_t value)
     {
-        return m_active_handler.Uint64(value);
+        return true;
     }
 
     bool Double(double value)
     {
-        return m_active_handler.Double(value);
+        return true;
     }
 
     bool RawNumber(const Ch* value, SizeType length, bool should_copy)
     {
-        return m_active_handler.RawNumber(value, length, should_copy);
+        return true;
     }
 
     bool String(const Ch* value, SizeType length, bool should_copy)
     {
-        return m_active_handler.String(value, length, should_copy);
+        return true;
     }
 
     bool StartObject()
     {
-        return m_active_handler.StartObject();
+        return true;
     }
 
     bool Key(const Ch* value, SizeType length, bool should_copy)
     {
-        return m_active_handler.Key();
+        return true;
     }
 
     bool EndObject(SizeType length)
     {
-        return m_active_handler.EndObject(length);
+        return true;
     }
 
     bool StartArray()
     {
-        return m_active_handler.StartArray();
+        return true;
     }
 
     bool EndArray(SizeType length)
     {
-        return m_active_handler.EndArray(length);
+        return true;
     }
 
-private:
-    base_handler<ContainerType> m_active_handler;
+  private:
+    auto& get_active_handler()
+    {
+        assert(!m_stack.empty());
+        return m_stack.top();
+    }
+
+    // Given a templated container type, `stack_tuple_t` will decompose that type into a tuple where
+    // each subsequent entry in the type will equal the `value_type` of the preceeding type.
+    //
+    // For instance, the following holds:
+    //
+    // static_assert(
+    //     std::is_same<
+    //         stack_tuple_t<std::vector<std::list<std::vector<int>>>>,
+    //             std::tuple<
+    //                 std::vector<std::list<std::vector<int>>>, std::list<std::vector<int>>,
+    //                 std::vector<int>>>::value,
+    //     "Composition failed.");
+    stack_tuple_t<ContainerType> m_stack;
+    std::size_t m_index = 0;
 };
 
-template <typename ContainerType>
-auto dispatch_to_token_handler() -> typename std::enable_if<
-    json_utils::traits::treat_as_object_sink<typename ContainerType::value_type>::value>::type
-{
-}
-
-template <typename ContainerType>
-auto dispatch_to_token_handler() -> typename std::enable_if<
-    json_utils::traits::treat_as_array_sink<typename ContainerType::value_type>::value>::type
-{
-}
-
-template <typename ContainerType> void parse_message(const char* json, ContainerType& container)
+template <typename ContainerType> void parse_json(const char* json, ContainerType& container)
 {
     rapidjson::Reader reader;
     delegating_handler handler;
@@ -342,7 +414,7 @@ namespace sax_deserializer
 template <typename ContainerType> auto from_json(const std::string& json)
 {
     ContainerType container;
-    parse_message(json.data(), container);
+    parse_json(json.data(), container);
 }
 } // namespace sax_deserializer
 } // namespace json_utils
