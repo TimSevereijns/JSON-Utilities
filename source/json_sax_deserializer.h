@@ -10,18 +10,6 @@
 
 #include "json_traits.h"
 
-namespace traits
-{
-template <typename, typename = void> struct has_value_type : std::false_type
-{
-};
-
-template <typename Type>
-struct has_value_type<Type, future_std::void_t<typename Type::value_type>> : std::true_type
-{
-};
-} // namespace traits
-
 namespace detail
 {
 // Inspired by: https://quuxplusone.github.io/blog/2018/07/23/metafilter/
@@ -30,22 +18,18 @@ template <typename DataType, typename = void> struct stack_tuple;
 
 // Base case
 template <typename DataType>
-struct stack_tuple<
-    DataType, typename std::enable_if<!traits::has_value_type<DataType>::value>::type>
+struct stack_tuple<DataType, typename std::enable_if<!traits::is_container<DataType>::value>::type>
 {
     using type = std::tuple<>;
 };
 
 // Recursive case
 template <typename DataType>
-struct stack_tuple<DataType, typename std::enable_if<traits::has_value_type<DataType>::value>::type>
+struct stack_tuple<DataType, typename std::enable_if<traits::is_container<DataType>::value>::type>
 {
-    using type = std::conditional_t<
-        traits::is_container<DataType>::value,
-        decltype(std::tuple_cat(
-            std::declval<std::tuple<DataType>>(),
-            std::declval<typename stack_tuple<typename DataType::value_type>::type>())),
-        typename stack_tuple<typename DataType::value_type>::type>;
+    using type = decltype(std::tuple_cat(
+        std::declval<std::tuple<DataType>>(),
+        std::declval<typename stack_tuple<typename DataType::value_type>::type>()));
 };
 
 template <typename ContainerType> using stack_tuple_t = typename stack_tuple<ContainerType>::type;
