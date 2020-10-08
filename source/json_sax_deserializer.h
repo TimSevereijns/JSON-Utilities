@@ -18,14 +18,16 @@ template <typename DataType, typename = void> struct stack_tuple;
 
 // Base case
 template <typename DataType>
-struct stack_tuple<DataType, typename std::enable_if<!traits::is_container<DataType>::value>::type>
+struct stack_tuple<
+    DataType, typename std::enable_if<!json_utils::traits::is_container<DataType>::value>::type>
 {
     using type = std::tuple<>;
 };
 
 // Recursive case
 template <typename DataType>
-struct stack_tuple<DataType, typename std::enable_if<traits::is_container<DataType>::value>::type>
+struct stack_tuple<
+    DataType, typename std::enable_if<json_utils::traits::is_container<DataType>::value>::type>
 {
     using type = decltype(std::tuple_cat(
         std::declval<std::tuple<DataType>>(),
@@ -35,8 +37,10 @@ struct stack_tuple<DataType, typename std::enable_if<traits::is_container<DataTy
 template <typename ContainerType> using stack_tuple_t = typename stack_tuple<ContainerType>::type;
 } // namespace detail
 
-template <typename ContainerType> class base_handler
+template <typename ContainerType, typename EncodingType = rapidjson::UTF8<>> class base_handler
 {
+    using Ch = typename EncodingType::Ch;
+
   public:
     virtual bool on_default()
     {
@@ -78,12 +82,12 @@ template <typename ContainerType> class base_handler
         return true;
     }
 
-    virtual bool on_raw_number(const Ch* value, SizeType length, bool should_copy)
+    virtual bool on_raw_number(const Ch* value, rapidjson::SizeType length, bool should_copy)
     {
         return true;
     }
 
-    virtual bool on_string(const Ch* value, SizeType length, bool should_copy)
+    virtual bool on_string(const Ch* value, rapidjson::SizeType length, bool should_copy)
     {
         return true;
     }
@@ -93,12 +97,12 @@ template <typename ContainerType> class base_handler
         return true;
     }
 
-    virtual bool on_key(const Ch* value, SizeType length, bool should_copy)
+    virtual bool on_key(const Ch* value, rapidjson::SizeType length, bool should_copy)
     {
         return true;
     }
 
-    virtual bool on_object_end(SizeType length)
+    virtual bool on_object_end(rapidjson::SizeType length)
     {
         return true;
     }
@@ -108,14 +112,16 @@ template <typename ContainerType> class base_handler
         return true;
     }
 
-    virtual bool on_array_end(SizeType length)
+    virtual bool on_array_end(rapidjson::SizeType length)
     {
         return true;
     }
 };
 
-template <typename ContainerType> class array_handler : public base_handler<ContainerType>
+template <typename ContainerType, typename EncodingType = rapidjson::UTF8<>> class array_handler : public base_handler<ContainerType>
 {
+    using Ch = typename EncodingType::Ch;
+
   public:
     bool on_default() override
     {
@@ -157,12 +163,12 @@ template <typename ContainerType> class array_handler : public base_handler<Cont
         return true;
     }
 
-    bool on_raw_number(const Ch* value, SizeType length, bool should_copy) override
+    bool on_raw_number(const Ch* value, rapidjson::SizeType length, bool should_copy) override
     {
         return true;
     }
 
-    bool on_string(const Ch* value, SizeType length, bool should_copy) override
+    bool on_string(const Ch* value, rapidjson::SizeType length, bool should_copy) override
     {
         return true;
     }
@@ -172,12 +178,12 @@ template <typename ContainerType> class array_handler : public base_handler<Cont
         return true;
     }
 
-    bool on_key(const Ch* value, SizeType length, bool should_copy) override
+    bool on_key(const Ch* value, rapidjson::SizeType length, bool should_copy) override
     {
         return true;
     }
 
-    bool on_object_end(SizeType length) override
+    bool on_object_end(rapidjson::SizeType length) override
     {
         return true;
     }
@@ -187,14 +193,16 @@ template <typename ContainerType> class array_handler : public base_handler<Cont
         return true;
     }
 
-    bool on_array_end(SizeType length) override
+    bool on_array_end(rapidjson::SizeType length) override
     {
         return true;
     }
 };
 
-template <typename ContainerType> class array_handler : public base_handler<ContainerType>
+template <typename ContainerType, typename EncodingType = rapidjson::UTF8<>> class object_handler : public base_handler<ContainerType>
 {
+    using Ch = typename EncodingType::Ch;
+
   public:
     bool on_default() override
     {
@@ -236,12 +244,12 @@ template <typename ContainerType> class array_handler : public base_handler<Cont
         return true;
     }
 
-    bool on_raw_number(const Ch* value, SizeType length, bool should_copy) override
+    bool on_raw_number(const Ch* value, rapidjson::SizeType length, bool should_copy) override
     {
         return true;
     }
 
-    bool on_string(const Ch* value, SizeType length, bool should_copy) override
+    bool on_string(const Ch* value, rapidjson::SizeType length, bool should_copy) override
     {
         return true;
     }
@@ -251,12 +259,12 @@ template <typename ContainerType> class array_handler : public base_handler<Cont
         return true;
     }
 
-    bool on_key(const Ch* value, SizeType length, bool should_copy) override
+    bool on_key(const Ch* value, rapidjson::SizeType length, bool should_copy) override
     {
         return true;
     }
 
-    bool on_object_end(SizeType length) override
+    bool on_object_end(rapidjson::SizeType length) override
     {
         return true;
     }
@@ -266,16 +274,18 @@ template <typename ContainerType> class array_handler : public base_handler<Cont
         return true;
     }
 
-    bool on_array_end(SizeType length) override
+    bool on_array_end(rapidjson::SizeType length) override
     {
         return true;
     }
 };
 
-template <typename ContainerType>
+template <typename ContainerType, typename EncodingType = rapidjson::UTF8<>>
 class delegating_handler
-    : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, delegating_handler>
+    : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, delegating_handler<ContainerType>>
 {
+    using Ch = typename EncodingType::Ch;
+
   public:
     bool Default()
     {
@@ -317,12 +327,12 @@ class delegating_handler
         return true;
     }
 
-    bool RawNumber(const Ch* value, SizeType length, bool should_copy)
+    bool RawNumber(const Ch* value, rapidjson::SizeType length, bool should_copy)
     {
         return true;
     }
 
-    bool String(const Ch* value, SizeType length, bool should_copy)
+    bool String(const Ch* value, rapidjson::SizeType length, bool should_copy)
     {
         return true;
     }
@@ -332,12 +342,12 @@ class delegating_handler
         return true;
     }
 
-    bool Key(const Ch* value, SizeType length, bool should_copy)
+    bool Key(const Ch* value, rapidjson::SizeType length, bool should_copy)
     {
         return true;
     }
 
-    bool EndObject(SizeType length)
+    bool EndObject(rapidjson::SizeType length)
     {
         return true;
     }
@@ -347,7 +357,7 @@ class delegating_handler
         return true;
     }
 
-    bool EndArray(SizeType length)
+    bool EndArray(rapidjson::SizeType length)
     {
         return true;
     }
@@ -371,7 +381,7 @@ class delegating_handler
     //                 std::vector<std::list<std::vector<int>>>, std::list<std::vector<int>>,
     //                 std::vector<int>>>::value,
     //     "Composition failed.");
-    stack_tuple_t<ContainerType> m_stack;
+    detail::stack_tuple_t<ContainerType> m_stack;
     std::size_t m_index = 0;
 };
 
@@ -380,9 +390,9 @@ template <typename ContainerType> void parse_json(const char* json, ContainerTyp
     rapidjson::Reader reader;
     delegating_handler handler;
     rapidjson::StringStream ss(json);
-    if (reader.Parse(ss, handler))
+    if (reader.Parse(ss, handler)) {
         messages.swap(handler.messages_); // Only change it if success.
-    else {
+    } else {
         rapidjson::ParseErrorCode e = reader.GetParseErrorCode();
         size_t o = reader.GetErrorOffset();
         std::cout << "Error: " << rapidjson::GetParseError_En(e) << std::endl;
