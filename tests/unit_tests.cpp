@@ -14,6 +14,7 @@
 #include <vector>
 
 #include <json_utils.h>
+#include <json_sax_deserializer.h>
 
 namespace
 {
@@ -1589,5 +1590,14 @@ TEST_CASE("Error Handling")
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
+    }
+}
+
+TEST_CASE("Sax Deserializer")
+{
+    SECTION("Basics")
+    {
+        const auto json = "[1, 2, 3]";
+        const auto result = json_utils::sax_deserializer::from_json<std::vector<int>>(json);
     }
 }
