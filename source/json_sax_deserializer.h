@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -36,24 +37,23 @@ struct stack_tuple<
 
 template <typename ContainerType> using stack_tuple_t = typename stack_tuple<ContainerType>::type;
 
-template <typename Tuple>
-struct container_variant;
+template <typename Tuple> struct container_variant;
 
-template <typename... Ts>
-struct container_variant<std::tuple<Ts...>>
+template <typename... Ts> struct container_variant<std::tuple<Ts...>>
 {
-    // @todo Use a variant of pointers instead to reduce the size of the variant...
-    using type = std::variant<std::monostate, int, Ts...>; //< Appear to be missing the int with my current example...
+    using type = std::variant<std::monostate, typename std::add_pointer<Ts>::type...>;
 };
 
-template <typename TupleType> using container_variant_t = typename container_variant<TupleType>::type;
+template <typename TupleType>
+using container_variant_t = typename container_variant<TupleType>::type;
 
 template <typename ContainerType, typename ElementType>
 auto insert(ContainerType& container, ElementType&& element) ->
     typename std::enable_if<json_utils::traits::has_emplace<ContainerType>::value>::type
 {
     static_assert(
-        std::is_convertible<typename std::decay<ElementType>::type, typename ContainerType::value_type>::value,
+        std::is_convertible<
+            typename std::decay<ElementType>::type, typename ContainerType::value_type>::value,
         "The type being inserted is not the same as, or cannot be converted to, the "
         "container's value type.");
 
@@ -65,21 +65,16 @@ auto insert(ContainerType& container, ElementType&& element) ->
     typename std::enable_if<json_utils::traits::has_emplace_back<ContainerType>::value>::type
 {
     static_assert(
-        std::is_convertible<typename std::decay<ElementType>::type, typename ContainerType::value_type>::value,
+        std::is_convertible<
+            typename std::decay<ElementType>::type, typename ContainerType::value_type>::value,
         "The type being inserted is not the same as, or cannot be converted to, the "
         "container's value type.");
 
     container.emplace_back(std::forward<ElementType>(element));
 }
-
-template <typename HandlerType>
-auto get_resultant_container(HandlerType&& token_handler) {
-    return token_handler.get_container();
-}
 } // namespace detail
 
-template <typename VariantType>
-class token_handler
+template <typename VariantType> class token_handler
 {
   public:
     virtual bool on_default()
@@ -159,7 +154,8 @@ class token_handler
         return true;
     }
 
-    virtual VariantType get_container() {
+    virtual VariantType get_container()
+    {
         return { std::monostate{} };
     }
 };
@@ -247,9 +243,10 @@ class array_handler : public token_handler<VariantType>
     {
         return true;
     }
-    
-    VariantType get_container() override {
-        return { m_container };
+
+    VariantType get_container() override
+    {
+        return { &m_container };
     }
 
   private:
@@ -339,8 +336,9 @@ class object_handler : public token_handler<VariantType>
         return true;
     }
 
-    VariantType get_container() override {
-        return { m_container };
+    VariantType get_container() override
+    {
+        return { &m_container };
     }
 
   private:
@@ -407,9 +405,16 @@ template <typename TupleType, typename VariantType> class factory
 
     std::unique_ptr<token_handler<VariantType>> produce_impl(indices<>, int /*index*/)
     {
-        throw "Uh-oh!";
+        throw std::runtime_error("Out of range");
     }
 };
+
+template <class... Ts> struct overloaded : Ts...
+{
+    using Ts::operator()...;
+};
+
+template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 } // namespace detail
 
 template <typename ContainerType, typename EncodingType = rapidjson::UTF8<>>
@@ -488,9 +493,43 @@ class delegating_handler
     {
         assert(!m_handlers.empty());
 
-        const auto& variant = m_handlers.back()->get_container();
-        auto nested_container = std::get<decltype(m_container)::value_type>(variant);
-        detail::insert(m_container, std::move(nested_container));
+        if (--m_index < 0) {
+            auto variant = m_handlers.back()->get_container();
+            m_container = *std::get<ContainerType*>(variant);
+        } else {
+            auto source_variant = m_handlers[m_handlers.size() - 1]->get_container();
+            auto sink_variant = m_handlers[m_handlers.size() - 2]->get_container();
+
+            std::visit(
+                detail::overloaded{
+                    [](const std::monostate&) {},
+                    [&](auto* const source) {
+                        std::visit(
+                            detail::overloaded{
+                                [](const std::monostate&) {},
+                                [&](auto* const sink) {
+                                    assert(sink != nullptr);
+                                    assert(source != nullptr);
+
+                                    using sink_type = std::remove_pointer_t<decltype(sink)>;
+                                    using source_type = std::remove_pointer_t<decltype(source)>;
+
+                                    static_assert(
+                                        json_utils::traits::is_container<sink_type>::value,
+                                        "Expected a container.");
+
+                                    constexpr static bool is_insertable =
+                                        std::is_same_v<source_type, typename sink_type::value_type>;
+
+                                    if constexpr (is_insertable) {
+                                        detail::insert(*sink, *source);
+                                    }
+                                } },
+                            sink_variant);
+                    } },
+                source_variant);
+        }
+
         m_handlers.pop_back();
 
         --m_index;
@@ -511,24 +550,21 @@ class delegating_handler
         assert(!m_handlers.empty());
 
         if (--m_index < 0) {
-            const auto& variant = m_handlers.back()->get_container();
-            m_container = std::get<ContainerType>(variant);
+            auto variant = m_handlers.back()->get_container();
+            m_container = *std::get<ContainerType*>(std::move(variant));
             m_handlers.pop_back();
+        } else {
         }
 
         return true;
     }
 
-    ContainerType&& get_container() &&
+    ContainerType* get_container()
     {
-        return std::move(m_container);
+        return &m_container;
     }
 
   private:
-    static_assert(
-        std::is_same<detail::stack_tuple_t<ContainerType>, std::tuple<std::vector<int>>>::value,
-        "Decomposition failed.");
-
     // Given a templated container type, `stack_tuple_t` will decompose that type into a tuple where
     // each subsequent entry in the tuple will equal the `value_type` of the preceding type.
     //
@@ -558,7 +594,7 @@ template <typename ContainerType> void parse_json(const char* json, ContainerTyp
     delegating_handler<ContainerType> handler;
     rapidjson::StringStream ss(json);
     if (reader.Parse(ss, handler)) {
-        container = std::move(handler).get_container();
+        container = std::move(*handler.get_container());
     } else {
         rapidjson::ParseErrorCode e = reader.GetParseErrorCode();
         std::size_t o = reader.GetErrorOffset();
