@@ -8,6 +8,7 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 #include "json_traits.h"
 
@@ -34,8 +35,50 @@ struct stack_tuple<
 };
 
 template <typename ContainerType> using stack_tuple_t = typename stack_tuple<ContainerType>::type;
+
+template <typename Tuple>
+struct container_variant;
+
+template <typename... Ts>
+struct container_variant<std::tuple<Ts...>>
+{
+    // @todo Use a variant of pointers instead to reduce the size of the variant...
+    using type = std::variant<std::monostate, int, Ts...>; //< Appear to be missing the int with my current example...
+};
+
+template <typename TupleType> using container_variant_t = typename container_variant<TupleType>::type;
+
+template <typename ContainerType, typename ElementType>
+auto insert(ContainerType& container, ElementType&& element) ->
+    typename std::enable_if<json_utils::traits::has_emplace<ContainerType>::value>::type
+{
+    static_assert(
+        std::is_convertible<typename std::decay<ElementType>::type, typename ContainerType::value_type>::value,
+        "The type being inserted is not the same as, or cannot be converted to, the "
+        "container's value type.");
+
+    container.emplace(std::forward<ElementType>(element));
+}
+
+template <typename ContainerType, typename ElementType>
+auto insert(ContainerType& container, ElementType&& element) ->
+    typename std::enable_if<json_utils::traits::has_emplace_back<ContainerType>::value>::type
+{
+    static_assert(
+        std::is_convertible<typename std::decay<ElementType>::type, typename ContainerType::value_type>::value,
+        "The type being inserted is not the same as, or cannot be converted to, the "
+        "container's value type.");
+
+    container.emplace_back(std::forward<ElementType>(element));
+}
+
+template <typename HandlerType>
+auto get_resultant_container(HandlerType&& token_handler) {
+    return token_handler.get_container();
+}
 } // namespace detail
 
+template <typename VariantType>
 class token_handler
 {
   public:
@@ -115,10 +158,14 @@ class token_handler
     {
         return true;
     }
+
+    virtual VariantType get_container() {
+        return { std::monostate{} };
+    }
 };
 
-template <typename ContainerType, typename EncodingType = rapidjson::UTF8<>>
-class array_handler : public token_handler
+template <typename ContainerType, typename VariantType, typename EncodingType = rapidjson::UTF8<>>
+class array_handler : public token_handler<VariantType>
 {
     using Ch = typename EncodingType::Ch;
 
@@ -143,8 +190,9 @@ class array_handler : public token_handler
         return true;
     }
 
-    bool on_uint(unsigned int /*value*/) override
+    bool on_uint(unsigned int value) override
     {
+        detail::insert(m_container, value);
         return true;
     }
 
@@ -198,14 +246,18 @@ class array_handler : public token_handler
     bool on_array_end(rapidjson::SizeType /*length*/) override
     {
         return true;
+    }
+    
+    VariantType get_container() override {
+        return { m_container };
     }
 
   private:
     ContainerType m_container;
 };
 
-template <typename ContainerType, typename EncodingType = rapidjson::UTF8<>>
-class object_handler : public token_handler
+template <typename ContainerType, typename VariantType, typename EncodingType = rapidjson::UTF8<>>
+class object_handler : public token_handler<VariantType>
 {
     using Ch = typename EncodingType::Ch;
 
@@ -285,6 +337,10 @@ class object_handler : public token_handler
     bool on_array_end(rapidjson::SizeType /*length*/) override
     {
         return true;
+    }
+
+    VariantType get_container() override {
+        return { m_container };
     }
 
   private:
@@ -293,20 +349,20 @@ class object_handler : public token_handler
 
 namespace detail
 {
-template <typename ContainerType>
+template <typename ContainerType, typename VariantType>
 auto make_token_handler() -> typename std::enable_if<
     json_utils::traits::treat_as_object_sink<ContainerType>::value,
-    std::unique_ptr<token_handler>>::type
+    std::unique_ptr<token_handler<VariantType>>>::type
 {
-    return std::make_unique<object_handler<ContainerType>>();
+    return std::make_unique<object_handler<ContainerType, VariantType>>();
 }
 
-template <typename ContainerType>
+template <typename ContainerType, typename VariantType>
 auto make_token_handler() -> typename std::enable_if<
     json_utils::traits::treat_as_array_sink<ContainerType>::value,
-    std::unique_ptr<token_handler>>::type
+    std::unique_ptr<token_handler<VariantType>>>::type
 {
-    return std::make_unique<array_handler<ContainerType>>();
+    return std::make_unique<array_handler<ContainerType, VariantType>>();
 }
 
 template <int... Is> struct indices
@@ -322,34 +378,34 @@ template <int... Is> struct make_indices<0, Is...> : indices<Is...>
 {
 };
 
-template <typename TupleType> class factory
+template <typename TupleType, typename VariantType> class factory
 {
     constexpr static int tuple_size = std::tuple_size<TupleType>::value;
 
   public:
-    std::unique_ptr<token_handler> operator()(int index)
+    std::unique_ptr<token_handler<VariantType>> operator()(int index)
     {
         return produce(index);
     }
 
   private:
-    std::unique_ptr<token_handler> produce(int index)
+    std::unique_ptr<token_handler<VariantType>> produce(int index)
     {
         return produce_impl(make_indices<tuple_size>(), index);
     }
 
     template <int I, int... Is>
-    std::unique_ptr<token_handler> produce_impl(indices<I, Is...>, int index)
+    std::unique_ptr<token_handler<VariantType>> produce_impl(indices<I, Is...>, int index)
     {
         if (I == index) {
             using container_type = typename std::tuple_element<I, TupleType>::type;
-            return make_token_handler<container_type>();
+            return make_token_handler<container_type, VariantType>();
         }
 
         return produce_impl(indices<Is...>(), index);
     }
 
-    std::unique_ptr<token_handler> produce_impl(indices<>, int /*index*/)
+    std::unique_ptr<token_handler<VariantType>> produce_impl(indices<>, int /*index*/)
     {
         throw "Uh-oh!";
     }
@@ -378,14 +434,14 @@ class delegating_handler
         return true;
     }
 
-    bool Int(int /*value*/)
+    bool Int(int value)
     {
-        return true;
+        return m_handlers[m_index]->on_int(value);
     }
 
-    bool Uint(unsigned int /*value*/)
+    bool Uint(unsigned int value)
     {
-        return true;
+        return m_handlers[m_index]->on_uint(value);
     }
 
     bool Int64(std::int64_t /*value*/)
@@ -430,8 +486,12 @@ class delegating_handler
 
     bool EndObject(rapidjson::SizeType /*length*/)
     {
-        // @todo The handler needs to insert its finalized type into the outer container.
-        // Perhaps this can be done via a static templatized method on the handler?
+        assert(!m_handlers.empty());
+
+        const auto& variant = m_handlers.back()->get_container();
+        auto nested_container = std::get<decltype(m_container)::value_type>(variant);
+        detail::insert(m_container, std::move(nested_container));
+        m_handlers.pop_back();
 
         --m_index;
         return true;
@@ -448,11 +508,27 @@ class delegating_handler
 
     bool EndArray(rapidjson::SizeType /*length*/)
     {
-        --m_index;
+        assert(!m_handlers.empty());
+
+        if (--m_index < 0) {
+            const auto& variant = m_handlers.back()->get_container();
+            m_container = std::get<ContainerType>(variant);
+            m_handlers.pop_back();
+        }
+
         return true;
     }
 
+    ContainerType&& get_container() &&
+    {
+        return std::move(m_container);
+    }
+
   private:
+    static_assert(
+        std::is_same<detail::stack_tuple_t<ContainerType>, std::tuple<std::vector<int>>>::value,
+        "Decomposition failed.");
+
     // Given a templated container type, `stack_tuple_t` will decompose that type into a tuple where
     // each subsequent entry in the tuple will equal the `value_type` of the preceding type.
     //
@@ -460,26 +536,29 @@ class delegating_handler
     //
     // static_assert(
     //     std::is_same<
-    //         stack_tuple_t<std::vector<std::list<std::vector<int>>>>,
+    //         detail::stack_tuple_t<std::vector<std::list<std::vector<int>>>>,
     //             std::tuple<
     //                 std::vector<std::list<std::vector<int>>>, std::list<std::vector<int>>,
     //                 std::vector<int>>>::value,
     //     "Decomposition failed.");
     using type_stack = detail::stack_tuple_t<ContainerType>;
-    detail::factory<type_stack> m_handler_factory;
+    using container_variant = detail::container_variant_t<type_stack>;
+    detail::factory<type_stack, container_variant> m_handler_factory;
 
-    std::vector<std::unique_ptr<token_handler>> m_handlers;
+    std::vector<std::unique_ptr<token_handler<container_variant>>> m_handlers;
 
     std::int32_t m_index = -1;
+
+    ContainerType m_container;
 };
 
-template <typename ContainerType> void parse_json(const char* json, ContainerType& /*container*/)
+template <typename ContainerType> void parse_json(const char* json, ContainerType& container)
 {
     rapidjson::Reader reader;
     delegating_handler<ContainerType> handler;
     rapidjson::StringStream ss(json);
     if (reader.Parse(ss, handler)) {
-        // messages.swap(handler.messages_); // Only change it if success.
+        container = std::move(handler).get_container();
     } else {
         rapidjson::ParseErrorCode e = reader.GetParseErrorCode();
         std::size_t o = reader.GetErrorOffset();
