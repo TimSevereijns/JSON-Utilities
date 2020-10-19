@@ -544,38 +544,39 @@ class delegating_handler
 
         if (--m_index < 0) {
             auto variant = m_handlers.back()->get_container();
-            m_container = *std::get<ContainerType*>(variant);
+            m_container = *std::get<ContainerType*>(std::move(variant));
         } else {
-            auto source_variant = m_handlers[m_handlers.size() - 1]->get_container();
-            auto sink_variant = m_handlers[m_handlers.size() - 2]->get_container();
+            const auto source_variant = m_handlers[m_handlers.size() - 1]->get_container();
+            const auto sink_variant = m_handlers[m_handlers.size() - 2]->get_container();
+
+            const auto source_to_sink = [](auto* const source, auto* const sink) {
+                assert(sink != nullptr);
+                assert(source != nullptr);
+
+                using sink_type = std::remove_pointer_t<decltype(sink)>;
+                using source_type = std::remove_pointer_t<decltype(source)>;
+
+                static_assert(
+                    json_utils::traits::is_container<sink_type>::value, "Expected a container.");
+
+                constexpr static bool is_insertable =
+                    std::is_same_v<source_type, typename sink_type::value_type>;
+
+                if constexpr (is_insertable) {
+                    insert(*sink, std::move(*source));
+                }
+            };
+
+            const auto source_handler = [&](auto* const source, auto& sink_variant) {
+                std::visit(
+                    overloaded{ [](const std::monostate&) {},
+                                [&](auto* const sink) { source_to_sink(source, sink); } },
+                    sink_variant);
+            };
 
             std::visit(
-                overloaded{
-                    [](const std::monostate&) {},
-                    [&](auto* const source) {
-                        std::visit(
-                            overloaded{
-                                [](const std::monostate&) {},
-                                [&](auto* const sink) {
-                                    assert(sink != nullptr);
-                                    assert(source != nullptr);
-
-                                    using sink_type = std::remove_pointer_t<decltype(sink)>;
-                                    using source_type = std::remove_pointer_t<decltype(source)>;
-
-                                    static_assert(
-                                        json_utils::traits::is_container<sink_type>::value,
-                                        "Expected a container.");
-
-                                    constexpr static bool is_insertable =
-                                        std::is_same_v<source_type, typename sink_type::value_type>;
-
-                                    if constexpr (is_insertable) {
-                                        insert(*sink, *source);
-                                    }
-                                } },
-                            sink_variant);
-                    } },
+                overloaded{ [](const std::monostate&) {},
+                            [&](auto* const source) { source_handler(source, sink_variant); } },
                 source_variant);
         }
 
@@ -607,10 +608,9 @@ template <typename ContainerType> void parse_json(const char* json, ContainerTyp
         const auto errorCode = reader.GetParseErrorCode();
         const auto offset = reader.GetErrorOffset();
 
-        auto message = std::string{ "Error: " } +
-                                    rapidjson::GetParseError_En(errorCode) + "\n" + " at offset " +
-                                    std::to_string(offset) + "near '" +
-                                    std::string(json).substr(offset, 10) + "...'";
+        auto message = std::string{ "Error: " } + rapidjson::GetParseError_En(errorCode) + "\n" +
+                       " at offset " + std::to_string(offset) + "near '" +
+                       std::string(json).substr(offset, 10) + "...'";
 
         throw std::runtime_error{ std::move(message) };
     }
