@@ -1597,7 +1597,13 @@ TEST_CASE("Sax Deserializer")
 {
     SECTION("Basics")
     {
-        const auto json = "[1, 2, 3]";
-        const auto result = json_utils::sax_deserializer::from_json<std::vector<int>>(json);
+        using container_type = std::vector<int>;
+
+        const container_type source_container = { 1, 2, 3, 4, 5 };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container =
+            json_utils::sax_deserializer::from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
     }
 }

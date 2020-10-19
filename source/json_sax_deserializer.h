@@ -13,6 +13,8 @@
 
 #include "json_traits.h"
 
+namespace json_utils
+{
 namespace detail
 {
 template <typename DataType, typename = void> struct stack_tuple;
@@ -35,6 +37,18 @@ struct stack_tuple<
         std::declval<typename stack_tuple<typename DataType::value_type>::type>()));
 };
 
+// Given a templated container type, `stack_tuple_t` will decompose that type into a tuple where
+// each subsequent entry in the tuple will equal the `value_type` of the preceding type.
+//
+// For instance, the following assertion holds:
+//
+// static_assert(
+//     std::is_same<
+//         stack_tuple_t<std::vector<std::list<std::vector<int>>>>,
+//             std::tuple<
+//                 std::vector<std::list<std::vector<int>>>, std::list<std::vector<int>>,
+//                 std::vector<int>>>::value,
+//     "Decomposition failed.");
 template <typename ContainerType> using stack_tuple_t = typename stack_tuple<ContainerType>::type;
 
 template <typename Tuple> struct container_variant;
@@ -72,7 +86,6 @@ auto insert(ContainerType& container, ElementType&& element) ->
 
     container.emplace_back(std::forward<ElementType>(element));
 }
-} // namespace detail
 
 template <typename VariantType> class token_handler
 {
@@ -173,37 +186,52 @@ class array_handler : public token_handler<VariantType>
 
     bool on_null() override
     {
+        // insert(m_container, nullptr);
         return true;
     }
 
-    bool on_bool(bool /*value*/) override
+    bool on_bool(bool value) override
     {
+        insert(m_container, value);
         return true;
     }
 
-    bool on_int(int /*value*/) override
+    bool on_int(int value) override
     {
+        insert(m_container, value);
         return true;
     }
 
     bool on_uint(unsigned int value) override
     {
-        detail::insert(m_container, value);
+        insert(m_container, value);
         return true;
     }
 
-    bool on_int_64(std::int64_t /*value*/) override
+    bool on_int_64(std::int64_t value) override
     {
+        if constexpr (std::is_same_v<decltype(value), typename ContainerType::value_type>) {
+            insert(m_container, value);
+        }
+
         return true;
     }
 
-    bool on_uint_64(std::uint64_t /*value*/) override
+    bool on_uint_64(std::uint64_t value) override
     {
+        if constexpr (std::is_same_v<decltype(value), typename ContainerType::value_type>) {
+            insert(m_container, value);
+        }
+
         return true;
     }
 
-    bool on_double(double /*value*/) override
+    bool on_double(double value) override
     {
+        if constexpr (std::is_same_v<decltype(value), typename ContainerType::value_type>) {
+            insert(m_container, value);
+        }
+
         return true;
     }
 
@@ -345,8 +373,6 @@ class object_handler : public token_handler<VariantType>
     ContainerType m_container;
 };
 
-namespace detail
-{
 template <typename ContainerType, typename VariantType>
 auto make_token_handler() -> typename std::enable_if<
     json_utils::traits::treat_as_object_sink<ContainerType>::value,
@@ -415,7 +441,6 @@ template <class... Ts> struct overloaded : Ts...
 };
 
 template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-} // namespace detail
 
 template <typename ContainerType, typename EncodingType = rapidjson::UTF8<>>
 class delegating_handler
@@ -431,12 +456,12 @@ class delegating_handler
 
     bool Null()
     {
-        return true;
+        return m_handlers[m_index]->on_null();
     }
 
-    bool Bool(bool /*value*/)
+    bool Bool(bool value)
     {
-        return true;
+        return m_handlers[m_index]->on_bool(value);
     }
 
     bool Int(int value)
@@ -449,9 +474,9 @@ class delegating_handler
         return m_handlers[m_index]->on_uint(value);
     }
 
-    bool Int64(std::int64_t /*value*/)
+    bool Int64(std::int64_t value)
     {
-        return true;
+        return m_handlers[m_index]->on_int_64(value);
     }
 
     bool Uint64(std::uint64_t value)
@@ -485,11 +510,35 @@ class delegating_handler
 
     bool Key(const Ch* const /*value*/, rapidjson::SizeType /*length*/, bool /*should_copy*/)
     {
-
         return true;
     }
 
     bool EndObject(rapidjson::SizeType /*length*/)
+    {
+        return finalize_container();
+    }
+
+    bool StartArray()
+    {
+        ++m_index;
+        auto handler = m_handler_factory(m_index);
+        m_handlers.emplace_back(std::move(handler));
+
+        return true;
+    }
+
+    bool EndArray(rapidjson::SizeType /*length*/)
+    {
+        return finalize_container();
+    }
+
+    ContainerType* get_container()
+    {
+        return &m_container;
+    }
+
+  private:
+    bool finalize_container()
     {
         assert(!m_handlers.empty());
 
@@ -501,11 +550,11 @@ class delegating_handler
             auto sink_variant = m_handlers[m_handlers.size() - 2]->get_container();
 
             std::visit(
-                detail::overloaded{
+                overloaded{
                     [](const std::monostate&) {},
                     [&](auto* const source) {
                         std::visit(
-                            detail::overloaded{
+                            overloaded{
                                 [](const std::monostate&) {},
                                 [&](auto* const sink) {
                                     assert(sink != nullptr);
@@ -522,7 +571,7 @@ class delegating_handler
                                         std::is_same_v<source_type, typename sink_type::value_type>;
 
                                     if constexpr (is_insertable) {
-                                        detail::insert(*sink, *source);
+                                        insert(*sink, *source);
                                     }
                                 } },
                             sink_variant);
@@ -536,50 +585,9 @@ class delegating_handler
         return true;
     }
 
-    bool StartArray()
-    {
-        ++m_index;
-        auto handler = m_handler_factory(m_index);
-        m_handlers.emplace_back(std::move(handler));
-
-        return true;
-    }
-
-    bool EndArray(rapidjson::SizeType /*length*/)
-    {
-        assert(!m_handlers.empty());
-
-        if (--m_index < 0) {
-            auto variant = m_handlers.back()->get_container();
-            m_container = *std::get<ContainerType*>(std::move(variant));
-            m_handlers.pop_back();
-        } else {
-        }
-
-        return true;
-    }
-
-    ContainerType* get_container()
-    {
-        return &m_container;
-    }
-
-  private:
-    // Given a templated container type, `stack_tuple_t` will decompose that type into a tuple where
-    // each subsequent entry in the tuple will equal the `value_type` of the preceding type.
-    //
-    // For instance, the following assertion holds:
-    //
-    // static_assert(
-    //     std::is_same<
-    //         detail::stack_tuple_t<std::vector<std::list<std::vector<int>>>>,
-    //             std::tuple<
-    //                 std::vector<std::list<std::vector<int>>>, std::list<std::vector<int>>,
-    //                 std::vector<int>>>::value,
-    //     "Decomposition failed.");
-    using type_stack = detail::stack_tuple_t<ContainerType>;
-    using container_variant = detail::container_variant_t<type_stack>;
-    detail::factory<type_stack, container_variant> m_handler_factory;
+    using type_stack = stack_tuple_t<ContainerType>;
+    using container_variant = container_variant_t<type_stack>;
+    factory<type_stack, container_variant> m_handler_factory;
 
     std::vector<std::unique_ptr<token_handler<container_variant>>> m_handlers;
 
@@ -592,26 +600,29 @@ template <typename ContainerType> void parse_json(const char* json, ContainerTyp
 {
     rapidjson::Reader reader;
     delegating_handler<ContainerType> handler;
-    rapidjson::StringStream ss(json);
-    if (reader.Parse(ss, handler)) {
+    rapidjson::StringStream stream{ json };
+    if (reader.Parse(stream, handler)) {
         container = std::move(*handler.get_container());
     } else {
-        rapidjson::ParseErrorCode e = reader.GetParseErrorCode();
-        std::size_t o = reader.GetErrorOffset();
-        std::cout << "Error: " << rapidjson::GetParseError_En(e) << std::endl;
-        std::cout << " at offset " << o << " near '" << std::string(json).substr(o, 10) << "...'"
-                  << std::endl;
+        const auto errorCode = reader.GetParseErrorCode();
+        const auto offset = reader.GetErrorOffset();
+
+        auto message = std::string{ "Error: " } +
+                                    rapidjson::GetParseError_En(errorCode) + "\n" + " at offset " +
+                                    std::to_string(offset) + "near '" +
+                                    std::string(json).substr(offset, 10) + "...'";
+
+        throw std::runtime_error{ std::move(message) };
     }
 }
+} // namespace detail
 
-namespace json_utils
-{
 namespace sax_deserializer
 {
 template <typename ContainerType> auto from_json(const std::string& json)
 {
     ContainerType container;
-    parse_json(json.data(), container);
+    detail::parse_json(json.data(), container);
 
     return container;
 }
