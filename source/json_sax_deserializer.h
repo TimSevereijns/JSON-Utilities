@@ -22,7 +22,8 @@ template <typename DataType, typename = void> struct stack_tuple;
 // Base case
 template <typename DataType>
 struct stack_tuple<
-    DataType, typename std::enable_if<!json_utils::traits::is_container<DataType>::value>::type>
+    DataType,
+    typename std::enable_if<!traits::treat_as_array_or_object_sink<DataType>::value>::type>
 {
     using type = std::tuple<>;
 };
@@ -30,7 +31,7 @@ struct stack_tuple<
 // Recursive case
 template <typename DataType>
 struct stack_tuple<
-    DataType, typename std::enable_if<json_utils::traits::is_container<DataType>::value>::type>
+    DataType, typename std::enable_if<traits::treat_as_array_or_object_sink<DataType>::value>::type>
 {
     using type = decltype(std::tuple_cat(
         std::declval<std::tuple<DataType>>(),
@@ -63,7 +64,7 @@ using container_variant_t = typename container_variant<TupleType>::type;
 
 template <typename ContainerType, typename ElementType>
 auto insert(ContainerType& container, ElementType&& element) ->
-    typename std::enable_if<json_utils::traits::has_emplace<ContainerType>::value>::type
+    typename std::enable_if<traits::has_emplace<ContainerType>::value>::type
 {
     static_assert(
         std::is_convertible<
@@ -76,7 +77,7 @@ auto insert(ContainerType& container, ElementType&& element) ->
 
 template <typename ContainerType, typename ElementType>
 auto insert(ContainerType& container, ElementType&& element) ->
-    typename std::enable_if<json_utils::traits::has_emplace_back<ContainerType>::value>::type
+    typename std::enable_if<traits::has_emplace_back<ContainerType>::value>::type
 {
     static_assert(
         std::is_convertible<
@@ -192,26 +193,35 @@ class array_handler : public token_handler<VariantType>
 
     bool on_bool(bool value) override
     {
-        insert(m_container, value);
+        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
+            insert(m_container, static_cast<typename ContainerType::value_type>(value));
+        }
+
         return true;
     }
 
     bool on_int(int value) override
     {
-        insert(m_container, value);
+        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
+            insert(m_container, static_cast<typename ContainerType::value_type>(value));
+        }
+
         return true;
     }
 
     bool on_uint(unsigned int value) override
     {
-        insert(m_container, value);
+        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
+            insert(m_container, static_cast<typename ContainerType::value_type>(value));
+        }
+
         return true;
     }
 
     bool on_int_64(std::int64_t value) override
     {
-        if constexpr (std::is_same_v<decltype(value), typename ContainerType::value_type>) {
-            insert(m_container, value);
+        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
+            insert(m_container, static_cast<typename ContainerType::value_type>(value));
         }
 
         return true;
@@ -219,8 +229,8 @@ class array_handler : public token_handler<VariantType>
 
     bool on_uint_64(std::uint64_t value) override
     {
-        if constexpr (std::is_same_v<decltype(value), typename ContainerType::value_type>) {
-            insert(m_container, value);
+        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
+            insert(m_container, static_cast<typename ContainerType::value_type>(value));
         }
 
         return true;
@@ -228,8 +238,8 @@ class array_handler : public token_handler<VariantType>
 
     bool on_double(double value) override
     {
-        if constexpr (std::is_same_v<decltype(value), typename ContainerType::value_type>) {
-            insert(m_container, value);
+        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
+            insert(m_container, static_cast<typename ContainerType::value_type>(value));
         }
 
         return true;
@@ -241,9 +251,15 @@ class array_handler : public token_handler<VariantType>
         return true;
     }
 
-    bool
-    on_string(const Ch* /*value*/, rapidjson::SizeType /*length*/, bool /*should_copy*/) override
+    bool on_string(
+        [[maybe_unused]] const Ch* value, [[maybe_unused]] rapidjson::SizeType length,
+        bool /*should_copy*/) override
     {
+        if constexpr (std::is_same_v<std::string, typename ContainerType::value_type>) {
+            std::string data(value, length);
+            insert(m_container, std::move(data));
+        }
+
         return true;
     }
 
@@ -375,7 +391,7 @@ class object_handler : public token_handler<VariantType>
 
 template <typename ContainerType, typename VariantType>
 auto make_token_handler() -> typename std::enable_if<
-    json_utils::traits::treat_as_object_sink<ContainerType>::value,
+    traits::treat_as_object_sink<ContainerType>::value,
     std::unique_ptr<token_handler<VariantType>>>::type
 {
     return std::make_unique<object_handler<ContainerType, VariantType>>();
@@ -383,7 +399,7 @@ auto make_token_handler() -> typename std::enable_if<
 
 template <typename ContainerType, typename VariantType>
 auto make_token_handler() -> typename std::enable_if<
-    json_utils::traits::treat_as_array_sink<ContainerType>::value,
+    traits::treat_as_array_sink<ContainerType>::value,
     std::unique_ptr<token_handler<VariantType>>>::type
 {
     return std::make_unique<array_handler<ContainerType, VariantType>>();
@@ -556,8 +572,7 @@ class delegating_handler
                 using sink_type = std::remove_pointer_t<decltype(sink)>;
                 using source_type = std::remove_pointer_t<decltype(source)>;
 
-                static_assert(
-                    json_utils::traits::is_container<sink_type>::value, "Expected a container.");
+                static_assert(traits::is_container<sink_type>::value, "Expected a container.");
 
                 constexpr static bool is_insertable =
                     std::is_same_v<source_type, typename sink_type::value_type>;

@@ -113,5 +113,11 @@ template <typename DataType> struct treat_as_value_sink
     static constexpr bool value =
         !(treat_as_array_sink<DataType>::value || treat_as_object_sink<DataType>::value);
 };
+
+template <typename DataType> struct treat_as_array_or_object_sink
+{
+    static constexpr bool value =
+        (treat_as_array_sink<DataType>::value || treat_as_object_sink<DataType>::value);
+};
 } // namespace traits
 } // namespace json_utils
