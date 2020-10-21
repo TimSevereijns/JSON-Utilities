@@ -1593,7 +1593,9 @@ TEST_CASE("Error Handling")
     }
 }
 
-TEST_CASE("Sax Deserializer")
+//#if __cplusplus >= 201703L // C++17
+
+TEST_CASE("Sax Deserializer into Array Sinks")
 {
     SECTION("Simple Vector of Booleans")
     {
@@ -1655,3 +1657,19 @@ TEST_CASE("Sax Deserializer")
         REQUIRE(source_container == resultant_container);
     }
 }
+
+TEST_CASE("Sax Deserializer into Object Sinks")
+{
+    SECTION("Simple Object of Strings and Ints")
+    {
+        using container_type = std::vector<std::pair<std::string, int>>;
+
+        const container_type source_container = { { "Key One", 1 }, { "Key Two", 99 } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::sax_deserializer::from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
+//#endif

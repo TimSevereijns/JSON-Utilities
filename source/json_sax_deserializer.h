@@ -313,33 +313,39 @@ class object_handler : public token_handler<VariantType>
         return true;
     }
 
-    bool on_bool(bool /*value*/) override
+    bool on_bool(bool value) override
     {
+        finalize_pair_and_insert(value);
         return true;
     }
 
-    bool on_int(int /*value*/) override
+    bool on_int(int value) override
     {
+        finalize_pair_and_insert(value);
         return true;
     }
 
-    bool on_uint(unsigned int /*value*/) override
+    bool on_uint(unsigned int value) override
     {
+        finalize_pair_and_insert(value);
         return true;
     }
 
-    bool on_int_64(std::int64_t /*value*/) override
+    bool on_int_64(std::int64_t value) override
     {
+        finalize_pair_and_insert(value);
         return true;
     }
 
-    bool on_uint_64(std::uint64_t /*value*/) override
+    bool on_uint_64(std::uint64_t value) override
     {
+        finalize_pair_and_insert(value);
         return true;
     }
 
-    bool on_double(double /*value*/) override
+    bool on_double(double value) override
     {
+        finalize_pair_and_insert(value);
         return true;
     }
 
@@ -360,8 +366,9 @@ class object_handler : public token_handler<VariantType>
         return true;
     }
 
-    bool on_key(const Ch* /*value*/, rapidjson::SizeType /*length*/, bool /*should_copy*/) override
+    bool on_key(const Ch* value, rapidjson::SizeType length, bool /*should_copy*/) override
     {
+        m_key = std::make_unique<std::string>(value, length);
         return true;
     }
 
@@ -386,6 +393,23 @@ class object_handler : public token_handler<VariantType>
     }
 
   private:
+    template <typename DataType>
+    void finalize_pair_and_insert(DataType&& value)
+    {
+        assert(m_key);
+
+        if constexpr (std::is_convertible_v<decltype(value), typename decltype(m_value)::element_type>) {
+            using value_type = typename decltype(m_value)::element_type;
+            m_value = std::make_unique<value_type>(std::forward<DataType>(value));
+            insert(m_container, std::make_pair(std::move(*m_key), std::move(*m_value)));
+        }
+    }
+
+    static_assert(traits::is_pair<typename ContainerType::value_type>::value, "");
+
+    std::unique_ptr<typename ContainerType::value_type::first_type> m_key;
+    std::unique_ptr<typename ContainerType::value_type::second_type> m_value;
+
     ContainerType m_container;
 };
 
@@ -524,9 +548,9 @@ class delegating_handler
         return true;
     }
 
-    bool Key(const Ch* const /*value*/, rapidjson::SizeType /*length*/, bool /*should_copy*/)
+    bool Key(const Ch* const value, rapidjson::SizeType length, bool should_copy)
     {
-        return true;
+        return m_handlers[m_index]->on_key(value, length, should_copy);
     }
 
     bool EndObject(rapidjson::SizeType /*length*/)
