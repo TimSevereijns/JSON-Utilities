@@ -19,7 +19,6 @@ namespace detail
 {
 template <typename DataType, typename = void> struct stack_tuple;
 
-// Base case
 template <typename DataType>
 struct stack_tuple<
     DataType,
@@ -28,7 +27,6 @@ struct stack_tuple<
     using type = std::tuple<>;
 };
 
-// Recursive case
 template <typename DataType>
 struct stack_tuple<
     DataType, typename std::enable_if<traits::treat_as_array_or_object_sink<DataType>::value>::type>
@@ -175,80 +173,44 @@ template <typename VariantType> class token_handler
 };
 
 template <typename ContainerType, typename VariantType, typename EncodingType = rapidjson::UTF8<>>
-class array_handler : public token_handler<VariantType>
+class array_handler final : public token_handler<VariantType>
 {
     using Ch = typename EncodingType::Ch;
 
   public:
-    bool on_default() override
-    {
-        return true;
-    }
-
     bool on_null() override
     {
-        // insert(m_container, nullptr);
         return true;
     }
 
     bool on_bool(bool value) override
     {
-        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
-            insert(m_container, static_cast<typename ContainerType::value_type>(value));
-        }
-
-        return true;
+        return insert_pod(value);
     }
 
     bool on_int(int value) override
     {
-        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
-            insert(m_container, static_cast<typename ContainerType::value_type>(value));
-        }
-
-        return true;
+        return insert_pod(value);
     }
 
     bool on_uint(unsigned int value) override
     {
-        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
-            insert(m_container, static_cast<typename ContainerType::value_type>(value));
-        }
-
-        return true;
+        return insert_pod(value);
     }
 
     bool on_int_64(std::int64_t value) override
     {
-        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
-            insert(m_container, static_cast<typename ContainerType::value_type>(value));
-        }
-
-        return true;
+        return insert_pod(value);
     }
 
     bool on_uint_64(std::uint64_t value) override
     {
-        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
-            insert(m_container, static_cast<typename ContainerType::value_type>(value));
-        }
-
-        return true;
+        return insert_pod(value);
     }
 
     bool on_double(double value) override
     {
-        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
-            insert(m_container, static_cast<typename ContainerType::value_type>(value));
-        }
-
-        return true;
-    }
-
-    bool on_raw_number(
-        const Ch* /*value*/, rapidjson::SizeType /*length*/, bool /*should_copy*/) override
-    {
-        return true;
+        return insert_pod(value);
     }
 
     bool on_string(
@@ -263,51 +225,30 @@ class array_handler : public token_handler<VariantType>
         return true;
     }
 
-    bool on_object_start() override
-    {
-        return true;
-    }
-
-    bool on_key(const Ch* /*value*/, rapidjson::SizeType /*length*/, bool /*should_copy*/) override
-    {
-        return true;
-    }
-
-    bool on_object_end(rapidjson::SizeType /*length*/) override
-    {
-        return true;
-    }
-
-    bool on_array_start() override
-    {
-        return true;
-    }
-
-    bool on_array_end(rapidjson::SizeType /*length*/) override
-    {
-        return true;
-    }
-
     VariantType get_container() override
     {
         return { &m_container };
     }
 
   private:
+    template <typename DataType> bool insert_pod(DataType value)
+    {
+        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
+            insert(m_container, static_cast<typename ContainerType::value_type>(value));
+        }
+
+        return true;
+    }
+
     ContainerType m_container;
 };
 
 template <typename ContainerType, typename VariantType, typename EncodingType = rapidjson::UTF8<>>
-class object_handler : public token_handler<VariantType>
+class object_handler final : public token_handler<VariantType>
 {
     using Ch = typename EncodingType::Ch;
 
   public:
-    bool on_default() override
-    {
-        return true;
-    }
-
     bool on_null() override
     {
         return true;
@@ -315,54 +256,78 @@ class object_handler : public token_handler<VariantType>
 
     bool on_bool(bool value) override
     {
-        finalize_pair_and_insert(value);
+        if constexpr (std::is_convertible_v<
+                          decltype(value), typename decltype(m_value)::element_type>) {
+            using value_type = typename decltype(m_value)::element_type;
+            finalize_pair_and_insert(static_cast<value_type>(value));
+        }
+
         return true;
     }
 
     bool on_int(int value) override
     {
-        finalize_pair_and_insert(value);
+        if constexpr (std::is_convertible_v<
+                          decltype(value), typename decltype(m_value)::element_type>) {
+            using value_type = typename decltype(m_value)::element_type;
+            finalize_pair_and_insert(static_cast<value_type>(value));
+        }
+
         return true;
     }
 
     bool on_uint(unsigned int value) override
     {
-        finalize_pair_and_insert(value);
+        if constexpr (std::is_convertible_v<
+                          decltype(value), typename decltype(m_value)::element_type>) {
+            using value_type = typename decltype(m_value)::element_type;
+            finalize_pair_and_insert(static_cast<value_type>(value));
+        }
+
         return true;
     }
 
     bool on_int_64(std::int64_t value) override
     {
-        finalize_pair_and_insert(value);
+        if constexpr (std::is_convertible_v<
+                          decltype(value), typename decltype(m_value)::element_type>) {
+            using value_type = typename decltype(m_value)::element_type;
+            finalize_pair_and_insert(static_cast<value_type>(value));
+        }
+
         return true;
     }
 
     bool on_uint_64(std::uint64_t value) override
     {
-        finalize_pair_and_insert(value);
+        if constexpr (std::is_convertible_v<
+                          decltype(value), typename decltype(m_value)::element_type>) {
+            using value_type = typename decltype(m_value)::element_type;
+            finalize_pair_and_insert(static_cast<value_type>(value));
+        }
+
         return true;
     }
 
     bool on_double(double value) override
     {
-        finalize_pair_and_insert(value);
+        if constexpr (std::is_convertible_v<
+                          decltype(value), typename decltype(m_value)::element_type>) {
+            using value_type = typename decltype(m_value)::element_type;
+            finalize_pair_and_insert(static_cast<value_type>(value));
+        }
+
         return true;
     }
 
-    bool on_raw_number(
-        const Ch* /*value*/, rapidjson::SizeType /*length*/, bool /*should_copy*/) override
+    bool on_string(
+        [[maybe_unused]] const Ch* value, [[maybe_unused]] rapidjson::SizeType length,
+        bool /*should_copy*/) override
     {
-        return true;
-    }
+        if constexpr (std::is_same_v<std::string, typename decltype(m_value)::element_type>) {
+            finalize_pair_and_insert(std::string(value, length));
+        }
 
-    bool
-    on_string(const Ch* /*value*/, rapidjson::SizeType /*length*/, bool /*should_copy*/) override
-    {
-        return true;
-    }
-
-    bool on_object_start() override
-    {
         return true;
     }
 
@@ -372,37 +337,19 @@ class object_handler : public token_handler<VariantType>
         return true;
     }
 
-    bool on_object_end(rapidjson::SizeType /*length*/) override
-    {
-        return true;
-    }
-
-    bool on_array_start() override
-    {
-        return true;
-    }
-
-    bool on_array_end(rapidjson::SizeType /*length*/) override
-    {
-        return true;
-    }
-
     VariantType get_container() override
     {
         return { &m_container };
     }
 
   private:
-    template <typename DataType>
-    void finalize_pair_and_insert(DataType&& value)
+    template <typename DataType> void finalize_pair_and_insert(DataType&& value)
     {
         assert(m_key);
 
-        if constexpr (std::is_convertible_v<decltype(value), typename decltype(m_value)::element_type>) {
-            using value_type = typename decltype(m_value)::element_type;
-            m_value = std::make_unique<value_type>(std::forward<DataType>(value));
-            insert(m_container, std::make_pair(std::move(*m_key), std::move(*m_value)));
-        }
+        using value_type = typename decltype(m_value)::element_type;
+        m_value = std::make_unique<value_type>(std::forward<DataType>(value));
+        insert(m_container, std::make_pair(std::move(*m_key), std::move(*m_value)));
     }
 
     static_assert(traits::is_pair<typename ContainerType::value_type>::value, "");
@@ -483,7 +430,7 @@ template <class... Ts> struct overloaded : Ts...
 template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 template <typename ContainerType, typename EncodingType = rapidjson::UTF8<>>
-class delegating_handler
+class delegating_handler final
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, delegating_handler<ContainerType>>
 {
     using Ch = typename EncodingType::Ch;
@@ -641,15 +588,16 @@ template <typename ContainerType> void parse_json(const char* json, ContainerTyp
     rapidjson::Reader reader;
     delegating_handler<ContainerType> handler;
     rapidjson::StringStream stream{ json };
+
     if (reader.Parse(stream, handler)) {
         container = std::move(*handler.get_container());
     } else {
         const auto errorCode = reader.GetParseErrorCode();
         const auto offset = reader.GetErrorOffset();
 
-        auto message = std::string{ "Error: " } + rapidjson::GetParseError_En(errorCode) + "\n" +
-                       " at offset " + std::to_string(offset) + "near '" +
-                       std::string(json).substr(offset, 10) + "...'";
+        const auto parseError = std::string{ rapidjson::GetParseError_En(errorCode) };
+        auto message = "Error: " + parseError + "\n at offset " + std::to_string(offset) +
+                       "near '" + std::string(json).substr(offset, 10) + "...'";
 
         throw std::runtime_error{ std::move(message) };
     }

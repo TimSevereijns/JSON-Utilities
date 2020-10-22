@@ -1660,11 +1660,33 @@ TEST_CASE("Sax Deserializer into Array Sinks")
 
 TEST_CASE("Sax Deserializer into Object Sinks")
 {
-    SECTION("Simple Object of Strings and Ints")
+    SECTION("Simple Vector of Pairs")
     {
         using container_type = std::vector<std::pair<std::string, int>>;
 
         const container_type source_container = { { "Key One", 1 }, { "Key Two", 99 } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::sax_deserializer::from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Map of Strings to Ints")
+    {
+        using container_type = std::unordered_map<std::string, int>;
+
+        const container_type source_container = { { "Key One", 1 }, { "Key Two", 99 } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::sax_deserializer::from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Map of Strings to Strings")
+    {
+        using container_type = std::unordered_map<std::string, std::string>;
+
+        const container_type source_container = { { "Key One", "Value One" }, { "Key Two", "Value Two" } };
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::sax_deserializer::from_json<container_type>(json);
 
