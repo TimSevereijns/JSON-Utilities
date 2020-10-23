@@ -1,5 +1,7 @@
 #pragma once
 
+#if __cplusplus >= 201703L // C++17
+
 #include <rapidjson/error/en.h>
 #include <rapidjson/reader.h>
 
@@ -217,6 +219,8 @@ class array_handler final : public token_handler<VariantType>
         [[maybe_unused]] const Ch* value, [[maybe_unused]] rapidjson::SizeType length,
         bool /*should_copy*/) override
     {
+        // @todo Add pointer handling...
+
         if constexpr (std::is_same_v<std::string, typename ContainerType::value_type>) {
             std::string data(value, length);
             insert(m_container, std::move(data));
@@ -256,67 +260,37 @@ class object_handler final : public token_handler<VariantType>
 
     bool on_bool(bool value) override
     {
-        if constexpr (std::is_convertible_v<
-                          decltype(value), typename decltype(m_value)::element_type>) {
-            using value_type = typename decltype(m_value)::element_type;
-            finalize_pair_and_insert(static_cast<value_type>(value));
-        }
-
+        construct_pair(value);
         return true;
     }
 
     bool on_int(int value) override
     {
-        if constexpr (std::is_convertible_v<
-                          decltype(value), typename decltype(m_value)::element_type>) {
-            using value_type = typename decltype(m_value)::element_type;
-            finalize_pair_and_insert(static_cast<value_type>(value));
-        }
-
+        construct_pair(value);
         return true;
     }
 
     bool on_uint(unsigned int value) override
     {
-        if constexpr (std::is_convertible_v<
-                          decltype(value), typename decltype(m_value)::element_type>) {
-            using value_type = typename decltype(m_value)::element_type;
-            finalize_pair_and_insert(static_cast<value_type>(value));
-        }
-
+        construct_pair(value);
         return true;
     }
 
     bool on_int_64(std::int64_t value) override
     {
-        if constexpr (std::is_convertible_v<
-                          decltype(value), typename decltype(m_value)::element_type>) {
-            using value_type = typename decltype(m_value)::element_type;
-            finalize_pair_and_insert(static_cast<value_type>(value));
-        }
-
+        construct_pair(value);
         return true;
     }
 
     bool on_uint_64(std::uint64_t value) override
     {
-        if constexpr (std::is_convertible_v<
-                          decltype(value), typename decltype(m_value)::element_type>) {
-            using value_type = typename decltype(m_value)::element_type;
-            finalize_pair_and_insert(static_cast<value_type>(value));
-        }
-
+        construct_pair(value);
         return true;
     }
 
     bool on_double(double value) override
     {
-        if constexpr (std::is_convertible_v<
-                          decltype(value), typename decltype(m_value)::element_type>) {
-            using value_type = typename decltype(m_value)::element_type;
-            finalize_pair_and_insert(static_cast<value_type>(value));
-        }
-
+        construct_pair(value);
         return true;
     }
 
@@ -343,12 +317,23 @@ class object_handler final : public token_handler<VariantType>
     }
 
   private:
+    template <typename DataType> void construct_pair(DataType&& value) {
+        // Splitting pair construction into two functions and using SFINAE to hide
+        // inapplicable code-gen seems to work well to keep warnings at bay.
+
+        if constexpr (std::is_convertible_v<
+                          decltype(value), typename decltype(m_value)::element_type>) {
+            using value_type = typename decltype(m_value)::element_type;
+            finalize_pair_and_insert(static_cast<value_type>(value));
+        }
+    }
+
     template <typename DataType> void finalize_pair_and_insert(DataType&& value)
     {
-        assert(m_key);
-
         using value_type = typename decltype(m_value)::element_type;
         m_value = std::make_unique<value_type>(std::forward<DataType>(value));
+
+        assert(m_key);
         insert(m_container, std::make_pair(std::move(*m_key), std::move(*m_value)));
     }
 
@@ -583,7 +568,7 @@ class delegating_handler final
     ContainerType m_container;
 };
 
-template <typename ContainerType> void parse_json(const char* json, ContainerType& container)
+template <typename ContainerType> void parse_json(const char* const json, ContainerType& container)
 {
     rapidjson::Reader reader;
     delegating_handler<ContainerType> handler;
@@ -592,10 +577,10 @@ template <typename ContainerType> void parse_json(const char* json, ContainerTyp
     if (reader.Parse(stream, handler)) {
         container = std::move(*handler.get_container());
     } else {
-        const auto errorCode = reader.GetParseErrorCode();
         const auto offset = reader.GetErrorOffset();
-
+        const auto errorCode = reader.GetParseErrorCode();
         const auto parseError = std::string{ rapidjson::GetParseError_En(errorCode) };
+
         auto message = "Error: " + parseError + "\n at offset " + std::to_string(offset) +
                        "near '" + std::string(json).substr(offset, 10) + "...'";
 
@@ -615,3 +600,5 @@ template <typename ContainerType> auto from_json(const std::string& json)
 }
 } // namespace sax_deserializer
 } // namespace json_utils
+
+#endif

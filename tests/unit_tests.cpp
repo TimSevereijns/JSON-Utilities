@@ -1593,7 +1593,7 @@ TEST_CASE("Error Handling")
     }
 }
 
-//#if __cplusplus >= 201703L // C++17
+#if __cplusplus >= 201703L // C++17
 
 TEST_CASE("Sax Deserializer into Array Sinks")
 {
@@ -1656,6 +1656,31 @@ TEST_CASE("Sax Deserializer into Array Sinks")
 
         REQUIRE(source_container == resultant_container);
     }
+
+    SECTION("Simple Set of Strings")
+    {
+        using container_type = std::set<std::string>;
+
+        const container_type source_container = { "Set 1", "Set 2", "Set 3" };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::sax_deserializer::from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Vector of Shared Pointers")
+    {
+        using container_type = std::vector<std::shared_ptr<std::string>>;
+
+        const container_type source_container = { std::make_shared<std::string>("Hello"),
+                                                  std::make_shared<std::string>("World") };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container =
+            json_utils::sax_deserializer::from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
 }
 
 TEST_CASE("Sax Deserializer into Object Sinks")
@@ -1694,4 +1719,4 @@ TEST_CASE("Sax Deserializer into Object Sinks")
     }
 }
 
-//#endif
+#endif
