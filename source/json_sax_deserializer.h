@@ -219,7 +219,21 @@ class array_handler final : public token_handler<VariantType>
         [[maybe_unused]] const Ch* value, [[maybe_unused]] rapidjson::SizeType length,
         bool /*should_copy*/) override
     {
-        // @todo Add pointer handling...
+        if constexpr (traits::is_shared_ptr<typename ContainerType::value_type>::value) {
+            using element_type = typename ContainerType::value_type::element_type;
+            if constexpr (std::is_same_v<std::string, element_type>) {
+                std::string data(value, length);
+                insert(m_container, std::make_shared<std::string>(std::move(data)));
+            }
+        }
+
+        if constexpr (traits::is_unique_ptr<typename ContainerType::value_type>::value) {
+            using element_type = typename ContainerType::value_type::element_type;
+            if constexpr (std::is_same_v<std::string, element_type>) {
+                std::string data(value, length);
+                insert(m_container, std::make_unique<std::string>(std::move(data)));
+            }
+        }
 
         if constexpr (std::is_same_v<std::string, typename ContainerType::value_type>) {
             std::string data(value, length);
@@ -237,6 +251,25 @@ class array_handler final : public token_handler<VariantType>
   private:
     template <typename DataType> bool insert_pod(DataType value)
     {
+        // The various static casts in this function are necessary to keep warnings and static
+        // assertions at bay.
+
+        if constexpr (traits::is_shared_ptr<typename ContainerType::value_type>::value) {
+            using element_type = typename ContainerType::value_type::element_type;
+            if constexpr (std::is_convertible_v<decltype(value), element_type>) {
+                insert(
+                    m_container, std::make_shared<element_type>(static_cast<element_type>(value)));
+            }
+        }
+
+        if constexpr (traits::is_unique_ptr<typename ContainerType::value_type>::value) {
+            using element_type = typename ContainerType::value_type::element_type;
+            if constexpr (std::is_convertible_v<decltype(value), element_type>) {
+                insert(
+                    m_container, std::make_unique<element_type>(static_cast<element_type>(value)));
+            }
+        }
+
         if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
             insert(m_container, static_cast<typename ContainerType::value_type>(value));
         }
@@ -516,7 +549,7 @@ class delegating_handler final
 
         if (--m_index < 0) {
             auto variant = m_handlers.back()->get_container();
-            m_container = *std::get<ContainerType*>(std::move(variant));
+            m_container = std::move(*std::get<ContainerType*>(variant));
         } else {
             const auto source_variant = m_handlers[m_handlers.size() - 1]->get_container();
             const auto sink_variant = m_handlers[m_handlers.size() - 2]->get_container();

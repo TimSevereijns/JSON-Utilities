@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -116,8 +117,23 @@ template <typename DataType> struct treat_as_value_sink
 
 template <typename DataType> struct treat_as_array_or_object_sink
 {
-    static constexpr bool value =
-        (treat_as_array_sink<DataType>::value || treat_as_object_sink<DataType>::value);
+    static constexpr bool value = !treat_as_value_sink<DataType>::value;
+};
+
+template <typename, typename = void> struct is_shared_ptr : std::false_type
+{
+};
+
+template <typename ElementType> struct is_shared_ptr<std::shared_ptr<ElementType>> : std::true_type
+{
+};
+
+template <typename, typename = void> struct is_unique_ptr : std::false_type
+{
+};
+
+template <typename ElementType> struct is_unique_ptr<std::unique_ptr<ElementType>> : std::true_type
+{
 };
 } // namespace traits
 } // namespace json_utils

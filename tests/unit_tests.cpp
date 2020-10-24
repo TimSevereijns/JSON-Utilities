@@ -1670,16 +1670,65 @@ TEST_CASE("Sax Deserializer into Array Sinks")
 
     SECTION("Simple Vector of Shared Pointers")
     {
-        using container_type = std::vector<std::shared_ptr<std::string>>;
+        using container_type = std::vector<std::shared_ptr<std::int32_t>>;
 
-        const container_type source_container = { std::make_shared<std::string>("Hello"),
-                                                  std::make_shared<std::string>("World") };
+        const container_type source_container = { std::make_shared<std::int32_t>(0),
+                                                  std::make_shared<std::int32_t>(1) };
 
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container =
             json_utils::sax_deserializer::from_json<container_type>(json);
 
-        REQUIRE(source_container == resultant_container);
+        const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
+        REQUIRE(is_equal);
+    }
+
+    SECTION("Simple Vector of Unique Pointers of Ints")
+    {
+        using container_type = std::vector<std::unique_ptr<std::int32_t>>;
+
+        container_type source_container;
+        source_container.emplace_back(std::make_unique<std::int32_t>(0));
+        source_container.emplace_back(std::make_unique<std::int32_t>(1));
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container =
+            json_utils::sax_deserializer::from_json<container_type>(json);
+
+        const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
+        REQUIRE(is_equal);
+    }
+
+    SECTION("Simple Vector of Unique Pointers of Unsigned Ints")
+    {
+        using container_type = std::vector<std::unique_ptr<std::uint32_t>>;
+
+        container_type source_container;
+        source_container.emplace_back(std::make_unique<std::uint32_t>(0));
+        source_container.emplace_back(std::make_unique<std::uint32_t>(1));
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container =
+            json_utils::sax_deserializer::from_json<container_type>(json);
+
+        const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
+        REQUIRE(is_equal);
+    }
+
+    SECTION("Simple Vector of Unique Pointers of Strings")
+    {
+        using container_type = std::vector<std::unique_ptr<std::string>>;
+
+        container_type source_container;
+        source_container.emplace_back(std::make_unique<std::string>("Hello"));
+        source_container.emplace_back(std::make_unique<std::string>("World"));
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container =
+            json_utils::sax_deserializer::from_json<container_type>(json);
+
+        const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
+        REQUIRE(is_equal);
     }
 }
 
