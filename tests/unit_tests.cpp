@@ -1595,7 +1595,7 @@ TEST_CASE("Error Handling")
 
 #if __cplusplus >= 201703L // C++17
 
-TEST_CASE("Sax Deserializer into Array Sinks")
+TEST_CASE("Sax Deserializer into Simple Array Sinks")
 {
     SECTION("Simple Vector of Booleans")
     {
@@ -1732,7 +1732,7 @@ TEST_CASE("Sax Deserializer into Array Sinks")
     }
 }
 
-TEST_CASE("Sax Deserializer into Object Sinks")
+TEST_CASE("Sax Deserializer into Simple Object Sinks")
 {
     SECTION("Simple Vector of Pairs")
     {
@@ -1761,6 +1761,21 @@ TEST_CASE("Sax Deserializer into Object Sinks")
         using container_type = std::unordered_map<std::string, std::string>;
 
         const container_type source_container = { { "Key One", "Value One" }, { "Key Two", "Value Two" } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::sax_deserializer::from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
+TEST_CASE("Sax Deserialization of Complex Containers") {
+    SECTION("Map of String to Vector of Ints")
+    {
+        using container_type = std::map<std::string, std::vector<int>>;
+
+        const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } },
+                                                  { "objectTwo", { 5, 6, 7, 8 } } };
+
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::sax_deserializer::from_json<container_type>(json);
 

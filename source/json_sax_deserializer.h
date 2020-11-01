@@ -23,8 +23,27 @@ template <typename DataType, typename = void> struct stack_tuple;
 
 template <typename DataType>
 struct stack_tuple<
-    DataType,
-    typename std::enable_if<!traits::treat_as_array_or_object_sink<DataType>::value>::type>
+    DataType, typename std::enable_if<
+                  !traits::treat_as_array_or_object_sink<DataType>::value &&
+                  !traits::is_pair<DataType>::value>::type>
+{
+    using type = std::tuple<>;
+};
+
+template <typename DataType>
+struct stack_tuple<
+    DataType, typename std::enable_if<
+                  traits::is_pair<DataType>::value &&
+                  traits::is_container<typename DataType::second_type>::value>::type>
+{
+    using type = typename stack_tuple<typename DataType::second_type>::type;
+};
+
+template <typename DataType>
+struct stack_tuple<
+    DataType, typename std::enable_if<
+                  traits::is_pair<DataType>::value &&
+                  !traits::is_container<typename DataType::second_type>::value>::type>
 {
     using type = std::tuple<>;
 };
@@ -38,18 +57,6 @@ struct stack_tuple<
         std::declval<typename stack_tuple<typename DataType::value_type>::type>()));
 };
 
-// Given a templated container type, `stack_tuple_t` will decompose that type into a tuple where
-// each subsequent entry in the tuple will equal the `value_type` of the preceding type.
-//
-// For instance, the following assertion holds:
-//
-// static_assert(
-//     std::is_same<
-//         stack_tuple_t<std::vector<std::list<std::vector<int>>>>,
-//             std::tuple<
-//                 std::vector<std::list<std::vector<int>>>, std::list<std::vector<int>>,
-//                 std::vector<int>>>::value,
-//     "Decomposition failed.");
 template <typename ContainerType> using stack_tuple_t = typename stack_tuple<ContainerType>::type;
 
 template <typename Tuple> struct container_variant;
@@ -151,6 +158,12 @@ template <typename VariantType> class token_handler
     virtual bool on_key(const char* /*value*/, rapidjson::SizeType /*length*/, bool /*should_copy*/)
     {
         return true;
+    }
+
+    virtual const std::string& get_key()
+    {
+        const static std::string dummy;
+        return dummy;
     }
 
     virtual bool on_object_end(rapidjson::SizeType /*length*/)
@@ -340,7 +353,8 @@ class object_handler final : public token_handler<VariantType>
 
     bool on_key(const Ch* value, rapidjson::SizeType length, bool /*should_copy*/) override
     {
-        m_key = std::make_unique<std::string>(value, length);
+        m_already_inserted = false;
+        m_key = std::string(value, length);
         return true;
     }
 
@@ -349,11 +363,20 @@ class object_handler final : public token_handler<VariantType>
         return { &m_container };
     }
 
+    const std::string& get_key() override 
+    {
+        m_already_inserted = true;
+        return m_key;
+    }
+
   private:
     template <typename DataType> void construct_pair(DataType&& value) {
+        if (m_already_inserted) {
+            return;
+        }
+
         // Splitting pair construction into two functions and using SFINAE to hide
         // inapplicable code-gen seems to work well to keep warnings at bay.
-
         if constexpr (std::is_convertible_v<
                           decltype(value), typename decltype(m_value)::element_type>) {
             using value_type = typename decltype(m_value)::element_type;
@@ -366,14 +389,16 @@ class object_handler final : public token_handler<VariantType>
         using value_type = typename decltype(m_value)::element_type;
         m_value = std::make_unique<value_type>(std::forward<DataType>(value));
 
-        assert(m_key);
-        insert(m_container, std::make_pair(std::move(*m_key), std::move(*m_value)));
+        assert(!m_key.empty());
+        insert(m_container, std::make_pair(std::move(m_key), std::move(*m_value)));
     }
 
     static_assert(traits::is_pair<typename ContainerType::value_type>::value, "");
 
-    std::unique_ptr<typename ContainerType::value_type::first_type> m_key;
+    std::string m_key;
     std::unique_ptr<typename ContainerType::value_type::second_type> m_value;
+
+    bool m_already_inserted = false;
 
     ContainerType m_container;
 };
@@ -547,14 +572,14 @@ class delegating_handler final
     {
         assert(!m_handlers.empty());
 
-        if (--m_index < 0) {
+        if (m_index - 1 < 0) {
             auto variant = m_handlers.back()->get_container();
             m_container = std::move(*std::get<ContainerType*>(variant));
         } else {
             const auto source_variant = m_handlers[m_handlers.size() - 1]->get_container();
             const auto sink_variant = m_handlers[m_handlers.size() - 2]->get_container();
 
-            const auto source_to_sink = [](auto* const source, auto* const sink) {
+            const auto source_to_sink = [this](auto* const source, auto* const sink) {
                 assert(sink != nullptr);
                 assert(source != nullptr);
 
@@ -563,10 +588,17 @@ class delegating_handler final
 
                 static_assert(traits::is_container<sink_type>::value, "Expected a container.");
 
-                constexpr static bool is_insertable =
-                    std::is_same_v<source_type, typename sink_type::value_type>;
+                if constexpr (traits::is_pair<typename sink_type::value_type>::value) {
+                    using sink_value_type = typename sink_type::value_type::second_type;
+                    if constexpr (std::is_same_v<source_type, sink_value_type>) {
+                        const auto& key = m_handlers[m_handlers.size() - 2]->get_key();
 
-                if constexpr (is_insertable) {
+                        //std::cout << "Source Type: " << typeid(*source).name() << std::endl;
+                        //std::cout << "Sink Type:   " << typeid(*sink).name() << std::endl;
+
+                        insert(*sink, std::make_pair(key, std::move(*source)));
+                    }
+                } else if constexpr (std::is_same_v<source_type, typename sink_type::value_type>) {
                     insert(*sink, std::move(*source));
                 }
             };
@@ -585,8 +617,8 @@ class delegating_handler final
         }
 
         m_handlers.pop_back();
-
         --m_index;
+
         return true;
     }
 
