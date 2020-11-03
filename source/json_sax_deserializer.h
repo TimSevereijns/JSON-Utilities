@@ -57,7 +57,8 @@ struct stack_tuple<
         std::declval<typename stack_tuple<typename DataType::value_type>::type>()));
 };
 
-template <typename ContainerType> using stack_tuple_t = typename stack_tuple<ContainerType>::type;
+template <typename ContainerType>
+using container_stack_t = typename stack_tuple<ContainerType>::type;
 
 template <typename Tuple> struct container_variant;
 
@@ -95,7 +96,7 @@ auto insert(ContainerType& container, ElementType&& element) ->
     container.emplace_back(std::forward<ElementType>(element));
 }
 
-template <typename VariantType> class token_handler
+template <typename VariantType, typename CharacterType> class token_handler
 {
   public:
     virtual bool on_default()
@@ -138,14 +139,12 @@ template <typename VariantType> class token_handler
         return true;
     }
 
-    virtual bool
-    on_raw_number(const char* /*value*/, rapidjson::SizeType /*length*/, bool /*should_copy*/)
+    virtual bool on_raw_number(const char* /*value*/, rapidjson::SizeType /*length*/)
     {
         return true;
     }
 
-    virtual bool
-    on_string(const char* /*value*/, rapidjson::SizeType /*length*/, bool /*should_copy*/)
+    virtual bool on_string(const char* /*value*/, rapidjson::SizeType /*length*/)
     {
         return true;
     }
@@ -155,14 +154,14 @@ template <typename VariantType> class token_handler
         return true;
     }
 
-    virtual bool on_key(const char* /*value*/, rapidjson::SizeType /*length*/, bool /*should_copy*/)
+    virtual bool on_key(const char* /*value*/, rapidjson::SizeType /*length*/)
     {
         return true;
     }
 
-    virtual const std::string& get_key()
+    virtual const std::basic_string<CharacterType>& get_key()
     {
-        const static std::string dummy;
+        const static std::basic_string<CharacterType> dummy;
         return dummy;
     }
 
@@ -187,14 +186,15 @@ template <typename VariantType> class token_handler
     }
 };
 
-template <typename ContainerType, typename VariantType, typename EncodingType = rapidjson::UTF8<>>
-class array_handler final : public token_handler<VariantType>
+template <typename ContainerType, typename VariantType, typename CharacterType>
+class array_handler final : public token_handler<VariantType, CharacterType>
 {
-    using character_type = typename EncodingType::Ch;
+    using string_type = std::basic_string<CharacterType>;
 
   public:
     bool on_null() override
     {
+        insert_null();
         return true;
     }
 
@@ -229,27 +229,27 @@ class array_handler final : public token_handler<VariantType>
     }
 
     bool on_string(
-        [[maybe_unused]] const character_type* value, [[maybe_unused]] rapidjson::SizeType length,
-        bool /*should_copy*/) override
+        [[maybe_unused]] const CharacterType* value,
+        [[maybe_unused]] rapidjson::SizeType length) override
     {
         if constexpr (traits::is_shared_ptr<typename ContainerType::value_type>::value) {
             using element_type = typename ContainerType::value_type::element_type;
-            if constexpr (std::is_same_v<std::string, element_type>) {
-                std::string data(value, length);
-                insert(m_container, std::make_shared<std::string>(std::move(data)));
+            if constexpr (std::is_same_v<string_type, element_type>) {
+                string_type data(value, length);
+                insert(m_container, std::make_shared<string_type>(std::move(data)));
             }
         }
 
         if constexpr (traits::is_unique_ptr<typename ContainerType::value_type>::value) {
             using element_type = typename ContainerType::value_type::element_type;
-            if constexpr (std::is_same_v<std::string, element_type>) {
-                std::string data(value, length);
-                insert(m_container, std::make_unique<std::string>(std::move(data)));
+            if constexpr (std::is_same_v<string_type, element_type>) {
+                string_type data(value, length);
+                insert(m_container, std::make_unique<string_type>(std::move(data)));
             }
         }
 
-        if constexpr (std::is_same_v<std::string, typename ContainerType::value_type>) {
-            std::string data(value, length);
+        if constexpr (std::is_same_v<string_type, typename ContainerType::value_type>) {
+            string_type data(value, length);
             insert(m_container, std::move(data));
         }
 
@@ -262,6 +262,15 @@ class array_handler final : public token_handler<VariantType>
     }
 
   private:
+    void insert_null()
+    {
+        if constexpr (
+            traits::is_unique_ptr<typename ContainerType::value_type>::value ||
+            traits::is_shared_ptr<typename ContainerType::value_type>::value) {
+            insert(m_container, nullptr);
+        }
+    }
+
     template <typename DataType> bool insert_pod(DataType value)
     {
         // The various static casts in this function are necessary to keep warnings and static
@@ -293,14 +302,15 @@ class array_handler final : public token_handler<VariantType>
     ContainerType m_container;
 };
 
-template <typename ContainerType, typename VariantType, typename EncodingType = rapidjson::UTF8<>>
-class object_handler final : public token_handler<VariantType>
+template <typename ContainerType, typename VariantType, typename CharacterType>
+class object_handler final : public token_handler<VariantType, CharacterType>
 {
-    using character_type = typename EncodingType::Ch;
+    using string_type = std::basic_string<CharacterType>;
 
   public:
     bool on_null() override
     {
+        construct_pair(nullptr);
         return true;
     }
 
@@ -341,21 +351,19 @@ class object_handler final : public token_handler<VariantType>
     }
 
     bool on_string(
-        [[maybe_unused]] const character_type* value, [[maybe_unused]] rapidjson::SizeType length,
-        bool /*should_copy*/) override
+        [[maybe_unused]] const CharacterType* value,
+        [[maybe_unused]] rapidjson::SizeType length) override
     {
-        if constexpr (std::is_same_v<std::string, typename decltype(m_value)::element_type>) {
-            finalize_pair_and_insert(std::string(value, length));
+        if constexpr (std::is_same_v<string_type, typename decltype(m_value)::element_type>) {
+            finalize_pair_and_insert(string_type(value, length));
         }
 
         return true;
     }
 
-    bool
-    on_key(const character_type* value, rapidjson::SizeType length, bool /*should_copy*/) override
+    bool on_key(const CharacterType* value, rapidjson::SizeType length) override
     {
-        m_already_inserted = false;
-        m_key = std::string(value, length);
+        m_key = string_type(value, length);
         return true;
     }
 
@@ -364,21 +372,17 @@ class object_handler final : public token_handler<VariantType>
         return { &m_container };
     }
 
-    const std::string& get_key() override
+    const std::basic_string<CharacterType>& get_key() override
     {
-        m_already_inserted = true;
         return m_key;
     }
 
   private:
     template <typename DataType> void construct_pair(DataType&& value)
     {
-        if (m_already_inserted) {
-            return;
-        }
-
         // Splitting pair construction into two functions and using SFINAE to hide
         // inapplicable code-gen seems to work well to keep warnings at bay.
+
         if constexpr (std::is_convertible_v<
                           decltype(value), typename decltype(m_value)::element_type>) {
             using value_type = typename decltype(m_value)::element_type;
@@ -397,28 +401,26 @@ class object_handler final : public token_handler<VariantType>
 
     static_assert(traits::is_pair<typename ContainerType::value_type>::value, "");
 
-    std::string m_key;
+    string_type m_key;
     std::unique_ptr<typename ContainerType::value_type::second_type> m_value;
-
-    bool m_already_inserted = false;
 
     ContainerType m_container;
 };
 
-template <typename ContainerType, typename VariantType>
+template <typename ContainerType, typename VariantType, typename CharacterType>
 auto make_token_handler() -> typename std::enable_if<
     traits::treat_as_object_sink<ContainerType>::value,
-    std::unique_ptr<token_handler<VariantType>>>::type
+    std::unique_ptr<token_handler<VariantType, CharacterType>>>::type
 {
-    return std::make_unique<object_handler<ContainerType, VariantType>>();
+    return std::make_unique<object_handler<ContainerType, VariantType, CharacterType>>();
 }
 
-template <typename ContainerType, typename VariantType>
+template <typename ContainerType, typename VariantType, typename CharacterType>
 auto make_token_handler() -> typename std::enable_if<
     traits::treat_as_array_sink<ContainerType>::value,
-    std::unique_ptr<token_handler<VariantType>>>::type
+    std::unique_ptr<token_handler<VariantType, CharacterType>>>::type
 {
-    return std::make_unique<array_handler<ContainerType, VariantType>>();
+    return std::make_unique<array_handler<ContainerType, VariantType, CharacterType>>();
 }
 
 template <int... Is> struct indices
@@ -434,34 +436,36 @@ template <int... Is> struct make_indices<0, Is...> : indices<Is...>
 {
 };
 
-template <typename TupleType, typename VariantType> class factory
+template <typename TupleType, typename VariantType, typename CharacterType> class factory
 {
-    constexpr static int tuple_size = std::tuple_size<TupleType>::value;
+    constexpr static std::size_t tuple_size = std::tuple_size<TupleType>::value;
 
   public:
-    std::unique_ptr<token_handler<VariantType>> operator()(int index)
+    std::unique_ptr<token_handler<VariantType, CharacterType>> operator()(int index)
     {
         return produce(index);
     }
 
   private:
-    std::unique_ptr<token_handler<VariantType>> produce(int index)
+    std::unique_ptr<token_handler<VariantType, CharacterType>> produce(int index)
     {
         return produce_impl(make_indices<tuple_size>(), index);
     }
 
     template <int I, int... Is>
-    std::unique_ptr<token_handler<VariantType>> produce_impl(indices<I, Is...>, int index)
+    std::unique_ptr<token_handler<VariantType, CharacterType>>
+    produce_impl(const indices<I, Is...>&, int index)
     {
         if (I == index) {
             using container_type = typename std::tuple_element<I, TupleType>::type;
-            return make_token_handler<container_type, VariantType>();
+            return make_token_handler<container_type, VariantType, CharacterType>();
         }
 
         return produce_impl(indices<Is...>(), index);
     }
 
-    std::unique_ptr<token_handler<VariantType>> produce_impl(indices<>, int /*index*/)
+    std::unique_ptr<token_handler<VariantType, CharacterType>>
+    produce_impl(const indices<>&, int /*index*/)
     {
         throw std::runtime_error("Out of range");
     }
@@ -474,9 +478,10 @@ template <class... Ts> struct overloaded : Ts...
 
 template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
-template <typename ContainerType, typename EncodingType = rapidjson::UTF8<>>
+template <typename ContainerType, typename EncodingType>
 class delegating_handler final
-    : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, delegating_handler<ContainerType>>
+    : public rapidjson::BaseReaderHandler<
+          EncodingType, delegating_handler<ContainerType, typename EncodingType::Ch>>
 {
     using character_type = typename EncodingType::Ch;
 
@@ -521,14 +526,15 @@ class delegating_handler final
         return m_handlers[m_index]->on_double(value);
     }
 
-    bool RawNumber(const character_type* const value, rapidjson::SizeType length, bool should_copy)
+    bool
+    RawNumber(const character_type* const value, rapidjson::SizeType length, bool /*should_copy*/)
     {
-        return m_handlers[m_index]->on_raw_number(value, length, should_copy);
+        return m_handlers[m_index]->on_raw_number(value, length);
     }
 
-    bool String(const character_type* const value, rapidjson::SizeType length, bool should_copy)
+    bool String(const character_type* const value, rapidjson::SizeType length, bool /*should_copy*/)
     {
-        return m_handlers[m_index]->on_string(value, length, should_copy);
+        return m_handlers[m_index]->on_string(value, length);
     }
 
     bool StartObject()
@@ -540,9 +546,9 @@ class delegating_handler final
         return true;
     }
 
-    bool Key(const character_type* const value, rapidjson::SizeType length, bool should_copy)
+    bool Key(const character_type* const value, rapidjson::SizeType length, bool /*should_copy*/)
     {
-        return m_handlers[m_index]->on_key(value, length, should_copy);
+        return m_handlers[m_index]->on_key(value, length);
     }
 
     bool EndObject(rapidjson::SizeType /*length*/)
@@ -587,7 +593,9 @@ class delegating_handler final
                 const auto& key = m_handlers[m_handlers.size() - 2]->get_key();
                 insert(*sink, std::make_pair(key, std::move(*source)));
             }
-        } else if constexpr (std::is_same_v<source_type, typename sink_type::value_type>) {
+        }
+
+        if constexpr (std::is_same_v<source_type, typename sink_type::value_type>) {
             insert(*sink, std::move(*source));
         }
     }
@@ -624,11 +632,11 @@ class delegating_handler final
         return true;
     }
 
-    using type_stack = stack_tuple_t<ContainerType>;
-    using container_variant = container_variant_t<type_stack>;
-    factory<type_stack, container_variant> m_handler_factory;
+    using container_stack = container_stack_t<ContainerType>;
+    using container_variant = container_variant_t<container_stack>;
+    factory<container_stack, container_variant, character_type> m_handler_factory;
 
-    std::vector<std::unique_ptr<token_handler<container_variant>>> m_handlers;
+    std::vector<std::unique_ptr<token_handler<container_variant, character_type>>> m_handlers;
 
     std::int32_t m_index = -1;
 
@@ -638,19 +646,17 @@ class delegating_handler final
 template <typename ContainerType> void parse_json(const char* const json, ContainerType& container)
 {
     rapidjson::Reader reader;
-    delegating_handler<ContainerType> handler;
+    delegating_handler<ContainerType, rapidjson::UTF8<>> handler;
     rapidjson::StringStream stream{ json };
 
     if (reader.Parse(stream, handler)) {
         container = std::move(*handler.get_container());
     } else {
-        const auto offset = reader.GetErrorOffset();
+        const auto offset = std::to_string(reader.GetErrorOffset());
         const auto errorCode = reader.GetParseErrorCode();
         const auto parseError = std::string{ rapidjson::GetParseError_En(errorCode) };
 
-        auto message = "Error: " + parseError + "\n at offset " + std::to_string(offset) +
-                       "near '" + std::string(json).substr(offset, 10) + "...'";
-
+        auto message = "Error: " + parseError + "at offset " + offset + ".";
         throw std::runtime_error{ std::move(message) };
     }
 }
@@ -658,10 +664,10 @@ template <typename ContainerType> void parse_json(const char* const json, Contai
 
 namespace sax_deserializer
 {
-template <typename ContainerType> auto from_json(const std::string& json)
+template <typename ContainerType> auto from_json(const char* const json)
 {
     ContainerType container;
-    detail::parse_json(json.data(), container);
+    detail::parse_json(json, container);
 
     return container;
 }
