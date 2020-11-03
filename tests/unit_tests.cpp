@@ -1781,6 +1781,45 @@ TEST_CASE("Sax Deserialization of Complex Containers") {
 
         REQUIRE(source_container == resultant_container);
     }
+
+    SECTION("Map of String to Vector of Strings")
+    {
+        using container_type = std::map<std::string, std::vector<std::string>>;
+
+        const container_type source_container = { { "objectOne", { "1", "2", "3", "4" } },
+                                                  { "objectTwo", { "5", "6", "7", "8" } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::sax_deserializer::from_json<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Map of String to Vector of Smart Pointers")
+    {
+        using container_type = std::map<std::string, std::vector<std::shared_ptr<std::string>>>;
+
+        const container_type source_container = {
+            { "objectOne",
+              { std::make_shared<std::string>("1"), std::make_shared<std::string>("2"),
+                std::make_shared<std::string>("3"), std::make_shared<std::string>("4") } },
+            { "objectTwo",
+              { std::make_shared<std::string>("5"), std::make_shared<std::string>("6"),
+                std::make_shared<std::string>("7"), std::make_shared<std::string>("8") } }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container =
+            json_utils::sax_deserializer::from_json<container_type>(json);
+
+        const auto is_object_one_equal = compare_container_of_pointers(
+            source_container.at("objectOne"), resultant_container.at("objectOne"));
+
+        const auto is_object_two_equal = compare_container_of_pointers(
+            source_container.at("objectTwo"), resultant_container.at("objectTwo"));
+
+        REQUIRE((is_object_one_equal && is_object_two_equal));
+    }
 }
 
 #endif

@@ -190,7 +190,7 @@ template <typename VariantType> class token_handler
 template <typename ContainerType, typename VariantType, typename EncodingType = rapidjson::UTF8<>>
 class array_handler final : public token_handler<VariantType>
 {
-    using Ch = typename EncodingType::Ch;
+    using character_type = typename EncodingType::Ch;
 
   public:
     bool on_null() override
@@ -229,7 +229,7 @@ class array_handler final : public token_handler<VariantType>
     }
 
     bool on_string(
-        [[maybe_unused]] const Ch* value, [[maybe_unused]] rapidjson::SizeType length,
+        [[maybe_unused]] const character_type* value, [[maybe_unused]] rapidjson::SizeType length,
         bool /*should_copy*/) override
     {
         if constexpr (traits::is_shared_ptr<typename ContainerType::value_type>::value) {
@@ -296,7 +296,7 @@ class array_handler final : public token_handler<VariantType>
 template <typename ContainerType, typename VariantType, typename EncodingType = rapidjson::UTF8<>>
 class object_handler final : public token_handler<VariantType>
 {
-    using Ch = typename EncodingType::Ch;
+    using character_type = typename EncodingType::Ch;
 
   public:
     bool on_null() override
@@ -341,7 +341,7 @@ class object_handler final : public token_handler<VariantType>
     }
 
     bool on_string(
-        [[maybe_unused]] const Ch* value, [[maybe_unused]] rapidjson::SizeType length,
+        [[maybe_unused]] const character_type* value, [[maybe_unused]] rapidjson::SizeType length,
         bool /*should_copy*/) override
     {
         if constexpr (std::is_same_v<std::string, typename decltype(m_value)::element_type>) {
@@ -351,7 +351,8 @@ class object_handler final : public token_handler<VariantType>
         return true;
     }
 
-    bool on_key(const Ch* value, rapidjson::SizeType length, bool /*should_copy*/) override
+    bool
+    on_key(const character_type* value, rapidjson::SizeType length, bool /*should_copy*/) override
     {
         m_already_inserted = false;
         m_key = std::string(value, length);
@@ -363,14 +364,15 @@ class object_handler final : public token_handler<VariantType>
         return { &m_container };
     }
 
-    const std::string& get_key() override 
+    const std::string& get_key() override
     {
         m_already_inserted = true;
         return m_key;
     }
 
   private:
-    template <typename DataType> void construct_pair(DataType&& value) {
+    template <typename DataType> void construct_pair(DataType&& value)
+    {
         if (m_already_inserted) {
             return;
         }
@@ -476,7 +478,7 @@ template <typename ContainerType, typename EncodingType = rapidjson::UTF8<>>
 class delegating_handler final
     : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, delegating_handler<ContainerType>>
 {
-    using Ch = typename EncodingType::Ch;
+    using character_type = typename EncodingType::Ch;
 
   public:
     bool Default()
@@ -519,12 +521,12 @@ class delegating_handler final
         return m_handlers[m_index]->on_double(value);
     }
 
-    bool RawNumber(const Ch* const value, rapidjson::SizeType length, bool should_copy)
+    bool RawNumber(const character_type* const value, rapidjson::SizeType length, bool should_copy)
     {
         return m_handlers[m_index]->on_raw_number(value, length, should_copy);
     }
 
-    bool String(const Ch* const value, rapidjson::SizeType length, bool should_copy)
+    bool String(const character_type* const value, rapidjson::SizeType length, bool should_copy)
     {
         return m_handlers[m_index]->on_string(value, length, should_copy);
     }
@@ -538,7 +540,7 @@ class delegating_handler final
         return true;
     }
 
-    bool Key(const Ch* const value, rapidjson::SizeType length, bool should_copy)
+    bool Key(const character_type* const value, rapidjson::SizeType length, bool should_copy)
     {
         return m_handlers[m_index]->on_key(value, length, should_copy);
     }
@@ -568,6 +570,37 @@ class delegating_handler final
     }
 
   private:
+    template <typename SourceType, typename SinkType>
+    void funnel_source_to_sink(SourceType* const source, SinkType* const sink)
+    {
+        assert(sink != nullptr);
+        assert(source != nullptr);
+
+        using sink_type = std::remove_pointer_t<decltype(sink)>;
+        using source_type = std::remove_pointer_t<decltype(source)>;
+
+        static_assert(traits::is_container<sink_type>::value, "Expected a container.");
+
+        if constexpr (traits::is_pair<typename sink_type::value_type>::value) {
+            using sink_value_type = typename sink_type::value_type::second_type;
+            if constexpr (std::is_same_v<source_type, sink_value_type>) {
+                const auto& key = m_handlers[m_handlers.size() - 2]->get_key();
+                insert(*sink, std::make_pair(key, std::move(*source)));
+            }
+        } else if constexpr (std::is_same_v<source_type, typename sink_type::value_type>) {
+            insert(*sink, std::move(*source));
+        }
+    }
+
+    template <typename SourceType, typename SinkType>
+    void delegate_source(SourceType* const source, const SinkType& sink_variant)
+    {
+        std::visit(
+            overloaded{ [](const std::monostate&) {},
+                        [&](auto* const sink) { funnel_source_to_sink(source, sink); } },
+            sink_variant);
+    }
+
     bool finalize_container()
     {
         assert(!m_handlers.empty());
@@ -579,40 +612,9 @@ class delegating_handler final
             const auto source_variant = m_handlers[m_handlers.size() - 1]->get_container();
             const auto sink_variant = m_handlers[m_handlers.size() - 2]->get_container();
 
-            const auto source_to_sink = [this](auto* const source, auto* const sink) {
-                assert(sink != nullptr);
-                assert(source != nullptr);
-
-                using sink_type = std::remove_pointer_t<decltype(sink)>;
-                using source_type = std::remove_pointer_t<decltype(source)>;
-
-                static_assert(traits::is_container<sink_type>::value, "Expected a container.");
-
-                if constexpr (traits::is_pair<typename sink_type::value_type>::value) {
-                    using sink_value_type = typename sink_type::value_type::second_type;
-                    if constexpr (std::is_same_v<source_type, sink_value_type>) {
-                        const auto& key = m_handlers[m_handlers.size() - 2]->get_key();
-
-                        //std::cout << "Source Type: " << typeid(*source).name() << std::endl;
-                        //std::cout << "Sink Type:   " << typeid(*sink).name() << std::endl;
-
-                        insert(*sink, std::make_pair(key, std::move(*source)));
-                    }
-                } else if constexpr (std::is_same_v<source_type, typename sink_type::value_type>) {
-                    insert(*sink, std::move(*source));
-                }
-            };
-
-            const auto source_handler = [&](auto* const source, auto& sink_variant) {
-                std::visit(
-                    overloaded{ [](const std::monostate&) {},
-                                [&](auto* const sink) { source_to_sink(source, sink); } },
-                    sink_variant);
-            };
-
             std::visit(
                 overloaded{ [](const std::monostate&) {},
-                            [&](auto* const source) { source_handler(source, sink_variant); } },
+                            [&](auto* const source) { delegate_source(source, sink_variant); } },
                 source_variant);
         }
 
