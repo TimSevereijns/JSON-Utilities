@@ -99,64 +99,52 @@ auto insert(ContainerType& container, ElementType&& element) ->
 template <typename VariantType, typename CharacterType> class token_handler
 {
   public:
-    virtual bool on_default()
+    virtual void on_default()
     {
-        return true;
     }
 
-    virtual bool on_null()
+    virtual void on_null()
     {
-        return true;
     }
 
-    virtual bool on_bool(bool /*value*/)
+    virtual void on_bool(bool /*value*/)
     {
-        return true;
     }
 
-    virtual bool on_int(int /*value*/)
+    virtual void on_int(int /*value*/)
     {
-        return true;
     }
 
-    virtual bool on_uint(unsigned int /*value*/)
+    virtual void on_uint(unsigned int /*value*/)
     {
-        return true;
     }
 
-    virtual bool on_int_64(std::int64_t /*value*/)
+    virtual void on_int_64(std::int64_t /*value*/)
     {
-        return true;
     }
 
-    virtual bool on_uint_64(std::uint64_t /*value*/)
+    virtual void on_uint_64(std::uint64_t /*value*/)
     {
-        return true;
     }
 
-    virtual bool on_double(double /*value*/)
+    virtual void on_double(double /*value*/)
     {
-        return true;
     }
 
-    virtual bool on_raw_number(const CharacterType* const /*value*/, rapidjson::SizeType /*length*/)
+    virtual void on_raw_number(const CharacterType* const /*value*/, rapidjson::SizeType /*length*/)
     {
-        return true;
     }
 
-    virtual bool on_string(const CharacterType* const /*value*/, rapidjson::SizeType /*length*/)
+    virtual void on_string(const CharacterType* const /*value*/, rapidjson::SizeType /*length*/)
     {
-        return true;
     }
 
-    virtual bool on_object_start()
+    virtual void on_object_start()
     {
-        return true;
     }
 
-    virtual bool on_key(const CharacterType* const /*value*/, rapidjson::SizeType /*length*/)
+    virtual void on_key(const CharacterType* const /*value*/, rapidjson::SizeType /*length*/)
     {
-        return true;
     }
 
     virtual const std::basic_string<CharacterType>& get_key()
@@ -165,19 +153,16 @@ template <typename VariantType, typename CharacterType> class token_handler
         return dummy;
     }
 
-    virtual bool on_object_end(rapidjson::SizeType /*length*/)
+    virtual void on_object_end(rapidjson::SizeType /*length*/)
     {
-        return true;
     }
 
-    virtual bool on_array_start()
+    virtual void on_array_start()
     {
-        return true;
     }
 
-    virtual bool on_array_end(rapidjson::SizeType /*length*/)
+    virtual void on_array_end(rapidjson::SizeType /*length*/)
     {
-        return true;
     }
 
     virtual VariantType get_container()
@@ -194,43 +179,42 @@ class array_handler final : public token_handler<VariantType, CharacterType>
     using string_type = std::basic_string<CharacterType>;
 
   public:
-    bool on_null() override
+    void on_null() override
     {
         insert_null();
-        return true;
     }
 
-    bool on_bool(bool value) override
+    void on_bool(bool value) override
     {
-        return insert_pod(value);
+        insert_pod(value);
     }
 
-    bool on_int(int value) override
+    void on_int(int value) override
     {
-        return insert_pod(value);
+        insert_pod(value);
     }
 
-    bool on_uint(unsigned int value) override
+    void on_uint(unsigned int value) override
     {
-        return insert_pod(value);
+        insert_pod(value);
     }
 
-    bool on_int_64(std::int64_t value) override
+    void on_int_64(std::int64_t value) override
     {
-        return insert_pod(value);
+        insert_pod(value);
     }
 
-    bool on_uint_64(std::uint64_t value) override
+    void on_uint_64(std::uint64_t value) override
     {
-        return insert_pod(value);
+        insert_pod(value);
     }
 
-    bool on_double(double value) override
+    void on_double(double value) override
     {
-        return insert_pod(value);
+        insert_pod(value);
     }
 
-    bool on_string(
+    void on_string(
         [[maybe_unused]] const CharacterType* const value,
         [[maybe_unused]] rapidjson::SizeType length) override
     {
@@ -254,8 +238,6 @@ class array_handler final : public token_handler<VariantType, CharacterType>
             string_type data(value, length);
             insert(m_container, std::move(data));
         }
-
-        return true;
     }
 
     VariantType get_container() override
@@ -264,18 +246,16 @@ class array_handler final : public token_handler<VariantType, CharacterType>
     }
 
   private:
-    bool insert_null()
+    void insert_null()
     {
         if constexpr (
             traits::is_unique_ptr<typename ContainerType::value_type>::value ||
             traits::is_shared_ptr<typename ContainerType::value_type>::value) {
             insert(m_container, nullptr);
         }
-
-        return true;
     }
 
-    template <typename DataType> bool insert_pod(DataType value)
+    template <typename DataType> void insert_pod(DataType value)
     {
         // The various static casts in this function are necessary to keep warnings and static
         // assertions at bay.
@@ -299,8 +279,6 @@ class array_handler final : public token_handler<VariantType, CharacterType>
         if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
             insert(m_container, static_cast<typename ContainerType::value_type>(value));
         }
-
-        return true;
     }
 
     ContainerType m_container;
@@ -314,56 +292,53 @@ class object_handler final : public token_handler<VariantType, CharacterType>
     using string_type = std::basic_string<CharacterType>;
 
   public:
-    bool on_null() override
+    void on_null() override
     {
-        return construct_pair(nullptr);
+        construct_pair(nullptr);
     }
 
-    bool on_bool(bool value) override
+    void on_bool(bool value) override
     {
-        return construct_pair(value);
+        construct_pair(value);
     }
 
-    bool on_int(int value) override
+    void on_int(int value) override
     {
-        return construct_pair(value);
+        construct_pair(value);
     }
 
-    bool on_uint(unsigned int value) override
+    void on_uint(unsigned int value) override
     {
-        return construct_pair(value);
+        construct_pair(value);
     }
 
-    bool on_int_64(std::int64_t value) override
+    void on_int_64(std::int64_t value) override
     {
-        return construct_pair(value);
+        construct_pair(value);
     }
 
-    bool on_uint_64(std::uint64_t value) override
+    void on_uint_64(std::uint64_t value) override
     {
-        return construct_pair(value);
+        construct_pair(value);
     }
 
-    bool on_double(double value) override
+    void on_double(double value) override
     {
-        return construct_pair(value);
+        construct_pair(value);
     }
 
-    bool on_string(
+    void on_string(
         [[maybe_unused]] const CharacterType* const value,
         [[maybe_unused]] rapidjson::SizeType length) override
     {
         if constexpr (std::is_same_v<string_type, typename decltype(m_value)::element_type>) {
             finalize_pair_and_insert(string_type(value, length));
         }
-
-        return true;
     }
 
-    bool on_key(const CharacterType* const value, rapidjson::SizeType length) override
+    void on_key(const CharacterType* const value, rapidjson::SizeType length) override
     {
         m_key = string_type(value, length);
-        return true;
     }
 
     VariantType get_container() override
@@ -377,7 +352,7 @@ class object_handler final : public token_handler<VariantType, CharacterType>
     }
 
   private:
-    template <typename DataType> bool construct_pair(DataType&& value)
+    template <typename DataType> void construct_pair(DataType&& value)
     {
         // Splitting pair construction into two functions and using SFINAE to hide
         // inapplicable code-gen seems to work well to keep warnings at bay.
@@ -387,19 +362,15 @@ class object_handler final : public token_handler<VariantType, CharacterType>
             using value_type = typename decltype(m_value)::element_type;
             finalize_pair_and_insert(static_cast<value_type>(value));
         }
-
-        return true;
     }
 
-    template <typename DataType> bool finalize_pair_and_insert(DataType&& value)
+    template <typename DataType> void finalize_pair_and_insert(DataType&& value)
     {
         using value_type = typename decltype(m_value)::element_type;
         m_value = std::make_unique<value_type>(std::forward<DataType>(value));
 
         assert(!m_key.empty());
         insert(m_container, std::make_pair(std::move(m_key), std::move(*m_value)));
-
-        return true;
     }
 
     string_type m_key;
@@ -488,48 +459,57 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
 
     bool Null()
     {
-        return m_handlers[m_index]->on_null();
+        m_handlers[m_index]->on_null();
+        return true;
     }
 
     bool Bool(bool value)
     {
-        return m_handlers[m_index]->on_bool(value);
+        m_handlers[m_index]->on_bool(value);
+        return true;
     }
 
     bool Int(int value)
     {
-        return m_handlers[m_index]->on_int(value);
+        m_handlers[m_index]->on_int(value);
+        return true;
     }
 
     bool Uint(unsigned int value)
     {
-        return m_handlers[m_index]->on_uint(value);
+        m_handlers[m_index]->on_uint(value);
+        return true;
     }
 
     bool Int64(std::int64_t value)
     {
-        return m_handlers[m_index]->on_int_64(value);
+        m_handlers[m_index]->on_int_64(value);
+        return true;
     }
 
     bool Uint64(std::uint64_t value)
     {
-        return m_handlers[m_index]->on_uint_64(value);
+        m_handlers[m_index]->on_uint_64(value);
+        return true;
     }
 
     bool Double(double value)
     {
-        return m_handlers[m_index]->on_double(value);
+        m_handlers[m_index]->on_double(value);
+        return true;
     }
 
     bool
     RawNumber(const character_type* const value, rapidjson::SizeType length, bool /*should_copy*/)
     {
-        return m_handlers[m_index]->on_raw_number(value, length);
+        m_handlers[m_index]->on_raw_number(value, length);
+        return true;
     }
 
     bool String(const character_type* const value, rapidjson::SizeType length, bool /*should_copy*/)
     {
-        return m_handlers[m_index]->on_string(value, length);
+        m_handlers[m_index]->on_string(value, length);
+        return true;
     }
 
     bool StartObject()
@@ -543,12 +523,14 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
 
     bool Key(const character_type* const value, rapidjson::SizeType length, bool /*should_copy*/)
     {
-        return m_handlers[m_index]->on_key(value, length);
+        m_handlers[m_index]->on_key(value, length);
+        return true;
     }
 
     bool EndObject(rapidjson::SizeType /*length*/)
     {
-        return finalize_container();
+        finalize_container();
+        return true;
     }
 
     bool StartArray()
@@ -562,7 +544,8 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
 
     bool EndArray(rapidjson::SizeType /*length*/)
     {
-        return finalize_container();
+        finalize_container();
+        return true;
     }
 
     ContainerType* get_container()
@@ -580,7 +563,8 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
         using sink_type = std::remove_pointer_t<decltype(sink)>;
         using source_type = std::remove_pointer_t<decltype(source)>;
 
-        static_assert(traits::is_container<sink_type>::value, "Expected a container.");
+        static_assert(
+            traits::is_container<sink_type>::value, "The sink does not appear to be a container.");
 
         if constexpr (traits::is_pair<typename sink_type::value_type>::value) {
             using sink_value_type = typename sink_type::value_type::second_type;
