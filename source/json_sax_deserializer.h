@@ -19,10 +19,10 @@ namespace json_utils
 {
 namespace detail
 {
-template <typename DataType, typename = void> struct stack_tuple;
+template <typename DataType, typename = void> struct container_stack;
 
 template <typename DataType>
-struct stack_tuple<
+struct container_stack<
     DataType, typename std::enable_if<
                   !traits::treat_as_array_or_object_sink<DataType>::value &&
                   !traits::is_pair<DataType>::value>::type>
@@ -31,16 +31,16 @@ struct stack_tuple<
 };
 
 template <typename DataType>
-struct stack_tuple<
+struct container_stack<
     DataType, typename std::enable_if<
                   traits::is_pair<DataType>::value &&
                   traits::is_container<typename DataType::second_type>::value>::type>
 {
-    using type = typename stack_tuple<typename DataType::second_type>::type;
+    using type = typename container_stack<typename DataType::second_type>::type;
 };
 
 template <typename DataType>
-struct stack_tuple<
+struct container_stack<
     DataType, typename std::enable_if<
                   traits::is_pair<DataType>::value &&
                   !traits::is_container<typename DataType::second_type>::value>::type>
@@ -49,16 +49,16 @@ struct stack_tuple<
 };
 
 template <typename DataType>
-struct stack_tuple<
+struct container_stack<
     DataType, typename std::enable_if<traits::treat_as_array_or_object_sink<DataType>::value>::type>
 {
     using type = decltype(std::tuple_cat(
         std::declval<std::tuple<DataType>>(),
-        std::declval<typename stack_tuple<typename DataType::value_type>::type>()));
+        std::declval<typename container_stack<typename DataType::value_type>::type>()));
 };
 
 template <typename ContainerType>
-using container_stack_t = typename stack_tuple<ContainerType>::type;
+using container_stack_t = typename container_stack<ContainerType>::type;
 
 template <typename Tuple> struct container_variant;
 
@@ -189,6 +189,8 @@ template <typename VariantType, typename CharacterType> class token_handler
 template <typename ContainerType, typename VariantType, typename CharacterType>
 class array_handler final : public token_handler<VariantType, CharacterType>
 {
+    static_assert(!traits::is_pair<typename ContainerType::value_type>::value);
+
     using string_type = std::basic_string<CharacterType>;
 
   public:
@@ -229,7 +231,7 @@ class array_handler final : public token_handler<VariantType, CharacterType>
     }
 
     bool on_string(
-        [[maybe_unused]] const CharacterType* value,
+        [[maybe_unused]] const CharacterType* const value,
         [[maybe_unused]] rapidjson::SizeType length) override
     {
         if constexpr (traits::is_shared_ptr<typename ContainerType::value_type>::value) {
@@ -262,13 +264,15 @@ class array_handler final : public token_handler<VariantType, CharacterType>
     }
 
   private:
-    void insert_null()
+    bool insert_null()
     {
         if constexpr (
             traits::is_unique_ptr<typename ContainerType::value_type>::value ||
             traits::is_shared_ptr<typename ContainerType::value_type>::value) {
             insert(m_container, nullptr);
         }
+
+        return true;
     }
 
     template <typename DataType> bool insert_pod(DataType value)
@@ -305,53 +309,48 @@ class array_handler final : public token_handler<VariantType, CharacterType>
 template <typename ContainerType, typename VariantType, typename CharacterType>
 class object_handler final : public token_handler<VariantType, CharacterType>
 {
+    static_assert(traits::is_pair<typename ContainerType::value_type>::value);
+
     using string_type = std::basic_string<CharacterType>;
 
   public:
     bool on_null() override
     {
-        construct_pair(nullptr);
-        return true;
+        return construct_pair(nullptr);
     }
 
     bool on_bool(bool value) override
     {
-        construct_pair(value);
-        return true;
+        return construct_pair(value);
     }
 
     bool on_int(int value) override
     {
-        construct_pair(value);
-        return true;
+        return construct_pair(value);
     }
 
     bool on_uint(unsigned int value) override
     {
-        construct_pair(value);
-        return true;
+        return construct_pair(value);
     }
 
     bool on_int_64(std::int64_t value) override
     {
-        construct_pair(value);
-        return true;
+        return construct_pair(value);
     }
 
     bool on_uint_64(std::uint64_t value) override
     {
-        construct_pair(value);
-        return true;
+        return construct_pair(value);
     }
 
     bool on_double(double value) override
     {
-        construct_pair(value);
-        return true;
+        return construct_pair(value);
     }
 
     bool on_string(
-        [[maybe_unused]] const CharacterType* value,
+        [[maybe_unused]] const CharacterType* const value,
         [[maybe_unused]] rapidjson::SizeType length) override
     {
         if constexpr (std::is_same_v<string_type, typename decltype(m_value)::element_type>) {
@@ -361,7 +360,7 @@ class object_handler final : public token_handler<VariantType, CharacterType>
         return true;
     }
 
-    bool on_key(const CharacterType* value, rapidjson::SizeType length) override
+    bool on_key(const CharacterType* const value, rapidjson::SizeType length) override
     {
         m_key = string_type(value, length);
         return true;
@@ -378,7 +377,7 @@ class object_handler final : public token_handler<VariantType, CharacterType>
     }
 
   private:
-    template <typename DataType> void construct_pair(DataType&& value)
+    template <typename DataType> bool construct_pair(DataType&& value)
     {
         // Splitting pair construction into two functions and using SFINAE to hide
         // inapplicable code-gen seems to work well to keep warnings at bay.
@@ -388,18 +387,20 @@ class object_handler final : public token_handler<VariantType, CharacterType>
             using value_type = typename decltype(m_value)::element_type;
             finalize_pair_and_insert(static_cast<value_type>(value));
         }
+
+        return true;
     }
 
-    template <typename DataType> void finalize_pair_and_insert(DataType&& value)
+    template <typename DataType> bool finalize_pair_and_insert(DataType&& value)
     {
         using value_type = typename decltype(m_value)::element_type;
         m_value = std::make_unique<value_type>(std::forward<DataType>(value));
 
         assert(!m_key.empty());
         insert(m_container, std::make_pair(std::move(m_key), std::move(*m_value)));
-    }
 
-    static_assert(traits::is_pair<typename ContainerType::value_type>::value, "");
+        return true;
+    }
 
     string_type m_key;
     std::unique_ptr<typename ContainerType::value_type::second_type> m_value;
@@ -652,10 +653,10 @@ template <typename ContainerType> void parse_json(const char* const json, Contai
     if (reader.Parse(stream, handler)) {
         container = std::move(*handler.get_container());
     } else {
-        const auto offset = std::to_string(reader.GetErrorOffset());
         const auto errorCode = reader.GetParseErrorCode();
         const auto parseError = std::string{ rapidjson::GetParseError_En(errorCode) };
 
+        const auto offset = std::to_string(reader.GetErrorOffset());
         auto message = "Error: " + parseError + "at offset " + offset + ".";
         throw std::runtime_error{ std::move(message) };
     }

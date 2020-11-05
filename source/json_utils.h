@@ -137,7 +137,6 @@ JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const std::filesystem::pa
 
     return detail::deserialize<ContainerType>(stream_wrapper);
 }
-#endif
 
 template <typename ContainerType>
 JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const char* const json)
@@ -150,4 +149,6 @@ JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const std::string& json)
 {
     return json_utils::sax_deserializer::from_json<ContainerType>(json.c_str());
 }
+
+#endif
 } // namespace json_utils
