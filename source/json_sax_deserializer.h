@@ -139,12 +139,12 @@ template <typename VariantType, typename CharacterType> class token_handler
         return true;
     }
 
-    virtual bool on_raw_number(const char* /*value*/, rapidjson::SizeType /*length*/)
+    virtual bool on_raw_number(const CharacterType* const /*value*/, rapidjson::SizeType /*length*/)
     {
         return true;
     }
 
-    virtual bool on_string(const char* /*value*/, rapidjson::SizeType /*length*/)
+    virtual bool on_string(const CharacterType* const /*value*/, rapidjson::SizeType /*length*/)
     {
         return true;
     }
@@ -154,7 +154,7 @@ template <typename VariantType, typename CharacterType> class token_handler
         return true;
     }
 
-    virtual bool on_key(const char* /*value*/, rapidjson::SizeType /*length*/)
+    virtual bool on_key(const CharacterType* const /*value*/, rapidjson::SizeType /*length*/)
     {
         return true;
     }
@@ -442,17 +442,12 @@ template <typename TupleType, typename VariantType, typename CharacterType> clas
     constexpr static std::size_t tuple_size = std::tuple_size<TupleType>::value;
 
   public:
-    std::unique_ptr<token_handler<VariantType, CharacterType>> operator()(int index)
-    {
-        return produce(index);
-    }
-
-  private:
     std::unique_ptr<token_handler<VariantType, CharacterType>> produce(int index)
     {
         return produce_impl(make_indices<tuple_size>(), index);
     }
 
+  private:
     template <int I, int... Is>
     std::unique_ptr<token_handler<VariantType, CharacterType>>
     produce_impl(const indices<I, Is...>&, int index)
@@ -462,13 +457,13 @@ template <typename TupleType, typename VariantType, typename CharacterType> clas
             return make_token_handler<container_type, VariantType, CharacterType>();
         }
 
-        return produce_impl(indices<Is...>(), index);
+        return produce_impl(indices<Is...>{}, index);
     }
 
     std::unique_ptr<token_handler<VariantType, CharacterType>>
     produce_impl(const indices<>&, int /*index*/)
     {
-        throw std::runtime_error("Out of range");
+        throw std::runtime_error{ "Out of range" };
     }
 };
 
@@ -480,9 +475,8 @@ template <class... Ts> struct overloaded : Ts...
 template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 template <typename ContainerType, typename EncodingType>
-class delegating_handler final
-    : public rapidjson::BaseReaderHandler<
-          EncodingType, delegating_handler<ContainerType, typename EncodingType::Ch>>
+class delegating_handler final : public rapidjson::BaseReaderHandler<
+                                     EncodingType, delegating_handler<ContainerType, EncodingType>>
 {
     using character_type = typename EncodingType::Ch;
 
@@ -541,7 +535,7 @@ class delegating_handler final
     bool StartObject()
     {
         ++m_index;
-        auto handler = m_handler_factory(m_index);
+        auto handler = m_handler_factory.produce(m_index);
         m_handlers.emplace_back(std::move(handler));
 
         return true;
@@ -560,7 +554,7 @@ class delegating_handler final
     bool StartArray()
     {
         ++m_index;
-        auto handler = m_handler_factory(m_index);
+        auto handler = m_handler_factory.produce(m_index);
         m_handlers.emplace_back(std::move(handler));
 
         return true;
@@ -644,11 +638,12 @@ class delegating_handler final
     ContainerType m_container;
 };
 
-template <typename ContainerType> void parse_json(const char* const json, ContainerType& container)
+template <typename EncodingType, typename ContainerType>
+void parse_json(const typename EncodingType::Ch* const json, ContainerType& container)
 {
-    rapidjson::Reader reader;
-    delegating_handler<ContainerType, rapidjson::UTF8<>> handler;
-    rapidjson::StringStream stream{ json };
+    rapidjson::GenericReader<EncodingType, EncodingType> reader;
+    delegating_handler<ContainerType, EncodingType> handler;
+    rapidjson::GenericStringStream<EncodingType> stream{ json };
 
     if (reader.Parse(stream, handler)) {
         container = std::move(*handler.get_container());
@@ -668,7 +663,15 @@ namespace sax_deserializer
 template <typename ContainerType> auto from_json(const char* const json)
 {
     ContainerType container;
-    detail::parse_json(json, container);
+    detail::parse_json<rapidjson::UTF8<>>(json, container);
+
+    return container;
+}
+
+template <typename ContainerType> auto from_json(const wchar_t* const json)
+{
+    ContainerType container;
+    detail::parse_json<rapidjson::UTF16<>>(json, container);
 
     return container;
 }

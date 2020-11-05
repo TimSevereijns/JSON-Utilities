@@ -1775,7 +1775,7 @@ TEST_CASE("Sax Deserializer into Simple Object Sinks")
     }
 }
 
-TEST_CASE("Sax Deserialization of Complex Containers") {
+TEST_CASE("Sax Deserialization of Complex Containers using Narrow Strings", "[narrow]") {
     SECTION("Map of String to Vector of Ints")
     {
         using container_type = std::map<std::string, std::vector<int>>;
@@ -1884,6 +1884,51 @@ TEST_CASE("Sax Deserialization of Complex Containers") {
             source_container.at("objectTwo"), resultant_container.at("objectTwo"));
 
         REQUIRE((is_object_one_equal && is_object_two_equal));
+    }
+
+    SECTION("Map of String to Vector of Pairs")
+    {
+        using container_type =
+            std::map<std::string, std::vector<std::pair<std::string, std::string>>>;
+
+        const container_type source_container = {
+            { "objectOne", { { "1", "A" }, { "2", "B" }, { "3", "C" }, { "4", "D" } } },
+            { "objectTwo", { { "4", "D" }, { "3", "C" }, { "2", "B" }, { "1", "A" } } }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
+TEST_CASE("Sax Deserialization of Complex Containers using Wide Strings", "[wide]") {
+    SECTION("Map of String to Vector of Ints")
+    {
+        using container_type = std::map<std::wstring, std::vector<int>>;
+
+        const container_type source_container = { { L"objectOne", { 1, 2, 3, 4 } },
+                                                  { L"objectTwo", { 5, 6, 7, 8 } } };
+
+        const auto json =
+            json_utils::serialize_to_json<rapidjson::UTF16<>, rapidjson::UTF16<>>(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Map of String to Vector of Strings")
+    {
+        using container_type = std::map<std::wstring, std::vector<std::wstring>>;
+
+        const container_type source_container = { { L"objectOne", { L"1", L"2", L"3", L"4" } },
+                                                  { L"objectTwo", { L"5", L"6", L"7", L"8" } } };
+
+        const auto json = json_utils::serialize_to_json<rapidjson::UTF16<>, rapidjson::UTF16<>>(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
     }
 }
 

@@ -150,5 +150,17 @@ JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const std::string& json)
     return json_utils::sax_deserializer::from_json<ContainerType>(json.c_str());
 }
 
+template <typename ContainerType>
+JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const wchar_t* const json)
+{
+    return json_utils::sax_deserializer::from_json<ContainerType>(json);
+}
+
+template <typename ContainerType>
+JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const std::wstring& json)
+{
+    return json_utils::sax_deserializer::from_json<ContainerType>(json.c_str());
+}
+
 #endif
 } // namespace json_utils
