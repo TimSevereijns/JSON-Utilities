@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <type_traits>
@@ -16,6 +17,8 @@
 #include "json_traits.h"
 
 namespace json_utils
+{
+namespace sax_deserializer
 {
 namespace detail
 {
@@ -234,6 +237,14 @@ class array_handler final : public token_handler<VariantType, CharacterType>
             }
         }
 
+        if constexpr (traits::is_optional<typename ContainerType::value_type>::value) {
+            using element_type = typename ContainerType::value_type::value_type;
+            if constexpr (std::is_convertible_v<decltype(value), element_type>) {
+                string_type data(value, length);
+                insert(m_container, std::optional<string_type>(std::move(data)));
+            }
+        }
+
         if constexpr (std::is_same_v<string_type, typename ContainerType::value_type>) {
             string_type data(value, length);
             insert(m_container, std::move(data));
@@ -273,6 +284,14 @@ class array_handler final : public token_handler<VariantType, CharacterType>
             if constexpr (std::is_convertible_v<decltype(value), element_type>) {
                 insert(
                     m_container, std::make_unique<element_type>(static_cast<element_type>(value)));
+            }
+        }
+
+        if constexpr (traits::is_optional<typename ContainerType::value_type>::value) {
+            using element_type = typename ContainerType::value_type::value_type;
+            if constexpr (std::is_convertible_v<decltype(value), element_type>) {
+                insert(
+                    m_container, std::optional<element_type>(static_cast<element_type>(value)));
             }
         }
 
@@ -640,14 +659,11 @@ void parse_json(const typename EncodingType::Ch* const json, ContainerType& cont
         throw std::runtime_error{ std::move(message) };
     }
 }
-} // namespace detail
 
-namespace sax_deserializer
-{
 template <typename ContainerType> auto from_json(const char* const json)
 {
     ContainerType container;
-    detail::parse_json<rapidjson::UTF8<>>(json, container);
+    parse_json<rapidjson::UTF8<>>(json, container);
 
     return container;
 }
@@ -655,10 +671,11 @@ template <typename ContainerType> auto from_json(const char* const json)
 template <typename ContainerType> auto from_json(const wchar_t* const json)
 {
     ContainerType container;
-    detail::parse_json<rapidjson::UTF16<>>(json, container);
+    parse_json<rapidjson::UTF16<>>(json, container);
 
     return container;
 }
+} // namespace detail
 } // namespace sax_deserializer
 } // namespace json_utils
 

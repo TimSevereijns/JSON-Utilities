@@ -6,7 +6,7 @@
 
 namespace json_utils
 {
-namespace deserializer
+namespace dom_deserializer
 {
 namespace detail
 {
@@ -339,7 +339,7 @@ PairType construct_nested_pair(const rapidjson::GenericMember<EncodingType, Allo
         "Nested container must be default constructible.");
 
     nested_type container;
-    deserializer::from_json(member.value, container);
+    dom_deserializer::from_json(member.value, container);
 
     return { value_extractor<key_type>::extract_or_throw(member.name), std::move(container) };
 }
@@ -417,7 +417,7 @@ auto dispatch_insertion(
     using nested_container_type = typename ContainerType::value_type;
 
     nested_container_type nested_container;
-    deserializer::from_json(json_value, nested_container);
+    dom_deserializer::from_json(json_value, nested_container);
 
     insert<InsertionPolicy>(std::move(nested_container), container);
 }
@@ -498,5 +498,5 @@ auto from_json(
     deserialize_json_object<default_insertion_policy>(json_value, container);
 }
 } // namespace detail
-} // namespace deserializer
+} // namespace dom_deserializer
 } // namespace json_utils

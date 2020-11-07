@@ -33,7 +33,7 @@ ContainerType deserialize(StreamType& stream)
         "The container must have a default constructible.");
 
     ContainerType container;
-    deserializer::from_json(document, container);
+    dom_deserializer::from_json(document, container);
 
     return container;
 }
@@ -141,25 +141,25 @@ JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const std::filesystem::pa
 template <typename ContainerType>
 JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const char* const json)
 {
-    return json_utils::sax_deserializer::from_json<ContainerType>(json);
+    return json_utils::sax_deserializer::detail::from_json<ContainerType>(json);
 }
 
 template <typename ContainerType>
 JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const std::string& json)
 {
-    return json_utils::sax_deserializer::from_json<ContainerType>(json.c_str());
+    return json_utils::sax_deserializer::detail::from_json<ContainerType>(json.c_str());
 }
 
 template <typename ContainerType>
 JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const wchar_t* const json)
 {
-    return json_utils::sax_deserializer::from_json<ContainerType>(json);
+    return json_utils::sax_deserializer::detail::from_json<ContainerType>(json);
 }
 
 template <typename ContainerType>
 JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const std::wstring& json)
 {
-    return json_utils::sax_deserializer::from_json<ContainerType>(json.c_str());
+    return json_utils::sax_deserializer::detail::from_json<ContainerType>(json.c_str());
 }
 
 #endif

@@ -5,6 +5,10 @@
 #include <type_traits>
 #include <utility>
 
+#if __cplusplus >= 201703L
+#include <optional>
+#endif
+
 #include "future_std.h"
 
 namespace json_utils
@@ -135,5 +139,17 @@ template <typename, typename = void> struct is_unique_ptr : std::false_type
 template <typename ElementType> struct is_unique_ptr<std::unique_ptr<ElementType>> : std::true_type
 {
 };
+
+#if __cplusplus >= 201703L
+
+template <typename, typename = void> struct is_optional : std::false_type
+{
+};
+
+template <typename ElementType> struct is_optional<std::optional<ElementType>> : std::true_type
+{
+};
+
+#endif
 } // namespace traits
 } // namespace json_utils

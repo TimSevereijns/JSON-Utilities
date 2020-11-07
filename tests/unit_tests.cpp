@@ -14,7 +14,6 @@
 #include <vector>
 
 #include <json_utils.h>
-#include <json_sax_deserializer.h>
 
 namespace
 {
@@ -195,7 +194,7 @@ void from_json(
     }
 
     sample::simple_widget simple_widget;
-    json_utils::deserializer::from_json(*member_iterator, simple_widget);
+    json_utils::dom_deserializer::from_json(*member_iterator, simple_widget);
 
     widget.set_inner_widget(std::move(simple_widget));
 }
@@ -270,7 +269,7 @@ void from_json(
     }
 
     std::vector<std::string> data;
-    json_utils::deserializer::from_json(data_iterator->value, data);
+    json_utils::dom_deserializer::from_json(data_iterator->value, data);
 
     widget.set_data(std::move(data));
 }
@@ -1736,6 +1735,20 @@ TEST_CASE("Sax Deserializer into Simple Array Sinks")
 
         const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
         REQUIRE(is_equal);
+    }
+
+    SECTION("Simple Vector of Optional Strings")
+    {
+        using container_type = std::vector<std::optional<std::string>>;
+
+        container_type source_container;
+        source_container.emplace_back(std::optional<std::string>("Hello"));
+        source_container.emplace_back(std::optional<std::string>("World"));
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
     }
 }
 
