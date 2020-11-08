@@ -332,17 +332,17 @@ TEST_CASE("Trait Detection")
     {
         STATIC_REQUIRE(json_utils::traits::treat_as_object_sink<std::map<int, int>>::value);
 
-        STATIC_REQUIRE(
-            json_utils::traits::treat_as_object_sink<std::unordered_map<std::string, double>>::value);
+        STATIC_REQUIRE(json_utils::traits::treat_as_object_sink<
+                       std::unordered_map<std::string, double>>::value);
     }
 
     SECTION("Treat std::vector<std::pair<...>> is a JSON Object")
     {
-        STATIC_REQUIRE(
-            json_utils::traits::treat_as_object_sink<std::vector<std::pair<std::string, int>>>::value);
+        STATIC_REQUIRE(json_utils::traits::treat_as_object_sink<
+                       std::vector<std::pair<std::string, int>>>::value);
 
-        STATIC_REQUIRE(
-            json_utils::traits::treat_as_object_sink<std::vector<std::pair<std::wstring, int>>>::value);
+        STATIC_REQUIRE(json_utils::traits::treat_as_object_sink<
+                       std::vector<std::pair<std::wstring, int>>>::value);
 
         STATIC_REQUIRE(
             json_utils::traits::treat_as_object_sink<std::vector<std::pair<double, char>>>::value);
@@ -708,11 +708,10 @@ TEST_CASE("Serializations of Composite Containers")
         const auto json = json_utils::serialize_to_json(container);
 
         REQUIRE(
-            json ==
-            R"({)"
-            R"("Key One":{"Subkey One":16.0,"Subkey Three":64.0,"Subkey Two":32.0},)"
-            R"("Key Two":{"Subkey One":128.0,"Subkey Three":512.0,"Subkey Two":256.0})"
-            R"(})");
+            json == R"({)"
+                    R"("Key One":{"Subkey One":16.0,"Subkey Three":64.0,"Subkey Two":32.0},)"
+                    R"("Key Two":{"Subkey One":128.0,"Subkey Three":512.0,"Subkey Two":256.0})"
+                    R"(})");
     }
 
     SECTION("With a More Complex, Nested Type")
@@ -1466,8 +1465,7 @@ TEST_CASE("Error Handling")
         const auto json = json_utils::serialize_to_json(source_container);
 
         const auto lambda = [&] {
-            const auto deserialization =
-                json_utils::deserialize_via_dom<std::vector<double>>(json);
+            const auto deserialization = json_utils::deserialize_via_dom<std::vector<double>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1481,8 +1479,9 @@ TEST_CASE("Error Handling")
         const auto json = json_utils::serialize_to_json(source_container);
 
         const auto lambda = [&] {
-            const auto deserialization = json_utils::deserialize_via_dom<
-                std::map<std::string, std::map<std::string, bool>>>(json);
+            const auto deserialization =
+                json_utils::deserialize_via_dom<std::map<std::string, std::map<std::string, bool>>>(
+                    json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1511,8 +1510,7 @@ TEST_CASE("Error Handling")
         const auto json = json_utils::serialize_to_json(source_container);
 
         const auto lambda = [&] {
-            const auto deserialization =
-                json_utils::deserialize_via_dom<std::vector<double>>(json);
+            const auto deserialization = json_utils::deserialize_via_dom<std::vector<double>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1657,7 +1655,7 @@ TEST_CASE("Sax Deserializer into Simple Array Sinks")
 
         const container_type source_container = { "Set 1", "Set 2", "Set 3" };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container =  json_utils::deserialize_via_sax<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1743,7 +1741,7 @@ TEST_CASE("Sax Deserializer into Simple Array Sinks")
 
         container_type source_container;
         source_container.emplace_back(std::optional<std::string>("Hello"));
-        source_container.emplace_back(std::optional<std::string>("World"));
+        source_container.emplace_back(std::nullopt);
 
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
@@ -1754,22 +1752,59 @@ TEST_CASE("Sax Deserializer into Simple Array Sinks")
 
 TEST_CASE("Sax Deserializer into Simple Object Sinks")
 {
-    SECTION("Simple Vector of Pairs")
+    SECTION("Simple Vector of Pairs with Boolean Values")
     {
-        using container_type = std::vector<std::pair<std::string, int>>;
+        using container_type = std::vector<std::pair<std::string, bool>>;
 
-        const container_type source_container = { { "Key One", 1 }, { "Key Two", 99 } };
+        const container_type source_container = { { "Key One", true }, { "Key Two", false } };
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
 
-    SECTION("Simple Map of Strings to Ints")
+    SECTION("Simple Vector of Pairs with Integer Values")
     {
-        using container_type = std::unordered_map<std::string, int>;
+        using container_type = std::vector<std::pair<std::string, int>>;
 
-        const container_type source_container = { { "Key One", 1 }, { "Key Two", 99 } };
+        const container_type source_container = { { "Key One", 1 }, { "Key Two", -99 } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Vector of Pairs with std::int64_t Values")
+    {
+        using container_type = std::vector<std::pair<std::string, std::int64_t>>;
+
+        const container_type source_container = {
+            { "Key One", std::numeric_limits<std::int64_t>::max() },
+            { "Key Two", std::numeric_limits<std::int64_t>::min() }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Vector of Pairs with Integer Values")
+    {
+        using container_type = std::vector<std::pair<std::string, int>>;
+
+        const container_type source_container = { { "Key One", 1 }, { "Key Two", -99 } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Map of Strings to Double")
+    {
+        using container_type = std::unordered_map<std::string, double>;
+
+        const container_type source_container = { { "Key One", 1.0 }, { "Key Two", 99.0 } };
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
 
@@ -1780,15 +1815,116 @@ TEST_CASE("Sax Deserializer into Simple Object Sinks")
     {
         using container_type = std::unordered_map<std::string, std::string>;
 
-        const container_type source_container = { { "Key One", "Value One" }, { "Key Two", "Value Two" } };
+        const container_type source_container = { { "Key One", "Value One" },
+                                                  { "Key Two", "Value Two" } };
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
+
+    SECTION("Simple Map of Shared Pointers of Strings")
+    {
+        using container_type = std::unordered_map<std::string, std::shared_ptr<std::string>>;
+
+        const container_type source_container = {
+            { "Key One", std::make_shared<std::string>("Value One") }, { "Key Two", nullptr }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_key_one_equal =
+            *source_container.at("Key One") == *resultant_container.at("Key One");
+            
+        const auto is_key_two_equal =
+            source_container.at("Key Two") == resultant_container.at("Key Two");
+
+        REQUIRE((is_key_one_equal && is_key_two_equal));
+    }
+
+    SECTION("Simple Map of Shared Pointers of Doubles")
+    {
+        using container_type = std::unordered_map<std::string, std::shared_ptr<double>>;
+
+        const container_type source_container = { { "Key One", std::make_shared<double>(10.01) },
+                                                  { "Key Two", nullptr } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_key_one_equal =
+            *source_container.at("Key One") == *resultant_container.at("Key One");
+
+        const auto is_key_two_equal =
+            source_container.at("Key Two") == resultant_container.at("Key Two");
+
+        REQUIRE((is_key_one_equal && is_key_two_equal));
+    }
+
+    SECTION("Simple Map of Unique Pointers of Strings")
+    {
+        using container_type = std::unordered_map<std::string, std::unique_ptr<std::string>>;
+
+        container_type source_container;
+        source_container.emplace("Key One", std::make_unique<std::string>("Value One"));
+        source_container.emplace("Key Two", nullptr);
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_key_one_equal =
+            *source_container.at("Key One") == *resultant_container.at("Key One");
+
+        const auto is_key_two_equal =
+            source_container.at("Key Two") == resultant_container.at("Key Two");
+
+        REQUIRE((is_key_one_equal && is_key_two_equal));
+    }
+
+    SECTION("Simple Map of Unique Pointers of Floats")
+    {
+        using container_type = std::unordered_map<std::string, std::unique_ptr<float>>;
+
+        container_type source_container;
+        source_container.emplace("Key One", std::make_unique<float>(0.5f));
+        source_container.emplace("Key Two", nullptr);
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_key_one_equal =
+            *source_container.at("Key One") == *resultant_container.at("Key One");
+
+        const auto is_key_two_equal =
+            source_container.at("Key Two") == resultant_container.at("Key Two");
+
+        REQUIRE((is_key_one_equal && is_key_two_equal));
+    }
+
+    SECTION("Simple Map of Optional Strings")
+    {
+        using container_type = std::unordered_map<std::string, std::optional<std::string>>;
+
+        const container_type source_container = {
+            { "Key One", std::optional<std::string>("Value One") }, { "Key Two", std::nullopt }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_key_one_equal =
+            *source_container.at("Key One") == *resultant_container.at("Key One");
+
+        const auto is_key_two_equal =
+            source_container.at("Key Two") == resultant_container.at("Key Two");
+
+        REQUIRE((is_key_one_equal && is_key_two_equal));
+    }
 }
 
-TEST_CASE("Sax Deserialization of Complex Containers using Narrow Strings", "[narrow]") {
+TEST_CASE("Sax Deserialization of Complex Containers using Narrow Strings", "[narrow]")
+{
     SECTION("Map of String to Vector of Bool")
     {
         using container_type = std::map<std::string, std::vector<bool>>;
@@ -1819,7 +1955,9 @@ TEST_CASE("Sax Deserialization of Complex Containers using Narrow Strings", "[na
     {
         using container_type = std::map<std::string, std::vector<std::int64_t>>;
 
-        const container_type source_container = { { "max", { std::numeric_limits<std::int64_t>::min() } } };
+        const container_type source_container = {
+            { "max", { std::numeric_limits<std::int64_t>::min() } }
+        };
 
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
@@ -1831,7 +1969,9 @@ TEST_CASE("Sax Deserialization of Complex Containers using Narrow Strings", "[na
     {
         using container_type = std::map<std::string, std::vector<std::uint64_t>>;
 
-        const container_type source_container = { { "max", { std::numeric_limits<std::uint64_t>::max() } } };
+        const container_type source_container = {
+            { "max", { std::numeric_limits<std::uint64_t>::max() } }
+        };
 
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
@@ -1953,7 +2093,8 @@ TEST_CASE("Sax Deserialization of Complex Containers using Narrow Strings", "[na
     }
 }
 
-TEST_CASE("Sax Deserialization of Complex Containers using Wide Strings", "[wide]") {
+TEST_CASE("Sax Deserialization of Complex Containers using Wide Strings", "[wide]")
+{
     SECTION("Map of String to Vector of Ints")
     {
         using container_type = std::map<std::wstring, std::vector<int>>;
@@ -1975,10 +2116,31 @@ TEST_CASE("Sax Deserialization of Complex Containers using Wide Strings", "[wide
         const container_type source_container = { { L"objectOne", { L"1", L"2", L"3", L"4" } },
                                                   { L"objectTwo", { L"5", L"6", L"7", L"8" } } };
 
-        const auto json = json_utils::serialize_to_json<rapidjson::UTF16<>, rapidjson::UTF16<>>(source_container);
+        const auto json =
+            json_utils::serialize_to_json<rapidjson::UTF16<>, rapidjson::UTF16<>>(source_container);
         const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
+    }
+}
+
+TEST_CASE("Sax Error Handling")
+{
+    SECTION("Invalid JSON")
+    {
+        using container_type = std::map<std::string, std::vector<bool>>;
+
+        const container_type source_container = { { "objectOne", { true, false } },
+                                                  { "objectTwo", { false, true } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto resultant_container =
+                json_utils::deserialize_via_sax<container_type>(json.substr(1));
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::runtime_error);
     }
 }
 

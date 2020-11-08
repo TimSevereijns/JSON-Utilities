@@ -186,7 +186,15 @@ class array_handler final : public token_handler<VariantType, CharacterType>
   public:
     void on_null() override
     {
-        insert_null();
+        if constexpr (
+            traits::is_unique_ptr<typename ContainerType::value_type>::value ||
+            traits::is_shared_ptr<typename ContainerType::value_type>::value) {
+            insert(m_container, nullptr);
+        }
+
+        if constexpr (traits::is_optional<typename ContainerType::value_type>::value) {
+            insert(m_container, std::nullopt);
+        }
     }
 
     void on_bool(bool value) override
@@ -259,15 +267,6 @@ class array_handler final : public token_handler<VariantType, CharacterType>
     }
 
   private:
-    void insert_null()
-    {
-        if constexpr (
-            traits::is_unique_ptr<typename ContainerType::value_type>::value ||
-            traits::is_shared_ptr<typename ContainerType::value_type>::value) {
-            insert(m_container, nullptr);
-        }
-    }
-
     template <typename DataType> void insert_pod(DataType value)
     {
         // The various static casts in this function are necessary to keep warnings and static
@@ -292,8 +291,7 @@ class array_handler final : public token_handler<VariantType, CharacterType>
         if constexpr (traits::is_optional<typename ContainerType::value_type>::value) {
             using element_type = typename ContainerType::value_type::value_type;
             if constexpr (std::is_convertible_v<decltype(value), element_type>) {
-                insert(
-                    m_container, std::optional<element_type>(static_cast<element_type>(value)));
+                insert(m_container, std::optional<element_type>(static_cast<element_type>(value)));
             }
         }
 
@@ -315,7 +313,15 @@ class object_handler final : public token_handler<VariantType, CharacterType>
   public:
     void on_null() override
     {
-        construct_pair(nullptr);
+        if constexpr (
+            traits::is_shared_ptr<typename decltype(m_value)::element_type>::value ||
+            traits::is_unique_ptr<typename decltype(m_value)::element_type>::value) {
+            finalize_pair_and_insert(nullptr);
+        }
+
+        if constexpr (traits::is_optional<typename decltype(m_value)::element_type>::value) {
+            finalize_pair_and_insert(std::nullopt);
+        }
     }
 
     void on_bool(bool value) override
@@ -352,6 +358,27 @@ class object_handler final : public token_handler<VariantType, CharacterType>
         [[maybe_unused]] const CharacterType* const value,
         [[maybe_unused]] rapidjson::SizeType length) override
     {
+        if constexpr (traits::is_shared_ptr<typename decltype(m_value)::element_type>::value) {
+            using element_type = typename ContainerType::value_type::second_type::element_type;
+            if constexpr (std::is_convertible_v<decltype(value), element_type>) {
+                finalize_pair_and_insert(std::make_shared<element_type>(value, length));
+            }
+        }
+
+        if constexpr (traits::is_unique_ptr<typename decltype(m_value)::element_type>::value) {
+            using element_type = typename ContainerType::value_type::second_type::element_type;
+            if constexpr (std::is_convertible_v<decltype(value), element_type>) {
+                finalize_pair_and_insert(std::make_unique<element_type>(value, length));
+            }
+        }
+
+        if constexpr (traits::is_optional<typename decltype(m_value)::element_type>::value) {
+            using element_type = typename ContainerType::value_type::second_type::value_type;
+            if constexpr (std::is_convertible_v<decltype(value), element_type>) {
+                finalize_pair_and_insert(std::optional<element_type>(string_type(value, length)));
+            }
+        }
+
         if constexpr (std::is_same_v<string_type, typename decltype(m_value)::element_type>) {
             finalize_pair_and_insert(string_type(value, length));
         }
@@ -377,6 +404,27 @@ class object_handler final : public token_handler<VariantType, CharacterType>
     {
         // Splitting pair construction into two functions and using SFINAE to hide
         // inapplicable code-gen seems to work well to keep warnings at bay.
+
+        if constexpr (traits::is_shared_ptr<typename decltype(m_value)::element_type>::value) {
+            using element_type = typename ContainerType::value_type::second_type::element_type;
+            if constexpr (std::is_convertible_v<decltype(value), element_type>) {
+                finalize_pair_and_insert(std::make_shared<element_type>(value));
+            }
+        }
+
+        if constexpr (traits::is_unique_ptr<typename decltype(m_value)::element_type>::value) {
+            using element_type = typename ContainerType::value_type::second_type::element_type;
+            if constexpr (std::is_convertible_v<decltype(value), element_type>) {
+                finalize_pair_and_insert(std::make_unique<element_type>(value));
+            }
+        }
+
+        if constexpr (traits::is_optional<typename decltype(m_value)::element_type>::value) {
+            using element_type = typename ContainerType::value_type::second_type::value_type;
+            if constexpr (std::is_convertible_v<decltype(value), element_type>) {
+                finalize_pair_and_insert(static_cast<element_type>(value));
+            }
+        }
 
         if constexpr (std::is_convertible_v<
                           decltype(value), typename decltype(m_value)::element_type>) {
@@ -480,42 +528,49 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
 
     bool Null()
     {
+        validate_state();
         m_handlers[m_index]->on_null();
         return true;
     }
 
     bool Bool(bool value)
     {
+        validate_state();
         m_handlers[m_index]->on_bool(value);
         return true;
     }
 
     bool Int(int value)
     {
+        validate_state();
         m_handlers[m_index]->on_int(value);
         return true;
     }
 
     bool Uint(unsigned int value)
     {
+        validate_state();
         m_handlers[m_index]->on_uint(value);
         return true;
     }
 
     bool Int64(std::int64_t value)
     {
+        validate_state();
         m_handlers[m_index]->on_int_64(value);
         return true;
     }
 
     bool Uint64(std::uint64_t value)
     {
+        validate_state();
         m_handlers[m_index]->on_uint_64(value);
         return true;
     }
 
     bool Double(double value)
     {
+        validate_state();
         m_handlers[m_index]->on_double(value);
         return true;
     }
@@ -523,12 +578,14 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
     bool
     RawNumber(const character_type* const value, rapidjson::SizeType length, bool /*should_copy*/)
     {
+        validate_state();
         m_handlers[m_index]->on_raw_number(value, length);
         return true;
     }
 
     bool String(const character_type* const value, rapidjson::SizeType length, bool /*should_copy*/)
     {
+        validate_state();
         m_handlers[m_index]->on_string(value, length);
         return true;
     }
@@ -544,12 +601,14 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
 
     bool Key(const character_type* const value, rapidjson::SizeType length, bool /*should_copy*/)
     {
+        validate_state();
         m_handlers[m_index]->on_key(value, length);
         return true;
     }
 
     bool EndObject(rapidjson::SizeType /*length*/)
     {
+        validate_state();
         finalize_container();
         return true;
     }
@@ -565,6 +624,7 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
 
     bool EndArray(rapidjson::SizeType /*length*/)
     {
+        validate_state();
         finalize_container();
         return true;
     }
@@ -575,6 +635,12 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
     }
 
   private:
+    RAPIDJSON_FORCEINLINE void validate_state() {
+        if (RAPIDJSON_UNLIKELY(m_index < 0)) {
+            throw std::runtime_error("Unexpected token.");
+        }
+    }
+
     template <typename SourceType, typename SinkType>
     void funnel_source_to_sink(SourceType* const source, SinkType* const sink)
     {
