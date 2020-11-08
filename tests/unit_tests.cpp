@@ -1789,12 +1789,49 @@ TEST_CASE("Sax Deserializer into Simple Object Sinks")
 }
 
 TEST_CASE("Sax Deserialization of Complex Containers using Narrow Strings", "[narrow]") {
+    SECTION("Map of String to Vector of Bool")
+    {
+        using container_type = std::map<std::string, std::vector<bool>>;
+
+        const container_type source_container = { { "objectOne", { true, false } },
+                                                  { "objectTwo", { false, true } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
     SECTION("Map of String to Vector of Ints")
     {
         using container_type = std::map<std::string, std::vector<int>>;
 
         const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } },
-                                                  { "objectTwo", { 5, 6, 7, 8 } } };
+                                                  { "objectTwo", { -5, -6, -7, -8 } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Map of String to Vector of 64-bit Ints")
+    {
+        using container_type = std::map<std::string, std::vector<std::int64_t>>;
+
+        const container_type source_container = { { "max", { std::numeric_limits<std::int64_t>::min() } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Map of String to Vector of Unsigned 64-bit Ints")
+    {
+        using container_type = std::map<std::string, std::vector<std::uint64_t>>;
+
+        const container_type source_container = { { "max", { std::numeric_limits<std::uint64_t>::max() } } };
 
         const auto json = json_utils::serialize_to_json(source_container);
         const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
@@ -1922,7 +1959,7 @@ TEST_CASE("Sax Deserialization of Complex Containers using Wide Strings", "[wide
         using container_type = std::map<std::wstring, std::vector<int>>;
 
         const container_type source_container = { { L"objectOne", { 1, 2, 3, 4 } },
-                                                  { L"objectTwo", { 5, 6, 7, 8 } } };
+                                                  { L"objectTwo", { -5, -6, -7, -8 } } };
 
         const auto json =
             json_utils::serialize_to_json<rapidjson::UTF16<>, rapidjson::UTF16<>>(source_container);

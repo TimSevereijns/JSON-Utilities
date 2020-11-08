@@ -35,6 +35,8 @@
 *.srctrlbm
 *.srctrldb
 *.srctrlprj
+.vs/*
+out/*
 
 build/*
 debug/*

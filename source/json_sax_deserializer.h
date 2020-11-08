@@ -102,6 +102,8 @@ auto insert(ContainerType& container, ElementType&& element) ->
 template <typename VariantType, typename CharacterType> class token_handler
 {
   public:
+    virtual ~token_handler() = default;
+
     virtual void on_default()
     {
     }
