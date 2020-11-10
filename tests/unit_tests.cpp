@@ -1811,6 +1811,19 @@ TEST_CASE("Sax Deserializer into Simple Object Sinks")
         REQUIRE(source_container == resultant_container);
     }
 
+    SECTION("Simple Map of Strings to Optional Float")
+    {
+        using container_type = std::unordered_map<std::string, std::optional<float>>;
+
+        const container_type source_container = { { "Key One", std::optional<float>(1.0f) },
+                                                  { "Key Two", std::optional<float>(99.0f) } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
     SECTION("Simple Map of Strings to Strings")
     {
         using container_type = std::unordered_map<std::string, std::string>;
@@ -1836,7 +1849,7 @@ TEST_CASE("Sax Deserializer into Simple Object Sinks")
 
         const auto is_key_one_equal =
             *source_container.at("Key One") == *resultant_container.at("Key One");
-            
+
         const auto is_key_two_equal =
             source_container.at("Key Two") == resultant_container.at("Key Two");
 

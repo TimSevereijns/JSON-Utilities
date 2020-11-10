@@ -269,9 +269,6 @@ class array_handler final : public token_handler<VariantType, CharacterType>
   private:
     template <typename DataType> void insert_pod(DataType value)
     {
-        // The various static casts in this function are necessary to keep warnings and static
-        // assertions at bay.
-
         if constexpr (traits::is_shared_ptr<typename ContainerType::value_type>::value) {
             using element_type = typename ContainerType::value_type::element_type;
             if constexpr (std::is_convertible_v<decltype(value), element_type>) {
@@ -293,9 +290,8 @@ class array_handler final : public token_handler<VariantType, CharacterType>
             if constexpr (std::is_convertible_v<decltype(value), element_type>) {
                 insert(m_container, std::optional<element_type>(static_cast<element_type>(value)));
             }
-        }
-
-        if constexpr (std::is_convertible_v<decltype(value), typename ContainerType::value_type>) {
+        } else if constexpr (std::is_convertible_v<
+                                 decltype(value), typename ContainerType::value_type>) {
             insert(m_container, static_cast<typename ContainerType::value_type>(value));
         }
     }
@@ -314,8 +310,8 @@ class object_handler final : public token_handler<VariantType, CharacterType>
     void on_null() override
     {
         if constexpr (
-            traits::is_shared_ptr<typename decltype(m_value)::element_type>::value ||
-            traits::is_unique_ptr<typename decltype(m_value)::element_type>::value) {
+            traits::is_unique_ptr<typename decltype(m_value)::element_type>::value ||
+            traits::is_shared_ptr<typename decltype(m_value)::element_type>::value) {
             finalize_pair_and_insert(nullptr);
         }
 
@@ -402,20 +398,19 @@ class object_handler final : public token_handler<VariantType, CharacterType>
   private:
     template <typename DataType> void construct_pair(DataType&& value)
     {
-        // Splitting pair construction into two functions and using SFINAE to hide
-        // inapplicable code-gen seems to work well to keep warnings at bay.
-
         if constexpr (traits::is_shared_ptr<typename decltype(m_value)::element_type>::value) {
             using element_type = typename ContainerType::value_type::second_type::element_type;
             if constexpr (std::is_convertible_v<decltype(value), element_type>) {
-                finalize_pair_and_insert(std::make_shared<element_type>(value));
+                finalize_pair_and_insert(
+                    std::make_shared<element_type>(static_cast<element_type>(value)));
             }
         }
 
         if constexpr (traits::is_unique_ptr<typename decltype(m_value)::element_type>::value) {
             using element_type = typename ContainerType::value_type::second_type::element_type;
             if constexpr (std::is_convertible_v<decltype(value), element_type>) {
-                finalize_pair_and_insert(std::make_unique<element_type>(value));
+                finalize_pair_and_insert(
+                    std::make_unique<element_type>(static_cast<element_type>(value)));
             }
         }
 
@@ -424,12 +419,10 @@ class object_handler final : public token_handler<VariantType, CharacterType>
             if constexpr (std::is_convertible_v<decltype(value), element_type>) {
                 finalize_pair_and_insert(static_cast<element_type>(value));
             }
-        }
-
-        if constexpr (std::is_convertible_v<
-                          decltype(value), typename decltype(m_value)::element_type>) {
-            using value_type = typename decltype(m_value)::element_type;
-            finalize_pair_and_insert(static_cast<value_type>(value));
+        } else if constexpr (std::is_convertible_v<
+                                 decltype(value), typename decltype(m_value)::element_type>) {
+            using element_type = typename decltype(m_value)::element_type;
+            finalize_pair_and_insert(static_cast<element_type>(value));
         }
     }
 
@@ -635,7 +628,8 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
     }
 
   private:
-    RAPIDJSON_FORCEINLINE void validate_state() {
+    RAPIDJSON_FORCEINLINE void validate_state()
+    {
         if (RAPIDJSON_UNLIKELY(m_index < 0)) {
             throw std::runtime_error("Unexpected token.");
         }
