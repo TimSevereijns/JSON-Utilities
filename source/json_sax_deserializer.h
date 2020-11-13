@@ -236,24 +236,20 @@ class array_handler final : public token_handler<VariantType, CharacterType>
         if constexpr (traits::is_shared_ptr<target_type>::value) {
             using element_type = typename target_type::element_type;
             if constexpr (std::is_same_v<string_type, element_type>) {
-                string_type data(value, length);
-                insert(m_container, std::make_shared<string_type>(std::move(data)));
+                insert(m_container, std::make_shared<string_type>(value, length));
             }
         } else if constexpr (traits::is_unique_ptr<target_type>::value) {
             using element_type = typename target_type::element_type;
             if constexpr (std::is_same_v<string_type, element_type>) {
-                string_type data(value, length);
-                insert(m_container, std::make_unique<string_type>(std::move(data)));
+                insert(m_container, std::make_unique<string_type>(value, length));
             }
         } else if constexpr (traits::is_optional<target_type>::value) {
             using element_type = typename target_type::value_type;
             if constexpr (std::is_convertible_v<decltype(value), element_type>) {
-                string_type data(value, length);
-                insert(m_container, std::optional<string_type>(std::move(data)));
+                insert(m_container, std::optional<string_type>(std::in_place, value, length));
             }
         } else if constexpr (std::is_same_v<string_type, target_type>) {
-            string_type data(value, length);
-            insert(m_container, std::move(data));
+            insert(m_container, string_type{ value, length });
         }
     }
 
@@ -263,7 +259,7 @@ class array_handler final : public token_handler<VariantType, CharacterType>
     }
 
   private:
-    template <typename DataType> void insert_pod(DataType value)
+    template <typename DataType> void insert_pod([[maybe_unused]] DataType value)
     {
         using target_type = typename ContainerType::value_type;
 
@@ -362,7 +358,7 @@ class object_handler final : public token_handler<VariantType, CharacterType>
         } else if constexpr (traits::is_optional<element_type>::value) {
             using target_type = typename ContainerType::value_type::second_type::value_type;
             if constexpr (std::is_convertible_v<decltype(value), target_type>) {
-                finalize_pair_and_insert(std::optional<target_type>(string_type(value, length)));
+                finalize_pair_and_insert(std::optional<target_type>(std::in_place, value, length));
             }
         } else if constexpr (std::is_same_v<string_type, element_type>) {
             finalize_pair_and_insert(string_type(value, length));
@@ -385,7 +381,7 @@ class object_handler final : public token_handler<VariantType, CharacterType>
     }
 
   private:
-    template <typename DataType> void construct_pair(DataType&& value)
+    template <typename DataType> void construct_pair([[maybe_unused]] DataType&& value)
     {
         using element_type = typename ContainerType::value_type::second_type;
 
