@@ -1748,6 +1748,20 @@ TEST_CASE("Sax Deserializer into Simple Array Sinks")
 
         REQUIRE(source_container == resultant_container);
     }
+
+    SECTION("Simple Vector of Optional Short")
+    {
+        using container_type = std::vector<std::optional<short>>;
+
+        container_type source_container;
+        source_container.emplace_back(std::optional<short>(255));
+        source_container.emplace_back(std::nullopt);
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
 }
 
 TEST_CASE("Sax Deserializer into Simple Object Sinks")
