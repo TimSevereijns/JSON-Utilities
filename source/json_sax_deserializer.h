@@ -227,6 +227,11 @@ class array_handler final : public token_handler<VariantType, CharacterType>
         insert_pod(value);
     }
 
+    void on_raw_number(const CharacterType* const value, rapidjson::SizeType length) override
+    {
+        on_string(value, length);
+    }
+
     void on_string(
         [[maybe_unused]] const CharacterType* const value,
         [[maybe_unused]] rapidjson::SizeType length) override
@@ -337,6 +342,11 @@ class object_handler final : public token_handler<VariantType, CharacterType>
     void on_double(double value) override
     {
         construct_pair(value);
+    }
+
+    void on_raw_number(const CharacterType* const value, rapidjson::SizeType length) override
+    {
+        on_string(value, length);
     }
 
     void on_string(
@@ -681,14 +691,14 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
     ContainerType m_container;
 };
 
-template <typename EncodingType, typename ContainerType>
+template <typename EncodingType, unsigned int ParsingFlags, typename ContainerType>
 void parse_json(const typename EncodingType::Ch* const json, ContainerType& container)
 {
     rapidjson::GenericReader<EncodingType, EncodingType> reader;
     delegating_handler<ContainerType, EncodingType> handler;
     rapidjson::GenericStringStream<EncodingType> stream{ json };
 
-    if (reader.Parse(stream, handler)) {
+    if (reader.template Parse<ParsingFlags>(stream, handler)) {
         container = std::move(*handler.get_container());
     } else {
         const auto errorCode = reader.GetParseErrorCode();
@@ -700,18 +710,22 @@ void parse_json(const typename EncodingType::Ch* const json, ContainerType& cont
     }
 }
 
-template <typename ContainerType> auto from_json(const char* const json)
+template <
+    typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
+auto from_json(const char* const json)
 {
     ContainerType container;
-    parse_json<rapidjson::UTF8<>>(json, container);
+    parse_json<rapidjson::UTF8<>, ParseFlags>(json, container);
 
     return container;
 }
 
-template <typename ContainerType> auto from_json(const wchar_t* const json)
+template <
+    typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
+auto from_json(const wchar_t* const json)
 {
     ContainerType container;
-    parse_json<rapidjson::UTF16<>>(json, container);
+    parse_json<rapidjson::UTF16<>, ParseFlags>(json, container);
 
     return container;
 }

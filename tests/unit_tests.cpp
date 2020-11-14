@@ -2151,9 +2151,57 @@ TEST_CASE("Sax Deserialization of Complex Containers using Wide Strings", "[wide
     }
 }
 
+TEST_CASE("Special Sax Parsing Options")
+{
+    SECTION("Parse Numbers as String into Array Sink")
+    {
+        using input_container = std::map<std::string, std::vector<int>>;
+
+        const input_container source_container = { { "objectOne", { -1, -2, -3 } },
+                                                   { "objectTwo", { 10, 20, 30 } } };
+
+        using output_container = std::map<std::string, std::vector<std::string>>;
+        const output_container expected_container = { { "objectOne", { "-1", "-2", "-3" } },
+                                                      { "objectTwo", { "10", "20", "30" } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_via_sax<
+            output_container, rapidjson::kParseNumbersAsStringsFlag>(json);
+
+        REQUIRE(resultant_container == expected_container);
+    }
+
+    SECTION("Parse Numbers as String into Object Sink")
+    {
+        using input_container =
+            std::map<std::string, std::vector<std::pair<std::string, int>>>;
+
+        const input_container source_container = {
+            { "objectOne", { { "A", 1 }, { "B", 2 }, { "B", 3 }, { "D", 4 } } },
+            { "objectTwo", { { "D", 4 }, { "C", 3 }, { "B", 2 }, { "A", 1 } } }
+        };
+
+        using output_container =
+            std::map<std::string, std::vector<std::pair<std::string, std::string>>>;
+
+        const output_container expected_container = {
+            { "objectOne", { { "A", "1" }, { "B", "2" }, { "B", "3" }, { "D", "4" } } },
+            { "objectTwo", { { "D", "4" }, { "C", "3" }, { "B", "2" }, { "A", "1" } } }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_via_sax<
+            output_container, rapidjson::kParseNumbersAsStringsFlag>(json);
+
+        REQUIRE(resultant_container == expected_container);
+    }
+}
+
 TEST_CASE("Sax Error Handling")
 {
-    SECTION("Invalid JSON")
+    SECTION("Invalid JSON Detected Within Custom Handler")
     {
         using container_type = std::map<std::string, std::vector<bool>>;
 
@@ -2165,6 +2213,20 @@ TEST_CASE("Sax Error Handling")
         const auto lambda = [&] {
             const auto resultant_container =
                 json_utils::deserialize_via_sax<container_type>(json.substr(1));
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::runtime_error);
+    }
+
+    SECTION("Invalid JSON Detected Within RapidJson")
+    {
+        using container_type = std::map<std::string, std::vector<bool>>;
+
+        const std::string json = "{\"objectOne\":[true,false,],\"objectTwo\":[false,true,]}";
+
+        const auto lambda = [&] {
+            const auto resultant_container =
+                json_utils::deserialize_via_sax<container_type>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::runtime_error);
