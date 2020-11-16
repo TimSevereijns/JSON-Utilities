@@ -31,6 +31,13 @@
 *.out
 *.app
 
+# MSVC
+*.srctrlbm
+*.srctrldb
+*.srctrlprj
+.vs/*
+out/*
+
 build/*
 debug/*
 release/*

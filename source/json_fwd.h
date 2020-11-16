@@ -82,7 +82,7 @@ template <typename WriterType> void to_json(WriterType& writer, const std::files
 } // namespace detail
 } // namespace serializer
 
-namespace deserializer
+namespace dom_deserializer
 {
 namespace detail
 {
@@ -118,5 +118,5 @@ auto from_json(
         traits::has_emplace<ContainerType>::value &&
         traits::treat_as_object_sink<ContainerType>::value>::type;
 } // namespace detail
-} // namespace deserializer
+} // namespace dom_deserializer
 } // namespace json_utils

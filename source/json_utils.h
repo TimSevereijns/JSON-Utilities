@@ -10,7 +10,8 @@
 
 #endif
 
-#include "json_deserializer.h"
+#include "json_dom_deserializer.h"
+#include "json_sax_deserializer.h"
 #include "json_serializer.h"
 
 namespace json_utils
@@ -32,7 +33,7 @@ ContainerType deserialize(StreamType& stream)
         "The container must have a default constructible.");
 
     ContainerType container;
-    deserializer::from_json(document, container);
+    dom_deserializer::from_json(document, container);
 
     return container;
 }
@@ -69,7 +70,7 @@ serialize_to_pretty_json(const DataType& data)
 }
 
 template <typename ContainerType>
-JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const char* const json)
+JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const char* const json)
 {
     using encoding_type = rapidjson::UTF8<>;
 
@@ -78,13 +79,13 @@ JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const char* const json)
 }
 
 template <typename ContainerType>
-JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const std::string& json)
+JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const std::string& json)
 {
-    return deserialize_from_json<ContainerType>(json.c_str());
+    return deserialize_via_dom<ContainerType>(json.c_str());
 }
 
 template <typename ContainerType>
-JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const wchar_t* const json)
+JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const wchar_t* const json)
 {
     using encoding_type = rapidjson::UTF16<>;
 
@@ -93,9 +94,9 @@ JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const wchar_t* const js
 }
 
 template <typename ContainerType>
-JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const std::wstring& json)
+JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const std::wstring& json)
 {
-    return deserialize_from_json<ContainerType>(json.c_str());
+    return deserialize_via_dom<ContainerType>(json.c_str());
 }
 
 #if __cplusplus >= 201703L
@@ -129,12 +130,40 @@ void serialize_to_pretty_json(const DataType& data, const std::filesystem::path&
 }
 
 template <typename ContainerType>
-JSON_UTILS_NODISCARD ContainerType deserialize_from_json(const std::filesystem::path& path)
+JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const std::filesystem::path& path)
 {
     std::ifstream file_stream{ path };
     rapidjson::IStreamWrapper stream_wrapper{ file_stream };
 
     return detail::deserialize<ContainerType>(stream_wrapper);
+}
+
+template <
+    typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
+JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const char* const json)
+{
+    return json_utils::sax_deserializer::detail::from_json<ContainerType, ParseFlags>(json);
+}
+
+template <
+    typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
+JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const std::string& json)
+{
+    return json_utils::sax_deserializer::detail::from_json<ContainerType, ParseFlags>(json.c_str());
+}
+
+template <
+    typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
+JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const wchar_t* const json)
+{
+    return json_utils::sax_deserializer::detail::from_json<ContainerType, ParseFlags>(json);
+}
+
+template <
+    typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
+JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const std::wstring& json)
+{
+    return json_utils::sax_deserializer::detail::from_json<ContainerType, ParseFlags>(json.c_str());
 }
 
 #endif

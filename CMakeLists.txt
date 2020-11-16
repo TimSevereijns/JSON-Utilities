@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.10)
 
 enable_language(CXX)
 
@@ -10,8 +10,8 @@ if (UNIX)
 endif (UNIX)
 
 if (WIN32)
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /W4")
-    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /W4")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /W4 /bigobj")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /W4 /bigobj")
 endif (WIN32)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -23,7 +23,8 @@ set(SOURCES
     source/json_fwd.h
     source/json_traits.h
     source/json_serializer.h
-    source/json_deserializer.h
+    source/json_dom_deserializer.h
+    source/json_sax_deserializer.h
     source/json_utils.h)
 
 set(SOURCE_DIR

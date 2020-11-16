@@ -36,7 +36,7 @@ template <typename NumericType> void test_array_deserialization_of_numerics()
     const std::vector<NumericType> source_container = { min, max };
     const auto json = json_utils::serialize_to_json(source_container);
 
-    const auto deserialization = json_utils::deserialize_from_json<std::vector<NumericType>>(json);
+    const auto deserialization = json_utils::deserialize_via_dom<std::vector<NumericType>>(json);
 
     REQUIRE(source_container == deserialization);
 }
@@ -51,7 +51,7 @@ template <typename NumericType> void test_object_deserialization_of_numerics()
     const auto json = json_utils::serialize_to_json(source_container);
 
     const auto deserialization =
-        json_utils::deserialize_from_json<std::map<std::string, NumericType>>(json);
+        json_utils::deserialize_via_dom<std::map<std::string, NumericType>>(json);
 
     REQUIRE(source_container == deserialization);
 }
@@ -194,7 +194,7 @@ void from_json(
     }
 
     sample::simple_widget simple_widget;
-    json_utils::deserializer::from_json(*member_iterator, simple_widget);
+    json_utils::dom_deserializer::from_json(*member_iterator, simple_widget);
 
     widget.set_inner_widget(std::move(simple_widget));
 }
@@ -269,7 +269,7 @@ void from_json(
     }
 
     std::vector<std::string> data;
-    json_utils::deserializer::from_json(data_iterator->value, data);
+    json_utils::dom_deserializer::from_json(data_iterator->value, data);
 
     widget.set_data(std::move(data));
 }
@@ -332,17 +332,17 @@ TEST_CASE("Trait Detection")
     {
         STATIC_REQUIRE(json_utils::traits::treat_as_object_sink<std::map<int, int>>::value);
 
-        STATIC_REQUIRE(
-            json_utils::traits::treat_as_object_sink<std::unordered_map<std::string, double>>::value);
+        STATIC_REQUIRE(json_utils::traits::treat_as_object_sink<
+                       std::unordered_map<std::string, double>>::value);
     }
 
     SECTION("Treat std::vector<std::pair<...>> is a JSON Object")
     {
-        STATIC_REQUIRE(
-            json_utils::traits::treat_as_object_sink<std::vector<std::pair<std::string, int>>>::value);
+        STATIC_REQUIRE(json_utils::traits::treat_as_object_sink<
+                       std::vector<std::pair<std::string, int>>>::value);
 
-        STATIC_REQUIRE(
-            json_utils::traits::treat_as_object_sink<std::vector<std::pair<std::wstring, int>>>::value);
+        STATIC_REQUIRE(json_utils::traits::treat_as_object_sink<
+                       std::vector<std::pair<std::wstring, int>>>::value);
 
         STATIC_REQUIRE(
             json_utils::traits::treat_as_object_sink<std::vector<std::pair<double, char>>>::value);
@@ -708,11 +708,10 @@ TEST_CASE("Serializations of Composite Containers")
         const auto json = json_utils::serialize_to_json(container);
 
         REQUIRE(
-            json ==
-            R"({)"
-            R"("Key One":{"Subkey One":16.0,"Subkey Three":64.0,"Subkey Two":32.0},)"
-            R"("Key Two":{"Subkey One":128.0,"Subkey Three":512.0,"Subkey Two":256.0})"
-            R"(})");
+            json == R"({)"
+                    R"("Key One":{"Subkey One":16.0,"Subkey Three":64.0,"Subkey Two":32.0},)"
+                    R"("Key Two":{"Subkey One":128.0,"Subkey Three":512.0,"Subkey Two":256.0})"
+                    R"(})");
     }
 
     SECTION("With a More Complex, Nested Type")
@@ -855,7 +854,7 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
         const container_type source_container = {};
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -866,7 +865,7 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
         const container_type source_container = { 1 };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -877,7 +876,7 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
         const container_type source_container = { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -888,7 +887,7 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
         const container_type source_container = { 1.1, 2.2, 3.3 };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -899,7 +898,7 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
         const container_type source_container = { "String One", "String Two" };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -910,7 +909,7 @@ TEST_CASE("Deserialization into a std::vector<...>")
 
         const container_type source_container = { false, true };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -924,7 +923,7 @@ TEST_CASE("Deserialization into a std::vector<std::pair<std::string, ...>>")
 
         const container_type source_container = { { "Test", 1 } };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -935,7 +934,7 @@ TEST_CASE("Deserialization into a std::vector<std::pair<std::string, ...>>")
 
         const container_type source_container = { { "Key One", 1 }, { "Key Two", 99 } };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -949,7 +948,7 @@ TEST_CASE("Deserialization into a std::vector<std::vector<...>>")
 
         const container_type source_container = { { 1, 2, 3, 4 } };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -960,7 +959,7 @@ TEST_CASE("Deserialization into a std::vector<std::vector<...>>")
 
         const container_type source_container = { { 1, 2, 3, 4 }, { 5, 6, 7, 8 } };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -974,7 +973,7 @@ TEST_CASE("Deserialization into a std::map<...>")
 
         const container_type source_container = {};
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -985,7 +984,7 @@ TEST_CASE("Deserialization into a std::map<...>")
 
         const container_type source_container = { { "Key", 1 } };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -999,7 +998,7 @@ TEST_CASE("Deserialization into a std::map<...>")
                                                   { "keyThree", 3 } };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1013,7 +1012,7 @@ TEST_CASE("Deserialization into a std::map<...>")
                                                   { "keyThree", 3.123 } };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1027,7 +1026,7 @@ TEST_CASE("Deserialization into a std::map<...>")
                                                   { "keyThree", "3.123" } };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1041,7 +1040,7 @@ TEST_CASE("Deserialization into a std::map<...>")
                                                   { "keyThree", false } };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1055,7 +1054,7 @@ TEST_CASE("Deserialization into a std::map<std::string, std::vector<...>>")
 
         const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } } };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1068,7 +1067,7 @@ TEST_CASE("Deserialization into a std::map<std::string, std::vector<...>>")
                                                   { "objectTwo", { 5, 6, 7, 8 } } };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1084,7 +1083,7 @@ TEST_CASE("Deserialization into a std::map<std::string, std::map<std::string, in
                                                                      { "subKey", 10 } } } };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1099,7 +1098,7 @@ TEST_CASE("Deserialization into a std::map<std::string, std::map<std::string, in
         };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1113,7 +1112,7 @@ TEST_CASE("Deserialization into a std::list<...>")
     {
         const container_type source_container = {};
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1122,7 +1121,7 @@ TEST_CASE("Deserialization into a std::list<...>")
     {
         const container_type source_container = { "Hello" };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1134,7 +1133,7 @@ TEST_CASE("Deserialization into a std::list<...>")
         };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1152,7 +1151,7 @@ TEST_CASE("Deserialization into std::unique_ptr<...>")
         source_container.emplace_back(std::make_unique<int>(3));
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
         REQUIRE(is_equal);
@@ -1168,7 +1167,7 @@ TEST_CASE("Deserialization into std::unique_ptr<...>")
         source_container.emplace_back(std::make_unique<int>(3));
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
         REQUIRE(is_equal);
@@ -1186,7 +1185,7 @@ TEST_CASE("Deserialization into std::shared_ptr<...>")
                                                   std::make_shared<int>(3) };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
         REQUIRE(is_equal);
@@ -1199,7 +1198,7 @@ TEST_CASE("Deserialization into std::shared_ptr<...>")
                                                   std::make_shared<int>(3) };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
         REQUIRE(is_equal);
@@ -1220,7 +1219,7 @@ TEST_CASE("Deserialization of C++17 Constructs")
                                                   std::optional<int>{ 404 } };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1233,7 +1232,7 @@ TEST_CASE("Deserialization of C++17 Constructs")
                                                   std::optional<int>{ 404 }, std::nullopt };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1249,7 +1248,7 @@ TEST_CASE("Deserialization into a std::set<...>")
     {
         const container_type source_container = {};
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1258,7 +1257,7 @@ TEST_CASE("Deserialization into a std::set<...>")
     {
         const container_type source_container = { "Hello" };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1270,7 +1269,7 @@ TEST_CASE("Deserialization into a std::set<...>")
         };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1284,7 +1283,7 @@ TEST_CASE("Deserialization into a std::set<std::map<std::string, int>>")
     {
         const container_type source_container = { std::map<std::string, int>{ { "value", 10 } } };
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1295,7 +1294,7 @@ TEST_CASE("Deserialization into a std::set<std::map<std::string, int>>")
                                                   std::map<std::string, int>{ { "value", 20 } } };
 
         const auto json = json_utils::serialize_to_json(source_container);
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(source_container == resultant_container);
     }
@@ -1307,7 +1306,7 @@ TEST_CASE("Deserialization of Custom Type")
     {
         const sample::simple_widget widget{ "JSON Demonstration" };
         const auto json = json_utils::serialize_to_json(widget);
-        const auto deserialization = json_utils::deserialize_from_json<sample::simple_widget>(json);
+        const auto deserialization = json_utils::deserialize_via_dom<sample::simple_widget>(json);
 
         REQUIRE(widget == deserialization);
     }
@@ -1317,7 +1316,7 @@ TEST_CASE("Deserialization of Custom Type")
         const sample::composite_widget widget{ "JSON Demonstration" };
         const auto json = json_utils::serialize_to_json(widget);
         const auto deserialization =
-            json_utils::deserialize_from_json<sample::composite_widget>(json);
+            json_utils::deserialize_via_dom<sample::composite_widget>(json);
 
         REQUIRE(widget == deserialization);
     }
@@ -1327,7 +1326,7 @@ TEST_CASE("Deserialization of Custom Type")
         const sample::heterogeneous_widget widget;
         const auto json = json_utils::serialize_to_json(widget);
         const auto deserialization =
-            json_utils::deserialize_from_json<sample::heterogeneous_widget>(json);
+            json_utils::deserialize_via_dom<sample::heterogeneous_widget>(json);
 
         REQUIRE(widget == deserialization);
     }
@@ -1343,7 +1342,7 @@ TEST_CASE("Deserialization using mixed encodings")
         const std::string json =
             json_utils::serialize_to_json<rapidjson::UTF16<>, rapidjson::UTF8<>>(container);
 
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(container == resultant_container);
     }
@@ -1356,7 +1355,7 @@ TEST_CASE("Deserialization using mixed encodings")
         const std::wstring json =
             json_utils::serialize_to_json<rapidjson::UTF8<>, rapidjson::UTF16<>>(container);
 
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(container == resultant_container);
     }
@@ -1372,7 +1371,7 @@ TEST_CASE("Deserialization using mixed encodings")
         const std::wstring json =
             json_utils::serialize_to_json<rapidjson::UTF8<>, rapidjson::UTF16<>>(dictionary);
 
-        const auto resultant_container = json_utils::deserialize_from_json<container_type>(json);
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(json);
 
         REQUIRE(dictionary == resultant_container);
     }
@@ -1385,7 +1384,7 @@ TEST_CASE("Error Handling")
         const auto lambda = [] {
             const auto json = R"("missing":"brackets")";
             const auto deserialization =
-                json_utils::deserialize_from_json<std::map<std::string, std::string>>(json);
+                json_utils::deserialize_via_dom<std::map<std::string, std::string>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1397,7 +1396,7 @@ TEST_CASE("Error Handling")
         const auto json = json_utils::serialize_to_json(source_container);
 
         const auto lambda = [&] {
-            const auto deserialization = json_utils::deserialize_from_json<std::vector<int>>(json);
+            const auto deserialization = json_utils::deserialize_via_dom<std::vector<int>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1410,7 +1409,7 @@ TEST_CASE("Error Handling")
 
         const auto lambda = [&] {
             const auto deserialization =
-                json_utils::deserialize_from_json<std::vector<std::uint64_t>>(json);
+                json_utils::deserialize_via_dom<std::vector<std::uint64_t>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1423,7 +1422,7 @@ TEST_CASE("Error Handling")
 
         const auto lambda = [&] {
             const auto deserialization =
-                json_utils::deserialize_from_json<std::vector<std::string>>(json);
+                json_utils::deserialize_via_dom<std::vector<std::string>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1436,7 +1435,7 @@ TEST_CASE("Error Handling")
 
         const auto lambda = [&] {
             const auto deserialization =
-                json_utils::deserialize_from_json<std::vector<std::uint32_t>>(json);
+                json_utils::deserialize_via_dom<std::vector<std::uint32_t>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1450,7 +1449,7 @@ TEST_CASE("Error Handling")
 
         const auto lambda = [&] {
             const auto deserialization =
-                json_utils::deserialize_from_json<std::vector<std::string>>(json);
+                json_utils::deserialize_via_dom<std::vector<std::string>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1466,8 +1465,7 @@ TEST_CASE("Error Handling")
         const auto json = json_utils::serialize_to_json(source_container);
 
         const auto lambda = [&] {
-            const auto deserialization =
-                json_utils::deserialize_from_json<std::vector<double>>(json);
+            const auto deserialization = json_utils::deserialize_via_dom<std::vector<double>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1481,8 +1479,9 @@ TEST_CASE("Error Handling")
         const auto json = json_utils::serialize_to_json(source_container);
 
         const auto lambda = [&] {
-            const auto deserialization = json_utils::deserialize_from_json<
-                std::map<std::string, std::map<std::string, bool>>>(json);
+            const auto deserialization =
+                json_utils::deserialize_via_dom<std::map<std::string, std::map<std::string, bool>>>(
+                    json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1497,7 +1496,7 @@ TEST_CASE("Error Handling")
 
         const auto lambda = [&] {
             const auto deserialization =
-                json_utils::deserialize_from_json<std::map<std::string, std::vector<bool>>>(json);
+                json_utils::deserialize_via_dom<std::map<std::string, std::vector<bool>>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1511,8 +1510,7 @@ TEST_CASE("Error Handling")
         const auto json = json_utils::serialize_to_json(source_container);
 
         const auto lambda = [&] {
-            const auto deserialization =
-                json_utils::deserialize_from_json<std::vector<double>>(json);
+            const auto deserialization = json_utils::deserialize_via_dom<std::vector<double>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1525,7 +1523,7 @@ TEST_CASE("Error Handling")
 
         const auto lambda = [&] {
             const auto deserialization =
-                json_utils::deserialize_from_json<std::vector<std::vector<bool>>>(json);
+                json_utils::deserialize_via_dom<std::vector<std::vector<bool>>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1538,7 +1536,7 @@ TEST_CASE("Error Handling")
 
         const auto lambda = [&] {
             const auto deserialization =
-                json_utils::deserialize_from_json<std::vector<std::map<std::string, bool>>>(json);
+                json_utils::deserialize_via_dom<std::vector<std::map<std::string, bool>>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1553,7 +1551,7 @@ TEST_CASE("Error Handling")
         const auto json = json_utils::serialize_to_json(source_container);
 
         const auto lambda = [&] {
-            const auto deserialization = json_utils::deserialize_from_json<std::vector<bool>>(json);
+            const auto deserialization = json_utils::deserialize_via_dom<std::vector<bool>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1569,7 +1567,7 @@ TEST_CASE("Error Handling")
 
         const auto lambda = [&] {
             const auto deserialization =
-                json_utils::deserialize_from_json<std::vector<std::int32_t>>(json);
+                json_utils::deserialize_via_dom<std::vector<std::int32_t>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
@@ -1585,9 +1583,654 @@ TEST_CASE("Error Handling")
 
         const auto lambda = [&] {
             const auto deserialization =
-                json_utils::deserialize_from_json<std::vector<std::int64_t>>(json);
+                json_utils::deserialize_via_dom<std::vector<std::int64_t>>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::invalid_argument);
     }
 }
+
+#if __cplusplus >= 201703L // C++17
+
+TEST_CASE("Sax Deserializer into Simple Array Sinks")
+{
+    SECTION("Simple Vector of Booleans")
+    {
+        using container_type = std::vector<bool>;
+
+        const container_type source_container = { true, true, false, true };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Vector of Integers")
+    {
+        using container_type = std::vector<int>;
+
+        const container_type source_container = { 1, 2, 3, 4, 5 };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Vector of Floats")
+    {
+        using container_type = std::vector<float>;
+
+        const container_type source_container = { 1.1f, 2.2f, 3.3f, 4.4f, 5.5f };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Vector of Strings")
+    {
+        using container_type = std::vector<std::string>;
+
+        const container_type source_container = { "This", "is", "a", "test" };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple List of Integers")
+    {
+        using container_type = std::list<int>;
+
+        const container_type source_container = { 1, 2, 3, 4, 5 };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Set of Strings")
+    {
+        using container_type = std::set<std::string>;
+
+        const container_type source_container = { "Set 1", "Set 2", "Set 3" };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Vector of Shared Pointers")
+    {
+        using container_type = std::vector<std::shared_ptr<std::int32_t>>;
+
+        const container_type source_container = { std::make_shared<std::int32_t>(0),
+                                                  std::make_shared<std::int32_t>(1) };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
+        REQUIRE(is_equal);
+    }
+
+    SECTION("Simple Vector of Unique Pointers of Ints")
+    {
+        using container_type = std::vector<std::unique_ptr<std::int32_t>>;
+
+        container_type source_container;
+        source_container.emplace_back(std::make_unique<std::int32_t>(0));
+        source_container.emplace_back(std::make_unique<std::int32_t>(1));
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
+        REQUIRE(is_equal);
+    }
+
+    SECTION("Simple Vector of Unique Pointers of Unsigned Ints")
+    {
+        using container_type = std::vector<std::unique_ptr<std::uint32_t>>;
+
+        container_type source_container;
+        source_container.emplace_back(std::make_unique<std::uint32_t>(0));
+        source_container.emplace_back(std::make_unique<std::uint32_t>(1));
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
+        REQUIRE(is_equal);
+    }
+
+    SECTION("Simple Vector of Unique Pointers of Strings")
+    {
+        using container_type = std::vector<std::unique_ptr<std::string>>;
+
+        container_type source_container;
+        source_container.emplace_back(std::make_unique<std::string>("Hello"));
+        source_container.emplace_back(std::make_unique<std::string>("World"));
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
+        REQUIRE(is_equal);
+    }
+
+    SECTION("Simple Vector of Unique Pointers of Strings with Nulls")
+    {
+        using container_type = std::vector<std::unique_ptr<std::string>>;
+
+        container_type source_container;
+        source_container.emplace_back(std::make_unique<std::string>("Hello"));
+        source_container.emplace_back(nullptr);
+        source_container.emplace_back(std::make_unique<std::string>("World"));
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_equal = compare_container_of_pointers(source_container, resultant_container);
+        REQUIRE(is_equal);
+    }
+
+    SECTION("Simple Vector of Optional Strings")
+    {
+        using container_type = std::vector<std::optional<std::string>>;
+
+        container_type source_container;
+        source_container.emplace_back(std::optional<std::string>("Hello"));
+        source_container.emplace_back(std::nullopt);
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Vector of Optional Short")
+    {
+        using container_type = std::vector<std::optional<short>>;
+
+        container_type source_container;
+        source_container.emplace_back(std::optional<short>(255));
+        source_container.emplace_back(std::nullopt);
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
+TEST_CASE("Sax Deserializer into Simple Object Sinks")
+{
+    SECTION("Simple Vector of Pairs with Boolean Values")
+    {
+        using container_type = std::vector<std::pair<std::string, bool>>;
+
+        const container_type source_container = { { "Key One", true }, { "Key Two", false } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Vector of Pairs with Integer Values")
+    {
+        using container_type = std::vector<std::pair<std::string, int>>;
+
+        const container_type source_container = { { "Key One", 1 }, { "Key Two", -99 } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Vector of Pairs with std::int64_t Values")
+    {
+        using container_type = std::vector<std::pair<std::string, std::int64_t>>;
+
+        const container_type source_container = {
+            { "Key One", std::numeric_limits<std::int64_t>::max() },
+            { "Key Two", std::numeric_limits<std::int64_t>::min() }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Vector of Pairs with Integer Values")
+    {
+        using container_type = std::vector<std::pair<std::string, int>>;
+
+        const container_type source_container = { { "Key One", 1 }, { "Key Two", -99 } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Map of Strings to Double")
+    {
+        using container_type = std::unordered_map<std::string, double>;
+
+        const container_type source_container = { { "Key One", 1.0 }, { "Key Two", 99.0 } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Map of Strings to Optional Float")
+    {
+        using container_type = std::unordered_map<std::string, std::optional<float>>;
+
+        const container_type source_container = { { "Key One", std::optional<float>(1.0f) },
+                                                  { "Key Two", std::optional<float>(99.0f) } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Map of Strings to Strings")
+    {
+        using container_type = std::unordered_map<std::string, std::string>;
+
+        const container_type source_container = { { "Key One", "Value One" },
+                                                  { "Key Two", "Value Two" } };
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Simple Map of Shared Pointers of Strings")
+    {
+        using container_type = std::unordered_map<std::string, std::shared_ptr<std::string>>;
+
+        const container_type source_container = {
+            { "Key One", std::make_shared<std::string>("Value One") }, { "Key Two", nullptr }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_key_one_equal =
+            *source_container.at("Key One") == *resultant_container.at("Key One");
+
+        const auto is_key_two_equal =
+            source_container.at("Key Two") == resultant_container.at("Key Two");
+
+        REQUIRE((is_key_one_equal && is_key_two_equal));
+    }
+
+    SECTION("Simple Map of Shared Pointers of Doubles")
+    {
+        using container_type = std::unordered_map<std::string, std::shared_ptr<double>>;
+
+        const container_type source_container = { { "Key One", std::make_shared<double>(10.01) },
+                                                  { "Key Two", nullptr } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_key_one_equal =
+            *source_container.at("Key One") == *resultant_container.at("Key One");
+
+        const auto is_key_two_equal =
+            source_container.at("Key Two") == resultant_container.at("Key Two");
+
+        REQUIRE((is_key_one_equal && is_key_two_equal));
+    }
+
+    SECTION("Simple Map of Unique Pointers of Strings")
+    {
+        using container_type = std::unordered_map<std::string, std::unique_ptr<std::string>>;
+
+        container_type source_container;
+        source_container.emplace("Key One", std::make_unique<std::string>("Value One"));
+        source_container.emplace("Key Two", nullptr);
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_key_one_equal =
+            *source_container.at("Key One") == *resultant_container.at("Key One");
+
+        const auto is_key_two_equal =
+            source_container.at("Key Two") == resultant_container.at("Key Two");
+
+        REQUIRE((is_key_one_equal && is_key_two_equal));
+    }
+
+    SECTION("Simple Map of Unique Pointers of Floats")
+    {
+        using container_type = std::unordered_map<std::string, std::unique_ptr<float>>;
+
+        container_type source_container;
+        source_container.emplace("Key One", std::make_unique<float>(0.5f));
+        source_container.emplace("Key Two", nullptr);
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_key_one_equal =
+            *source_container.at("Key One") == *resultant_container.at("Key One");
+
+        const auto is_key_two_equal =
+            source_container.at("Key Two") == resultant_container.at("Key Two");
+
+        REQUIRE((is_key_one_equal && is_key_two_equal));
+    }
+
+    SECTION("Simple Map of Optional Strings")
+    {
+        using container_type = std::unordered_map<std::string, std::optional<std::string>>;
+
+        const container_type source_container = {
+            { "Key One", std::optional<std::string>("Value One") }, { "Key Two", std::nullopt }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_key_one_equal =
+            *source_container.at("Key One") == *resultant_container.at("Key One");
+
+        const auto is_key_two_equal =
+            source_container.at("Key Two") == resultant_container.at("Key Two");
+
+        REQUIRE((is_key_one_equal && is_key_two_equal));
+    }
+}
+
+TEST_CASE("Sax Deserialization of Complex Containers using Narrow Strings", "[narrow]")
+{
+    SECTION("Map of String to Vector of Bool")
+    {
+        using container_type = std::map<std::string, std::vector<bool>>;
+
+        const container_type source_container = { { "objectOne", { true, false } },
+                                                  { "objectTwo", { false, true } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Map of String to Vector of Ints")
+    {
+        using container_type = std::map<std::string, std::vector<int>>;
+
+        const container_type source_container = { { "objectOne", { 1, 2, 3, 4 } },
+                                                  { "objectTwo", { -5, -6, -7, -8 } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Map of String to Vector of 64-bit Ints")
+    {
+        using container_type = std::map<std::string, std::vector<std::int64_t>>;
+
+        const container_type source_container = {
+            { "max", { std::numeric_limits<std::int64_t>::min() } }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Map of String to Vector of Unsigned 64-bit Ints")
+    {
+        using container_type = std::map<std::string, std::vector<std::uint64_t>>;
+
+        const container_type source_container = {
+            { "max", { std::numeric_limits<std::uint64_t>::max() } }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Map of String to Vector of Strings")
+    {
+        using container_type = std::map<std::string, std::vector<std::string>>;
+
+        const container_type source_container = { { "objectOne", { "1", "2", "3", "4" } },
+                                                  { "objectTwo", { "5", "6", "7", "8" } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Map of String to Vector of Shared Pointers")
+    {
+        using container_type = std::map<std::string, std::vector<std::shared_ptr<std::string>>>;
+
+        const container_type source_container = {
+            { "objectOne",
+              { std::make_shared<std::string>("1"), std::make_shared<std::string>("2"),
+                std::make_shared<std::string>("3"), std::make_shared<std::string>("4") } },
+            { "objectTwo",
+              { std::make_shared<std::string>("5"), std::make_shared<std::string>("6"),
+                std::make_shared<std::string>("7"), std::make_shared<std::string>("8") } }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_object_one_equal = compare_container_of_pointers(
+            source_container.at("objectOne"), resultant_container.at("objectOne"));
+
+        const auto is_object_two_equal = compare_container_of_pointers(
+            source_container.at("objectTwo"), resultant_container.at("objectTwo"));
+
+        REQUIRE((is_object_one_equal && is_object_two_equal));
+    }
+
+    SECTION("Map of String to Vector of Unique Pointers")
+    {
+        using container_type = std::map<std::string, std::vector<std::unique_ptr<std::string>>>;
+
+        std::vector<std::unique_ptr<std::string>> object_one;
+        object_one.emplace_back(std::make_unique<std::string>("1"));
+        object_one.emplace_back(std::make_unique<std::string>("2"));
+        object_one.emplace_back(std::make_unique<std::string>("3"));
+        object_one.emplace_back(std::make_unique<std::string>("4"));
+        object_one.emplace_back(nullptr);
+
+        std::vector<std::unique_ptr<std::string>> object_two;
+        object_two.emplace_back(std::make_unique<std::string>("5"));
+        object_two.emplace_back(std::make_unique<std::string>("6"));
+        object_two.emplace_back(std::make_unique<std::string>("7"));
+        object_two.emplace_back(std::make_unique<std::string>("8"));
+        object_one.emplace_back(nullptr);
+
+        container_type source_container;
+        source_container.emplace("objectOne", std::move(object_one));
+        source_container.emplace("objectTwo", std::move(object_two));
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_object_one_equal = compare_container_of_pointers(
+            source_container.at("objectOne"), resultant_container.at("objectOne"));
+
+        const auto is_object_two_equal = compare_container_of_pointers(
+            source_container.at("objectTwo"), resultant_container.at("objectTwo"));
+
+        REQUIRE((is_object_one_equal && is_object_two_equal));
+    }
+
+    SECTION("Map of String to Vector of Smart Pointers")
+    {
+        using container_type = std::map<std::string, std::vector<std::shared_ptr<std::string>>>;
+
+        const container_type source_container = {
+            { "objectOne",
+              { std::make_shared<std::string>("1"), nullptr, std::make_shared<std::string>("3"),
+                std::make_shared<std::string>("4") } },
+            { "objectTwo",
+              { std::make_shared<std::string>("5"), std::make_shared<std::string>("6"),
+                std::make_shared<std::string>("7"), nullptr } }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        const auto is_object_one_equal = compare_container_of_pointers(
+            source_container.at("objectOne"), resultant_container.at("objectOne"));
+
+        const auto is_object_two_equal = compare_container_of_pointers(
+            source_container.at("objectTwo"), resultant_container.at("objectTwo"));
+
+        REQUIRE((is_object_one_equal && is_object_two_equal));
+    }
+
+    SECTION("Map of String to Vector of Pairs")
+    {
+        using container_type =
+            std::map<std::string, std::vector<std::pair<std::string, std::string>>>;
+
+        const container_type source_container = {
+            { "objectOne", { { "1", "A" }, { "2", "B" }, { "3", "C" }, { "4", "D" } } },
+            { "objectTwo", { { "4", "D" }, { "3", "C" }, { "2", "B" }, { "1", "A" } } }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
+TEST_CASE("Sax Deserialization of Complex Containers using Wide Strings", "[wide]")
+{
+    SECTION("Map of String to Vector of Ints")
+    {
+        using container_type = std::map<std::wstring, std::vector<int>>;
+
+        const container_type source_container = { { L"objectOne", { 1, 2, 3, 4 } },
+                                                  { L"objectTwo", { -5, -6, -7, -8 } } };
+
+        const auto json =
+            json_utils::serialize_to_json<rapidjson::UTF16<>, rapidjson::UTF16<>>(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+
+    SECTION("Map of String to Vector of Strings")
+    {
+        using container_type = std::map<std::wstring, std::vector<std::wstring>>;
+
+        const container_type source_container = { { L"objectOne", { L"1", L"2", L"3", L"4" } },
+                                                  { L"objectTwo", { L"5", L"6", L"7", L"8" } } };
+
+        const auto json =
+            json_utils::serialize_to_json<rapidjson::UTF16<>, rapidjson::UTF16<>>(source_container);
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+
+        REQUIRE(source_container == resultant_container);
+    }
+}
+
+TEST_CASE("Special Sax Parsing Options")
+{
+    SECTION("Parse Numbers as String into Array Sink")
+    {
+        using input_container = std::map<std::string, std::vector<int>>;
+
+        const input_container source_container = { { "objectOne", { -1, -2, -3 } },
+                                                   { "objectTwo", { 10, 20, 30 } } };
+
+        using output_container = std::map<std::string, std::vector<std::string>>;
+        const output_container expected_container = { { "objectOne", { "-1", "-2", "-3" } },
+                                                      { "objectTwo", { "10", "20", "30" } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_via_sax<
+            output_container, rapidjson::kParseNumbersAsStringsFlag>(json);
+
+        REQUIRE(resultant_container == expected_container);
+    }
+
+    SECTION("Parse Numbers as String into Object Sink")
+    {
+        using input_container =
+            std::map<std::string, std::vector<std::pair<std::string, int>>>;
+
+        const input_container source_container = {
+            { "objectOne", { { "A", 1 }, { "B", 2 }, { "B", 3 }, { "D", 4 } } },
+            { "objectTwo", { { "D", 4 }, { "C", 3 }, { "B", 2 }, { "A", 1 } } }
+        };
+
+        using output_container =
+            std::map<std::string, std::vector<std::pair<std::string, std::string>>>;
+
+        const output_container expected_container = {
+            { "objectOne", { { "A", "1" }, { "B", "2" }, { "B", "3" }, { "D", "4" } } },
+            { "objectTwo", { { "D", "4" }, { "C", "3" }, { "B", "2" }, { "A", "1" } } }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_via_sax<
+            output_container, rapidjson::kParseNumbersAsStringsFlag>(json);
+
+        REQUIRE(resultant_container == expected_container);
+    }
+}
+
+TEST_CASE("Sax Error Handling")
+{
+    SECTION("Invalid JSON Detected Within Custom Handler")
+    {
+        using container_type = std::map<std::string, std::vector<bool>>;
+
+        const container_type source_container = { { "objectOne", { true, false } },
+                                                  { "objectTwo", { false, true } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto lambda = [&] {
+            const auto resultant_container =
+                json_utils::deserialize_via_sax<container_type>(json.substr(1));
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::runtime_error);
+    }
+
+    SECTION("Invalid JSON Detected Within RapidJson")
+    {
+        using container_type = std::map<std::string, std::vector<bool>>;
+
+        const std::string json = "{\"objectOne\":[true,false,],\"objectTwo\":[false,true,]}";
+
+        const auto lambda = [&] {
+            const auto resultant_container =
+                json_utils::deserialize_via_sax<container_type>(json);
+        };
+
+        REQUIRE_THROWS_AS(lambda(), std::runtime_error);
+    }
+}
+
+#endif
