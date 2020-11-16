@@ -391,28 +391,28 @@ class object_handler final : public token_handler<VariantType, CharacterType>
     }
 
   private:
-    template <typename DataType> void construct_pair([[maybe_unused]] DataType&& value)
+    template <typename DataType> void construct_pair([[maybe_unused]] DataType value)
     {
         using element_type = typename ContainerType::value_type::second_type;
 
         if constexpr (traits::is_shared_ptr<element_type>::value) {
             using target_type = typename ContainerType::value_type::second_type::element_type;
-            if constexpr (std::is_convertible_v<decltype(value), target_type>) {
+            if constexpr (std::is_convertible_v<DataType, target_type>) {
                 finalize_pair_and_insert(
                     std::make_shared<target_type>(static_cast<target_type>(value)));
             }
         } else if constexpr (traits::is_unique_ptr<element_type>::value) {
             using target_type = typename ContainerType::value_type::second_type::element_type;
-            if constexpr (std::is_convertible_v<decltype(value), target_type>) {
+            if constexpr (std::is_convertible_v<DataType, target_type>) {
                 finalize_pair_and_insert(
                     std::make_unique<target_type>(static_cast<target_type>(value)));
             }
         } else if constexpr (traits::is_optional<element_type>::value) {
             using target_type = typename ContainerType::value_type::second_type::value_type;
-            if constexpr (std::is_convertible_v<decltype(value), target_type>) {
+            if constexpr (std::is_convertible_v<DataType, target_type>) {
                 finalize_pair_and_insert(static_cast<target_type>(value));
             }
-        } else if constexpr (std::is_convertible_v<decltype(value), element_type>) {
+        } else if constexpr (std::is_convertible_v<DataType, element_type>) {
             using target_type = typename decltype(m_value)::element_type;
             finalize_pair_and_insert(static_cast<target_type>(value));
         }
@@ -703,10 +703,8 @@ void parse_json(const typename EncodingType::Ch* const json, ContainerType& cont
     } else {
         const auto errorCode = reader.GetParseErrorCode();
         const auto parseError = std::string{ rapidjson::GetParseError_En(errorCode) };
-
         const auto offset = std::to_string(reader.GetErrorOffset());
-        auto message = "Error: " + parseError + "at offset " + offset + ".";
-        throw std::runtime_error{ std::move(message) };
+        throw std::runtime_error{ "Error: " + parseError + "at offset " + offset + "." };
     }
 }
 
