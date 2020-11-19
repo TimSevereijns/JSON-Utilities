@@ -1,10 +1,12 @@
-# JSON Utilities
+# **JSON Utilities**
 
 [![codecov](https://codecov.io/gh/TimSevereijns/JSON-Utilities/branch/master/graph/badge.svg)](https://codecov.io/gh/TimSevereijns/JSON-Utilities)
 
-> A series of utility functions built around the popular `rapidjson` library that aim to simplify serialization and deserialization.
+A toy project aimed at providing a series of utility functions built around the popular `rapidjson` library to make serialization and deserialization a __little__ easier.
 
-## Serialization
+The primary motivation for this project is simply a desire to experiment with a bit of template meta-programming. 
+
+# Serialization
 
 For instance, suppose you have a simple `std::vector<int>` that you want to serialize. All you have to do is call the `serialize_to_json(...)` function, passing in the container:
 
@@ -86,11 +88,15 @@ const auto json = json_utils::serialize_to_pretty_json(container);
 
 Generally speaking, any container type whose `value_type` is a `std::pair<..., ...>` will be converted to a JSON object.
 
-## Deserialization
+# Deserialization
 
-Deserialization is also supported!
+Deserialization is also supported! In fact, deserialization can be achieved in two distinct ways, either via a DOM, or by using a SAX parser.
 
-Suppose we have a simple JSON object (containing integer values) that we'd like to deserialize:
+Let's start with the DOM workflow.
+
+## Deserialization via DOM
+
+Suppose we have a simple JSON object that we'd like to deserialize:
 
 ```JSON
 {"key_one":1,"key_two":2,"key_three":3}
@@ -99,20 +105,46 @@ Suppose we have a simple JSON object (containing integer values) that we'd like 
 Deserialization is as simple as specifying the type you want to deserialize the JSON string into. The following are all valid options, given our simple example:
 
 ```C++
-const auto foo = json_utils::deserialize_from_json<std::map<std::string, int>>(json);
-const auto bar = json_utils::deserialize_from_json<std::list<std::pair<std::string, int>>>(json);
-const auto baz = json_utils::deserialize_from_json<std::vector<std::pair<std::string, int>>>(json);
+const auto foo = json_utils::deserialize_via_dom<std::map<std::string, int>>(json);
+const auto bar = json_utils::deserialize_via_dom<std::list<std::pair<std::string, int>>>(json);
+const auto baz = json_utils::deserialize_via_dom<std::vector<std::pair<std::string, int>>>(json);
 ```
 
-Note that because we're attempting to deserialize a JSON object, we'll need to specify a C++ container type whose `value_type` is a `std::pair<std::string, int>`.
+Because we're attempting to deserialize a JSON object, we'll need to specify a C++ container type whose `value_type` is a `std::pair<std::string, int>`.
 
 The derialization logic will use the provided template parameters as a guide for what the JSON document should look like at runtime. If the deserialization target type doesn't match the runtime input, an exception will be thrown.
+
+## Deserialization via SAX
+
+Since we may want to avoid the creation of an intermediate object model (i.e., a DOM), we can also deserialize from JSON directly to a target container type. Given the same example code as in the DOM example above, we can achieve deserialization as follows:
+
+```C++
+const auto foo = json_utils::deserialize_via_sax<std::map<std::string, int>>(json);
+const auto bar = json_utils::deserialize_via_sax<std::list<std::pair<std::string, int>>>(json);
+const auto baz = json_utils::deserialize_via_sax<std::vector<std::pair<std::string, int>>>(json);
+```
+Here's an example that serializes and deserializes a container without ever building a DOM:
+
+```C++
+using container_type =
+    std::map<std::string, std::vector<std::pair<std::string, std::string>>>;
+
+const container_type source_container = {
+    { "objectOne", { { "1", "A" }, { "2", "B" }, { "3", "C" }, { "4", "D" } } },
+    { "objectTwo", { { "4", "D" }, { "3", "C" }, { "2", "B" }, { "1", "A" } } }
+};
+
+const auto json = json_utils::serialize_to_json(source_container);
+const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
+```
+
+Note that SAX deserialization requires the use of C++17. 
 
 ## Customization and Handling of Custom Types
 
 Since you'll probably want to serialize and deserialize custom, non-STL types, you can overload the `to_json(...)` and `from_json(...)` functions to achieve your needs.
 
-Note that there is an inherit asymetry in the current design. The serialization logic relies on a SAX serializer, while the deserializer will parse the entire JSON string into a DOM before transforming it into the user-specified type.
+Note that the current API only allows for custom types to by deserialized via the DOM workflow. Support for custom types in the SAX model is a work in progress.
 
 ```C++
 namespace sample
@@ -178,14 +210,14 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
     }
 
     std::vector<std::string> data;
-    json_utils::deserializer::from_json(data_iterator->value, data);
+    json_utils::dom_deserializer::from_json(data_iterator->value, data);
     
     widget.set_data(std::move(data));
 }
 }
 ```
 
-Note that in order for ADL to find the correct overload, the `to_json(...)` and `from_json(...)` functions will need to be in the same namespace as the custom type that is to be serialized. With regard for the example shown above, that would be the `sample` namespace.
+Note that in order for argument dependent lookup (ADL) to find the correct overload, the `to_json(...)` and `from_json(...)` functions will need to be in the same namespace as the custom type that is to be serialized. With regard for the example shown above, that would be the `sample` namespace.
 
 If you'd prefer to keep some of your class's internals private, you may opt to befriend the appropriate overload of either `to_json(...)` and `from_json(...)` so that only these functions can access your private members and functions.
 
@@ -210,12 +242,12 @@ Deserialization is simply the reverse:
 
 ```C++
 const auto container =
-   json_utils::deserialize_from_json<std::vector<std::shared_ptr<std::string>>>(json);
+   json_utils::deserialize_via_sax<std::vector<std::shared_ptr<std::string>>>(json);
 ```
 
 This works for both `std::shared_ptr<...>` and `std::unique_ptr<...>`.
 
-However, if you have access to C++17, you may wish to use a `std::optional<...>` instead.
+If you have access to C++17, you may wish to use a `std::optional<...>` instead (avoiding heap allocation):
 
 ```C++
 using container_type = std::vector<std::optional<int>>;
@@ -227,7 +259,7 @@ const container_type source_container = { std::optional<int>{ 101 },
                                           std::optional<int>{ 505 } };
 
 const auto json = json_utils::serialize_to_json(source_container);
-const auto deserialization = json_utils::deserialize_from_json<container_type>(json);
+const auto deserialization = json_utils::deserialize_via_sax<container_type>(json);
 ```
 
 ## Building Instructions
