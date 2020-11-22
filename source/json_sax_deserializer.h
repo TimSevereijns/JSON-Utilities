@@ -420,8 +420,8 @@ class object_handler final : public token_handler<VariantType, CharacterType>
 
     template <typename DataType> void finalize_pair_and_insert(DataType&& value)
     {
-        using value_type = typename decltype(m_value)::element_type;
-        m_value = std::make_unique<value_type>(std::forward<DataType>(value));
+        using target_type = typename decltype(m_value)::element_type;
+        m_value = std::make_unique<target_type>(std::forward<DataType>(value));
 
         assert(!m_key.empty());
         insert(m_container, std::make_pair(std::move(m_key), std::move(*m_value)));
