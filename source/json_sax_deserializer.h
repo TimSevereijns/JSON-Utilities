@@ -186,13 +186,12 @@ class array_handler final : public token_handler<VariantType, CharacterType>
   public:
     void on_null() override
     {
-        if constexpr (
-            traits::is_unique_ptr<typename ContainerType::value_type>::value ||
-            traits::is_shared_ptr<typename ContainerType::value_type>::value) {
-            insert(m_container, nullptr);
-        }
+        using sink_type = typename ContainerType::value_type;
 
-        if constexpr (traits::is_optional<typename ContainerType::value_type>::value) {
+        if constexpr (
+            traits::is_unique_ptr<sink_type>::value || traits::is_shared_ptr<sink_type>::value) {
+            insert(m_container, nullptr);
+        } else if constexpr (traits::is_optional<sink_type>::value) {
             insert(m_container, std::nullopt);
         }
     }
@@ -236,24 +235,24 @@ class array_handler final : public token_handler<VariantType, CharacterType>
         [[maybe_unused]] const CharacterType* const value,
         [[maybe_unused]] rapidjson::SizeType length) override
     {
-        using target_type = typename ContainerType::value_type;
+        using sink_type = typename ContainerType::value_type;
 
-        if constexpr (traits::is_shared_ptr<target_type>::value) {
-            using element_type = typename target_type::element_type;
-            if constexpr (std::is_same_v<string_type, element_type>) {
+        if constexpr (traits::is_shared_ptr<sink_type>::value) {
+            using target_type = typename sink_type::element_type;
+            if constexpr (std::is_same_v<string_type, target_type>) {
                 insert(m_container, std::make_shared<string_type>(value, length));
             }
-        } else if constexpr (traits::is_unique_ptr<target_type>::value) {
-            using element_type = typename target_type::element_type;
-            if constexpr (std::is_same_v<string_type, element_type>) {
+        } else if constexpr (traits::is_unique_ptr<sink_type>::value) {
+            using target_type = typename sink_type::element_type;
+            if constexpr (std::is_same_v<string_type, target_type>) {
                 insert(m_container, std::make_unique<string_type>(value, length));
             }
-        } else if constexpr (traits::is_optional<target_type>::value) {
-            using element_type = typename target_type::value_type;
-            if constexpr (std::is_convertible_v<decltype(value), element_type>) {
+        } else if constexpr (traits::is_optional<sink_type>::value) {
+            using target_type = typename sink_type::value_type;
+            if constexpr (std::is_convertible_v<decltype(value), target_type>) {
                 insert(m_container, std::optional<string_type>(std::in_place, value, length));
             }
-        } else if constexpr (std::is_same_v<string_type, target_type>) {
+        } else if constexpr (std::is_same_v<string_type, sink_type>) {
             insert(m_container, string_type{ value, length });
         }
     }
@@ -266,27 +265,25 @@ class array_handler final : public token_handler<VariantType, CharacterType>
   private:
     template <typename DataType> void insert_pod([[maybe_unused]] DataType value)
     {
-        using target_type = typename ContainerType::value_type;
+        using sink_type = typename ContainerType::value_type;
 
-        if constexpr (traits::is_shared_ptr<target_type>::value) {
-            using element_type = typename target_type::element_type;
-            if constexpr (std::is_convertible_v<DataType, element_type>) {
-                insert(
-                    m_container, std::make_shared<element_type>(static_cast<element_type>(value)));
+        if constexpr (traits::is_shared_ptr<sink_type>::value) {
+            using target_type = typename sink_type::element_type;
+            if constexpr (std::is_convertible_v<DataType, target_type>) {
+                insert(m_container, std::make_shared<target_type>(static_cast<target_type>(value)));
             }
-        } else if constexpr (traits::is_unique_ptr<target_type>::value) {
-            using element_type = typename target_type::element_type;
-            if constexpr (std::is_convertible_v<DataType, element_type>) {
-                insert(
-                    m_container, std::make_unique<element_type>(static_cast<element_type>(value)));
+        } else if constexpr (traits::is_unique_ptr<sink_type>::value) {
+            using target_type = typename sink_type::element_type;
+            if constexpr (std::is_convertible_v<DataType, target_type>) {
+                insert(m_container, std::make_unique<target_type>(static_cast<target_type>(value)));
             }
-        } else if constexpr (traits::is_optional<target_type>::value) {
-            using element_type = typename target_type::value_type;
-            if constexpr (std::is_convertible_v<DataType, element_type>) {
-                insert(m_container, std::optional<element_type>(static_cast<element_type>(value)));
+        } else if constexpr (traits::is_optional<sink_type>::value) {
+            using target_type = typename sink_type::value_type;
+            if constexpr (std::is_convertible_v<DataType, target_type>) {
+                insert(m_container, std::optional<target_type>(static_cast<target_type>(value)));
             }
-        } else if constexpr (std::is_convertible_v<DataType, target_type>) {
-            insert(m_container, static_cast<target_type>(value));
+        } else if constexpr (std::is_convertible_v<DataType, sink_type>) {
+            insert(m_container, static_cast<sink_type>(value));
         }
     }
 
@@ -303,13 +300,12 @@ class object_handler final : public token_handler<VariantType, CharacterType>
   public:
     void on_null() override
     {
-        if constexpr (
-            traits::is_unique_ptr<typename decltype(m_value)::element_type>::value ||
-            traits::is_shared_ptr<typename decltype(m_value)::element_type>::value) {
-            finalize_pair_and_insert(nullptr);
-        }
+        using sink_type = typename ContainerType::value_type::second_type;
 
-        if constexpr (traits::is_optional<typename decltype(m_value)::element_type>::value) {
+        if constexpr (
+            traits::is_unique_ptr<sink_type>::value || traits::is_shared_ptr<sink_type>::value) {
+            finalize_pair_and_insert(nullptr);
+        } else if constexpr (traits::is_optional<sink_type>::value) {
             finalize_pair_and_insert(std::nullopt);
         }
     }
@@ -353,24 +349,24 @@ class object_handler final : public token_handler<VariantType, CharacterType>
         [[maybe_unused]] const CharacterType* const value,
         [[maybe_unused]] rapidjson::SizeType length) override
     {
-        using element_type = typename ContainerType::value_type::second_type;
+        using sink_type = typename ContainerType::value_type::second_type;
 
-        if constexpr (traits::is_shared_ptr<element_type>::value) {
-            using target_type = typename ContainerType::value_type::second_type::element_type;
+        if constexpr (traits::is_shared_ptr<sink_type>::value) {
+            using target_type = typename sink_type::element_type;
             if constexpr (std::is_convertible_v<decltype(value), target_type>) {
                 finalize_pair_and_insert(std::make_shared<target_type>(value, length));
             }
-        } else if constexpr (traits::is_unique_ptr<element_type>::value) {
-            using target_type = typename ContainerType::value_type::second_type::element_type;
+        } else if constexpr (traits::is_unique_ptr<sink_type>::value) {
+            using target_type = typename sink_type::element_type;
             if constexpr (std::is_convertible_v<decltype(value), target_type>) {
                 finalize_pair_and_insert(std::make_unique<target_type>(value, length));
             }
-        } else if constexpr (traits::is_optional<element_type>::value) {
-            using target_type = typename ContainerType::value_type::second_type::value_type;
+        } else if constexpr (traits::is_optional<sink_type>::value) {
+            using target_type = typename sink_type::value_type;
             if constexpr (std::is_convertible_v<decltype(value), target_type>) {
                 finalize_pair_and_insert(std::optional<target_type>(std::in_place, value, length));
             }
-        } else if constexpr (std::is_same_v<string_type, element_type>) {
+        } else if constexpr (std::is_same_v<string_type, sink_type>) {
             finalize_pair_and_insert(string_type(value, length));
         }
     }
@@ -393,35 +389,34 @@ class object_handler final : public token_handler<VariantType, CharacterType>
   private:
     template <typename DataType> void construct_pair([[maybe_unused]] DataType value)
     {
-        using element_type = typename ContainerType::value_type::second_type;
+        using sink_type = typename ContainerType::value_type::second_type;
 
-        if constexpr (traits::is_shared_ptr<element_type>::value) {
-            using target_type = typename ContainerType::value_type::second_type::element_type;
+        if constexpr (traits::is_shared_ptr<sink_type>::value) {
+            using target_type = typename sink_type::element_type;
             if constexpr (std::is_convertible_v<DataType, target_type>) {
                 finalize_pair_and_insert(
                     std::make_shared<target_type>(static_cast<target_type>(value)));
             }
-        } else if constexpr (traits::is_unique_ptr<element_type>::value) {
-            using target_type = typename ContainerType::value_type::second_type::element_type;
+        } else if constexpr (traits::is_unique_ptr<sink_type>::value) {
+            using target_type = typename sink_type::element_type;
             if constexpr (std::is_convertible_v<DataType, target_type>) {
                 finalize_pair_and_insert(
                     std::make_unique<target_type>(static_cast<target_type>(value)));
             }
-        } else if constexpr (traits::is_optional<element_type>::value) {
-            using target_type = typename ContainerType::value_type::second_type::value_type;
+        } else if constexpr (traits::is_optional<sink_type>::value) {
+            using target_type = typename sink_type::value_type;
             if constexpr (std::is_convertible_v<DataType, target_type>) {
                 finalize_pair_and_insert(static_cast<target_type>(value));
             }
-        } else if constexpr (std::is_convertible_v<DataType, element_type>) {
-            using target_type = typename decltype(m_value)::element_type;
-            finalize_pair_and_insert(static_cast<target_type>(value));
+        } else if constexpr (std::is_convertible_v<DataType, sink_type>) {
+            finalize_pair_and_insert(static_cast<sink_type>(value));
         }
     }
 
     template <typename DataType> void finalize_pair_and_insert(DataType&& value)
     {
-        using target_type = typename decltype(m_value)::element_type;
-        m_value = std::make_unique<target_type>(std::forward<DataType>(value));
+        using sink_type = typename ContainerType::value_type::second_type;
+        m_value = std::make_unique<sink_type>(std::forward<DataType>(value));
 
         assert(!m_key.empty());
         insert(m_container, std::make_pair(std::move(m_key), std::move(*m_value)));
