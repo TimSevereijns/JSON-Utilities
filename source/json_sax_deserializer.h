@@ -487,12 +487,12 @@ template <typename TupleType, typename VariantType, typename CharacterType> clas
     }
 };
 
-template <class... Ts> struct overloaded : Ts...
+template <typename... Ts> struct overloaded : Ts...
 {
     using Ts::operator()...;
 };
 
-template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+template <typename... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 template <typename ContainerType, typename EncodingType>
 class delegating_handler final : public rapidjson::BaseReaderHandler<

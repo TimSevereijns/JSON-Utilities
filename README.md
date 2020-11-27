@@ -90,7 +90,7 @@ Generally speaking, any container type whose `value_type` is a `std::pair<..., .
 
 # Deserialization
 
-Deserialization is also supported! In fact, deserialization can be achieved in two distinct ways, either via a DOM, or by using a SAX parser.
+Deserialization is also supported. In fact, deserialization can be achieved in two distinct ways, either by using a DOM or by using a SAX parser.
 
 Let's start with the DOM workflow.
 
@@ -144,7 +144,7 @@ Note that SAX deserialization requires the use of C++17.
 
 Since you'll probably want to serialize and deserialize custom, non-STL types, you can overload the `to_json(...)` and `from_json(...)` functions to achieve your needs.
 
-Note that the current API only allows for custom types to by deserialized via the DOM workflow. Support for custom types in the SAX model is a work in progress.
+Note that the current API only allows for custom types to be deserialized via the DOM workflow. Support for custom types in the SAX model is a work in progress.
 
 ```C++
 namespace sample
