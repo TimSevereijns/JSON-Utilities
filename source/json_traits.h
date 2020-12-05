@@ -150,6 +150,39 @@ template <typename ElementType> struct is_optional<std::optional<ElementType>> :
 {
 };
 
+template <typename ContainerType>
+constexpr bool has_emplace_back_v = has_emplace_back<ContainerType>::value;
+
+template <typename ContainerType>
+constexpr bool has_emplace_v = has_emplace<ContainerType>::value;
+
+template <typename Type>
+constexpr bool is_container_v = is_container<Type>::value;
+
+template <typename Type>
+constexpr bool is_pair_v = is_pair<Type>::value;
+
+template <typename ContainerType>
+constexpr bool treat_as_array_sink_v = treat_as_array_sink<ContainerType>::value;
+
+template <typename ContainerType>
+constexpr bool treat_as_object_sink_v = treat_as_object_sink<ContainerType>::value;
+
+template <typename ContainerType>
+constexpr bool treat_as_value_sink_v = treat_as_value_sink<ContainerType>::value;
+
+template <typename ContainerType>
+constexpr bool treat_as_array_or_object_sink_v = treat_as_array_or_object_sink<ContainerType>::value;
+
+template <typename Type>
+constexpr bool is_shared_ptr_v = is_shared_ptr<Type>::value;
+
+template <typename Type>
+constexpr bool is_unique_ptr_v = is_unique_ptr<Type>::value;
+
+template <typename Type>
+constexpr bool is_optional_v = is_optional<Type>::value;
+
 #endif
 } // namespace traits
 } // namespace json_utils
