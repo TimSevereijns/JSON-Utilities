@@ -354,13 +354,13 @@ class object_handler final : public token_handler<VariantType, CharacterType>
                 finalize_pair_and_insert(std::optional<target_type>(std::in_place, value, length));
             }
         } else if constexpr (std::is_same_v<string_type, sink_type>) {
-            finalize_pair_and_insert(string_type(value, length));
+            finalize_pair_and_insert(string_type{ value, length });
         }
     }
 
     void on_key(const CharacterType* const value, rapidjson::SizeType length) override
     {
-        m_key = string_type(value, length);
+        m_key = string_type{ value, length };
     }
 
     VariantType get_container() override
