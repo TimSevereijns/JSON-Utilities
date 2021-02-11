@@ -49,7 +49,7 @@ namespace
 //
 // @note Use an `inline constexpr` variable when upgrading to C++17.
 constexpr const auto& from_json = detail::make_odr_safe<detail::from_json_functor>;
-}
+} // namespace
 
 struct default_insertion_policy
 {
@@ -110,7 +110,7 @@ StringType transcode(const rapidjson::GenericValue<EncodingType, AllocatorType>&
     }
 
     if (!successfully_transcoded) {
-        throw std::invalid_argument("Failed to transcode strings.");
+        throw std::invalid_argument{ "Failed to transcode strings." };
     }
 
     return target.GetString();
@@ -122,7 +122,7 @@ template <typename DataType> struct value_extractor
     static bool
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& /*value*/)
     {
-        throw std::invalid_argument("Cannot extract unsupported type");
+        throw std::invalid_argument{ "Cannot extract unsupported type" };
     }
 };
 
@@ -131,8 +131,8 @@ template <> struct value_extractor<bool>
     template <typename EncodingType, typename AllocatorType>
     static bool extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
-        if (!value.IsBool()) {
-            throw std::invalid_argument("Expected a bool, got " + type_to_string(value) + ".");
+        if (RAPIDJSON_UNLIKELY(!value.IsBool())) {
+            throw std::invalid_argument{ "Expected a bool, got " + type_to_string(value) + "." };
         }
 
         return value.GetBool();
@@ -145,9 +145,9 @@ template <> struct value_extractor<std::int32_t>
     static std::int32_t
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
-        if (!value.IsInt()) {
-            throw std::invalid_argument(
-                "Expected a 32-bit integer, got " + type_to_string(value) + ".");
+        if (RAPIDJSON_UNLIKELY(!value.IsInt())) {
+            throw std::invalid_argument{ "Expected a 32-bit integer, got " + type_to_string(value) +
+                                         "." };
         }
 
         return value.GetInt();
@@ -160,9 +160,9 @@ template <> struct value_extractor<std::uint32_t>
     static std::uint32_t
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
-        if (!value.IsUint()) {
-            throw std::invalid_argument(
-                "Expected an unsigned, 32-bit integer, got " + type_to_string(value) + ".");
+        if (RAPIDJSON_UNLIKELY(!value.IsUint())) {
+            throw std::invalid_argument{ "Expected an unsigned, 32-bit integer, got " +
+                                         type_to_string(value) + "." };
         }
 
         return value.GetUint();
@@ -175,9 +175,9 @@ template <> struct value_extractor<std::int64_t>
     static std::int64_t
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
-        if (!value.IsInt64()) {
-            throw std::invalid_argument(
-                "Expected a 64-bit integer, got " + type_to_string(value) + ".");
+        if (RAPIDJSON_UNLIKELY(!value.IsInt64())) {
+            throw std::invalid_argument{ "Expected a 64-bit integer, got " + type_to_string(value) +
+                                         "." };
         }
 
         return value.GetInt64();
@@ -190,9 +190,9 @@ template <> struct value_extractor<std::uint64_t>
     static std::uint64_t
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
-        if (!value.IsUint64()) {
-            throw std::invalid_argument(
-                "Expected an unsigned, 64-bit integer, got " + type_to_string(value) + ".");
+        if (RAPIDJSON_UNLIKELY(!value.IsUint64())) {
+            throw std::invalid_argument{ "Expected an unsigned, 64-bit integer, got " +
+                                         type_to_string(value) + "." };
         }
 
         return value.GetUint64();
@@ -205,8 +205,8 @@ template <> struct value_extractor<double>
     static double
     extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
     {
-        if (!value.IsDouble()) {
-            throw std::invalid_argument("Expected a real, got " + type_to_string(value) + ".");
+        if (RAPIDJSON_UNLIKELY(!value.IsDouble())) {
+            throw std::invalid_argument{ "Expected a real, got " + type_to_string(value) + "." };
         }
 
         return value.GetDouble();
@@ -222,8 +222,8 @@ template <> struct value_extractor<std::string>
         -> typename std::enable_if<
             std::is_same<typename EncodingType::Ch, char>::value, value_type>::type
     {
-        if (!value.IsString()) {
-            throw std::invalid_argument("Expected a string, got " + type_to_string(value) + ".");
+        if (RAPIDJSON_UNLIKELY(!value.IsString())) {
+            throw std::invalid_argument{ "Expected a string, got " + type_to_string(value) + "." };
         }
 
         return value.GetString();
@@ -234,8 +234,8 @@ template <> struct value_extractor<std::string>
         -> typename std::enable_if<
             std::is_same<typename EncodingType::Ch, wchar_t>::value, value_type>::type
     {
-        if (!value.IsString()) {
-            throw std::invalid_argument("Expected a string, got " + type_to_string(value) + ".");
+        if (RAPIDJSON_UNLIKELY(!value.IsString())) {
+            throw std::invalid_argument{ "Expected a string, got " + type_to_string(value) + "." };
         }
 
         return transcode<value_type, rapidjson::UTF16<>, rapidjson::UTF8<>>(value);
@@ -251,8 +251,8 @@ template <> struct value_extractor<std::wstring>
         -> typename std::enable_if<
             std::is_same<typename EncodingType::Ch, wchar_t>::value, value_type>::type
     {
-        if (!value.IsString()) {
-            throw std::invalid_argument("Expected a string, got " + type_to_string(value) + ".");
+        if (RAPIDJSON_UNLIKELY(!value.IsString())) {
+            throw std::invalid_argument{ "Expected a string, got " + type_to_string(value) + "." };
         }
 
         return value.GetString();
@@ -263,8 +263,8 @@ template <> struct value_extractor<std::wstring>
         -> typename std::enable_if<
             std::is_same<typename EncodingType::Ch, char>::value, value_type>::type
     {
-        if (!value.IsString()) {
-            throw std::invalid_argument("Expected a string, got " + type_to_string(value) + ".");
+        if (RAPIDJSON_UNLIKELY(!value.IsString())) {
+            throw std::invalid_argument{ "Expected a string, got " + type_to_string(value) + "." };
         }
 
         return transcode<value_type, rapidjson::UTF8<>, rapidjson::UTF16<>>(value);

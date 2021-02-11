@@ -124,7 +124,7 @@ void to_json(
     writer.String(data.c_str());
 }
 
-template <typename WriterType> auto to_json(WriterType& writer, const char* data)
+template <typename WriterType> void to_json(WriterType& writer, const char* data)
 {
     if (data == nullptr) {
         writer.Null();
@@ -134,7 +134,7 @@ template <typename WriterType> auto to_json(WriterType& writer, const char* data
     writer.String(data);
 }
 
-template <typename WriterType> auto to_json(WriterType& writer, const wchar_t* data)
+template <typename WriterType> void to_json(WriterType& writer, const wchar_t* data)
 {
     if (data == nullptr) {
         writer.Null();

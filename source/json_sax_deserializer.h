@@ -601,7 +601,7 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
     RAPIDJSON_FORCEINLINE void validate_state()
     {
         if (RAPIDJSON_UNLIKELY(m_index < 0)) {
-            throw std::runtime_error("Unexpected token.");
+            throw std::runtime_error{ "Unexpected token." };
         }
     }
 
@@ -611,15 +611,12 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
         assert(sink != nullptr);
         assert(source != nullptr);
 
-        using sink_type = std::remove_pointer_t<decltype(sink)>;
-        using source_type = std::remove_pointer_t<decltype(source)>;
-
         static_assert(
-            traits::is_container<sink_type>::value, "The sink does not appear to be a container.");
+            traits::is_container<SinkType>::value, "The sink does not appear to be a container.");
 
-        if constexpr (traits::is_pair_v<typename sink_type::value_type>) {
-            using sink_value_type = typename sink_type::value_type::second_type;
-            if constexpr (std::is_same_v<source_type, sink_value_type>) {
+        if constexpr (traits::is_pair_v<typename SinkType::value_type>) {
+            using sink_value_type = typename SinkType::value_type::second_type;
+            if constexpr (std::is_same_v<SourceType, sink_value_type>) {
                 const auto& key = m_handlers[m_handlers.size() - 2]->get_key();
                 insert(*sink, std::make_pair(key, std::move(*source)));
             }
