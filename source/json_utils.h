@@ -166,5 +166,12 @@ JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const std::wstring& json)
     return sax_deserializer::detail::from_json<ContainerType, ParseFlags>(json.c_str());
 }
 
+template <
+    typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
+JSON_UTILS_NODISCARD ContainerType deserialize_via_sax(const std::filesystem::path& path)
+{
+    return sax_deserializer::detail::from_json<ContainerType, ParseFlags>(path);
+}
+
 #endif
 } // namespace json_utils

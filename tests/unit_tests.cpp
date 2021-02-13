@@ -2208,6 +2208,55 @@ TEST_CASE("Sax Deserialization of Complex Containers using Wide Strings", "[wide
     }
 }
 
+TEST_CASE("SAX Serialization to Disk")
+{
+    const auto path = std::filesystem::current_path() / "sample.json";
+
+    SECTION("Reading from File")
+    {
+        using container_type = std::vector<std::string>;
+
+        const container_type container = { "Hello", "World" };
+        const auto json = json_utils::serialize_to_json(container);
+        
+        auto outputFile = std::fstream{ path, std::ios::out };
+        outputFile.write(json.data(), json.size());
+        outputFile.close();
+
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(path);
+
+        REQUIRE(container == resultant_container);
+    }
+
+    SECTION("Round-trip to Disk")
+    {
+        using container_type = std::vector<std::string>;
+
+        const container_type container = { "Another", "Test" };
+        json_utils::serialize_to_json(container, path);
+
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(path);
+
+        REQUIRE(container == resultant_container);
+    }
+
+    SECTION("Pretty-printed Round-trip to Disk")
+    {
+        using container_type = std::vector<std::string>;
+
+        const container_type container = { "One", "More" };
+        json_utils::serialize_to_pretty_json(container, path);
+
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(path);
+
+        REQUIRE(container == resultant_container);
+    }
+
+    if (std::filesystem::exists(path)) {
+        std::filesystem::remove(path);
+    }
+}
+
 TEST_CASE("Special Sax Parsing Options")
 {
     SECTION("Parse Numbers as String into Array Sink")
