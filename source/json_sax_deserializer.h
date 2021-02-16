@@ -664,12 +664,11 @@ class delegating_handler final : public rapidjson::BaseReaderHandler<
     ContainerType m_container;
 };
 
-template <typename EncodingType, unsigned int ParsingFlags, typename ContainerType>
-void parse_json(const typename EncodingType::Ch* const json, ContainerType& container)
+template <typename EncodingType, unsigned int ParsingFlags, typename StreamType, typename ContainerType>
+void parse_stream(StreamType& stream, ContainerType& container)
 {
     rapidjson::GenericReader<EncodingType, EncodingType> reader;
     delegating_handler<ContainerType, EncodingType> handler;
-    rapidjson::GenericStringStream<EncodingType> stream{ json };
 
     if (reader.template Parse<ParsingFlags>(stream, handler)) {
         container = std::move(*handler.get_container());
@@ -679,6 +678,13 @@ void parse_json(const typename EncodingType::Ch* const json, ContainerType& cont
         const auto offset = std::to_string(reader.GetErrorOffset());
         throw std::runtime_error{ "Error: " + parseError + "at offset " + offset + "." };
     }
+}
+
+template <typename EncodingType, unsigned int ParsingFlags, typename ContainerType>
+void parse_json(const typename EncodingType::Ch* const json, ContainerType& container)
+{
+    rapidjson::GenericStringStream<EncodingType> stream{ json };
+    parse_stream<EncodingType, ParsingFlags>(stream, container);
 }
 
 template <
@@ -697,6 +703,19 @@ auto from_json(const wchar_t* const json)
 {
     ContainerType container;
     parse_json<rapidjson::UTF16<>, ParseFlags>(json, container);
+
+    return container;
+}
+
+template <
+    typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
+auto from_json(const std::filesystem::path& path)
+{
+    std::ifstream file_stream{ path };
+    rapidjson::IStreamWrapper stream_wrapper{ file_stream };
+
+    ContainerType container;
+    parse_stream<rapidjson::UTF8<>, ParseFlags>(stream_wrapper, container);
 
     return container;
 }

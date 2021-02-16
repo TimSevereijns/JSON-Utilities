@@ -13,6 +13,10 @@
 #include <utility>
 #include <vector>
 
+#if __cplusplus >= 201703L // C++17
+#include <filesystem>
+#endif
+
 #include <json_utils.h>
 
 namespace
@@ -1377,6 +1381,59 @@ TEST_CASE("Deserialization using mixed encodings")
     }
 }
 
+#if __cplusplus >= 201703L // C++17
+
+TEST_CASE("To and From Files on Disk")
+{
+    const auto path = std::filesystem::current_path() / "sample.json";
+
+    SECTION("Reading from File")
+    {
+        using container_type = std::vector<std::string>;
+
+        const container_type container = { "Hello", "World" };
+        const auto json = json_utils::serialize_to_json(container);
+        
+        auto outputFile = std::fstream{ path, std::ios::out };
+        outputFile.write(json.data(), json.size());
+        outputFile.close();
+
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(path);
+
+        REQUIRE(container == resultant_container);
+    }
+
+    SECTION("Round-trip to Disk")
+    {
+        using container_type = std::vector<std::string>;
+
+        const container_type container = { "Another", "Test" };
+        json_utils::serialize_to_json(container, path);
+
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(path);
+
+        REQUIRE(container == resultant_container);
+    }
+
+    SECTION("Pretty-printed Round-trip to Disk")
+    {
+        using container_type = std::vector<std::string>;
+
+        const container_type container = { "One", "More" };
+        json_utils::serialize_to_pretty_json(container, path);
+
+        const auto resultant_container = json_utils::deserialize_via_dom<container_type>(path);
+
+        REQUIRE(container == resultant_container);
+    }
+
+    if (std::filesystem::exists(path)) {
+        std::filesystem::remove(path);
+    }
+}
+
+#endif
+
 TEST_CASE("Error Handling")
 {
     SECTION("Malformed JSON")
@@ -2151,6 +2208,55 @@ TEST_CASE("Sax Deserialization of Complex Containers using Wide Strings", "[wide
     }
 }
 
+TEST_CASE("SAX Serialization to Disk")
+{
+    const auto path = std::filesystem::current_path() / "sample.json";
+
+    SECTION("Reading from File")
+    {
+        using container_type = std::vector<std::string>;
+
+        const container_type container = { "Hello", "World" };
+        const auto json = json_utils::serialize_to_json(container);
+        
+        auto outputFile = std::fstream{ path, std::ios::out };
+        outputFile.write(json.data(), json.size());
+        outputFile.close();
+
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(path);
+
+        REQUIRE(container == resultant_container);
+    }
+
+    SECTION("Round-trip to Disk")
+    {
+        using container_type = std::vector<std::string>;
+
+        const container_type container = { "Another", "Test" };
+        json_utils::serialize_to_json(container, path);
+
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(path);
+
+        REQUIRE(container == resultant_container);
+    }
+
+    SECTION("Pretty-printed Round-trip to Disk")
+    {
+        using container_type = std::vector<std::string>;
+
+        const container_type container = { "One", "More" };
+        json_utils::serialize_to_pretty_json(container, path);
+
+        const auto resultant_container = json_utils::deserialize_via_sax<container_type>(path);
+
+        REQUIRE(container == resultant_container);
+    }
+
+    if (std::filesystem::exists(path)) {
+        std::filesystem::remove(path);
+    }
+}
+
 TEST_CASE("Special Sax Parsing Options")
 {
     SECTION("Parse Numbers as String into Array Sink")
@@ -2174,8 +2280,7 @@ TEST_CASE("Special Sax Parsing Options")
 
     SECTION("Parse Numbers as String into Object Sink")
     {
-        using input_container =
-            std::map<std::string, std::vector<std::pair<std::string, int>>>;
+        using input_container = std::map<std::string, std::vector<std::pair<std::string, int>>>;
 
         const input_container source_container = {
             { "objectOne", { { "A", 1 }, { "B", 2 }, { "B", 3 }, { "D", 4 } } },
@@ -2225,8 +2330,7 @@ TEST_CASE("Sax Error Handling")
         const std::string json = "{\"objectOne\":[true,false,],\"objectTwo\":[false,true,]}";
 
         const auto lambda = [&] {
-            const auto resultant_container =
-                json_utils::deserialize_via_sax<container_type>(json);
+            const auto resultant_container = json_utils::deserialize_via_sax<container_type>(json);
         };
 
         REQUIRE_THROWS_AS(lambda(), std::runtime_error);
