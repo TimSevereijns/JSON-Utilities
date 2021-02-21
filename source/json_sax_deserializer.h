@@ -676,7 +676,7 @@ void parse_stream(StreamType& stream, ContainerType& container)
         const auto errorCode = reader.GetParseErrorCode();
         const auto parseError = std::string{ rapidjson::GetParseError_En(errorCode) };
         const auto offset = std::to_string(reader.GetErrorOffset());
-        throw std::runtime_error{ "Error: " + parseError + "at offset " + offset + "." };
+        throw std::runtime_error{ "Error: " + parseError + " at offset " + offset + "." };
     }
 }
 

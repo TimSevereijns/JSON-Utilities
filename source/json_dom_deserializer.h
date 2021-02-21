@@ -109,7 +109,7 @@ StringType transcode(const rapidjson::GenericValue<EncodingType, AllocatorType>&
         successfully_transcoded = transcoder_type::Transcode(source, target);
     }
 
-    if (!successfully_transcoded) {
+    if (RAPIDJSON_UNLIKELY(!successfully_transcoded)) {
         throw std::invalid_argument{ "Failed to transcode strings." };
     }
 
@@ -362,8 +362,8 @@ auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorTyp
         traits::treat_as_object_sink<typename PairType::second_type>::value, PairType>::type
 {
     if (!member.value.IsObject()) {
-        throw std::invalid_argument(
-            "Expected an object, got " + type_to_string(member.value) + ".");
+        throw std::invalid_argument{ "Expected an object, got " + type_to_string(member.value) +
+                                     "." };
     }
 
     return construct_nested_pair<PairType>(member);
@@ -374,8 +374,9 @@ auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorTyp
     typename std::enable_if<
         traits::treat_as_array_sink<typename PairType::second_type>::value, PairType>::type
 {
-    if (!member.value.IsArray()) {
-        throw std::invalid_argument("Expected an array, got " + type_to_string(member.value) + ".");
+    if (RAPIDJSON_UNLIKELY(!member.value.IsArray())) {
+        throw std::invalid_argument{ "Expected an array, got " + type_to_string(member.value) +
+                                     "." };
     }
 
     return construct_nested_pair<PairType>(member);
@@ -428,8 +429,9 @@ void deserialize_json_object(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container)
 {
-    if (!json_value.IsObject()) {
-        throw std::invalid_argument("Expected an object, got " + type_to_string(json_value) + ".");
+    if (RAPIDJSON_UNLIKELY(!json_value.IsObject())) {
+        throw std::invalid_argument{ "Expected an object, got " + type_to_string(json_value) +
+                                     "." };
     }
 
     const auto& json_object = json_value.GetObject();
@@ -444,8 +446,8 @@ void deserialize_json_array(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container)
 {
-    if (!json_value.IsArray()) {
-        throw std::invalid_argument("Expected an array, got " + type_to_string(json_value) + ".");
+    if (RAPIDJSON_UNLIKELY(!json_value.IsArray())) {
+        throw std::invalid_argument{ "Expected an array, got " + type_to_string(json_value) + "." };
     }
 
     const auto& json_array = json_value.GetArray();

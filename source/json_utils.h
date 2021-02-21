@@ -24,8 +24,8 @@ ContainerType deserialize(StreamType& stream)
     rapidjson::GenericDocument<EncodingType> document;
     document.ParseStream(stream);
 
-    if (document.HasParseError()) {
-        throw std::invalid_argument("Could not parse JSON document.");
+    if (RAPIDJSON_UNLIKELY(document.HasParseError())) {
+        throw std::invalid_argument{ "Could not parse JSON document." };
     }
 
     static_assert(
