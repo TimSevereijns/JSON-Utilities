@@ -1381,6 +1381,53 @@ TEST_CASE("Deserialization using mixed encodings")
     }
 }
 
+TEST_CASE("Special DOM Parsing Options")
+{
+    SECTION("Parse Numbers as String into Array Sink")
+    {
+        using input_container = std::map<std::string, std::vector<int>>;
+
+        const input_container source_container = { { "objectOne", { -1, -2, -3 } },
+                                                   { "objectTwo", { 10, 20, 30 } } };
+
+        using output_container = std::map<std::string, std::vector<std::string>>;
+        const output_container expected_container = { { "objectOne", { "-1", "-2", "-3" } },
+                                                      { "objectTwo", { "10", "20", "30" } } };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_via_dom<
+            output_container, rapidjson::kParseNumbersAsStringsFlag>(json);
+
+        REQUIRE(resultant_container == expected_container);
+    }
+
+    SECTION("Parse Numbers as String into Object Sink")
+    {
+        using input_container = std::map<std::string, std::vector<std::pair<std::string, int>>>;
+
+        const input_container source_container = {
+            { "objectOne", { { "A", 1 }, { "B", 2 }, { "B", 3 }, { "D", 4 } } },
+            { "objectTwo", { { "D", 4 }, { "C", 3 }, { "B", 2 }, { "A", 1 } } }
+        };
+
+        using output_container =
+            std::map<std::string, std::vector<std::pair<std::string, std::string>>>;
+
+        const output_container expected_container = {
+            { "objectOne", { { "A", "1" }, { "B", "2" }, { "B", "3" }, { "D", "4" } } },
+            { "objectTwo", { { "D", "4" }, { "C", "3" }, { "B", "2" }, { "A", "1" } } }
+        };
+
+        const auto json = json_utils::serialize_to_json(source_container);
+
+        const auto resultant_container = json_utils::deserialize_via_dom<
+            output_container, rapidjson::kParseNumbersAsStringsFlag>(json);
+
+        REQUIRE(resultant_container == expected_container);
+    }
+}
+
 #if __cplusplus >= 201703L // C++17
 
 TEST_CASE("To and From Files on Disk")
@@ -1393,7 +1440,7 @@ TEST_CASE("To and From Files on Disk")
 
         const container_type container = { "Hello", "World" };
         const auto json = json_utils::serialize_to_json(container);
-        
+
         auto outputFile = std::fstream{ path, std::ios::out };
         outputFile.write(json.data(), json.size());
         outputFile.close();
@@ -1649,7 +1696,7 @@ TEST_CASE("Error Handling")
 
 #if __cplusplus >= 201703L // C++17
 
-TEST_CASE("Sax Deserializer into Simple Array Sinks")
+TEST_CASE("SAX Deserializer into Simple Array Sinks")
 {
     SECTION("Simple Vector of Booleans")
     {
@@ -1821,7 +1868,7 @@ TEST_CASE("Sax Deserializer into Simple Array Sinks")
     }
 }
 
-TEST_CASE("Sax Deserializer into Simple Object Sinks")
+TEST_CASE("SAX Deserializer into Simple Object Sinks")
 {
     SECTION("Simple Vector of Pairs with Boolean Values")
     {
@@ -2007,7 +2054,7 @@ TEST_CASE("Sax Deserializer into Simple Object Sinks")
     }
 }
 
-TEST_CASE("Sax Deserialization of Complex Containers using Narrow Strings", "[narrow]")
+TEST_CASE("SAX Deserialization of Complex Containers using Narrow Strings", "[narrow]")
 {
     SECTION("Map of String to Vector of Bool")
     {
@@ -2177,7 +2224,7 @@ TEST_CASE("Sax Deserialization of Complex Containers using Narrow Strings", "[na
     }
 }
 
-TEST_CASE("Sax Deserialization of Complex Containers using Wide Strings", "[wide]")
+TEST_CASE("SAX Deserialization of Complex Containers using Wide Strings", "[wide]")
 {
     SECTION("Map of String to Vector of Ints")
     {
@@ -2218,7 +2265,7 @@ TEST_CASE("SAX Serialization to Disk")
 
         const container_type container = { "Hello", "World" };
         const auto json = json_utils::serialize_to_json(container);
-        
+
         auto outputFile = std::fstream{ path, std::ios::out };
         outputFile.write(json.data(), json.size());
         outputFile.close();
@@ -2257,7 +2304,7 @@ TEST_CASE("SAX Serialization to Disk")
     }
 }
 
-TEST_CASE("Special Sax Parsing Options")
+TEST_CASE("Special SAX Parsing Options")
 {
     SECTION("Parse Numbers as String into Array Sink")
     {
@@ -2304,7 +2351,7 @@ TEST_CASE("Special Sax Parsing Options")
     }
 }
 
-TEST_CASE("Sax Error Handling")
+TEST_CASE("SAX Error Handling")
 {
     SECTION("Invalid JSON Detected Within Custom Handler")
     {

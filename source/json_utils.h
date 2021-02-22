@@ -18,11 +18,13 @@ namespace json_utils
 {
 namespace detail
 {
-template <typename ContainerType, typename EncodingType, typename StreamType>
+template <
+    typename ContainerType, typename EncodingType,
+    unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags, typename StreamType>
 ContainerType deserialize(StreamType& stream)
 {
     rapidjson::GenericDocument<EncodingType> document;
-    document.ParseStream(stream);
+    document.template ParseStream<ParseFlags>(stream);
 
     if (RAPIDJSON_UNLIKELY(document.HasParseError())) {
         throw std::invalid_argument{ "Could not parse JSON document." };
@@ -69,34 +71,38 @@ serialize_to_pretty_json(const DataType& data)
     return buffer.GetString();
 }
 
-template <typename ContainerType>
+template <
+    typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
 JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const char* const json)
 {
     using encoding_type = rapidjson::UTF8<>;
 
     rapidjson::GenericStringStream<encoding_type> string_stream{ json };
-    return detail::deserialize<ContainerType, encoding_type>(string_stream);
+    return detail::deserialize<ContainerType, encoding_type, ParseFlags>(string_stream);
 }
 
-template <typename ContainerType>
+template <
+    typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
 JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const std::string& json)
 {
-    return deserialize_via_dom<ContainerType>(json.c_str());
+    return deserialize_via_dom<ContainerType, ParseFlags>(json.c_str());
 }
 
-template <typename ContainerType>
+template <
+    typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
 JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const wchar_t* const json)
 {
     using encoding_type = rapidjson::UTF16<>;
 
     rapidjson::GenericStringStream<encoding_type> string_stream{ json };
-    return detail::deserialize<ContainerType, encoding_type>(string_stream);
+    return detail::deserialize<ContainerType, encoding_type, ParseFlags>(string_stream);
 }
 
-template <typename ContainerType>
+template <
+    typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
 JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const std::wstring& json)
 {
-    return deserialize_via_dom<ContainerType>(json.c_str());
+    return deserialize_via_dom<ContainerType, ParseFlags>(json.c_str());
 }
 
 #if __cplusplus >= 201703L
@@ -129,13 +135,15 @@ void serialize_to_pretty_json(const DataType& data, const std::filesystem::path&
     serializer::to_json(writer, data);
 }
 
-template <typename ContainerType, typename EncodingType = rapidjson::UTF8<>>
+template <
+    typename ContainerType, typename EncodingType = rapidjson::UTF8<>,
+    unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
 JSON_UTILS_NODISCARD ContainerType deserialize_via_dom(const std::filesystem::path& path)
 {
     std::ifstream file_stream{ path };
     rapidjson::IStreamWrapper stream_wrapper{ file_stream };
 
-    return detail::deserialize<ContainerType, EncodingType>(stream_wrapper);
+    return detail::deserialize<ContainerType, EncodingType, ParseFlags>(stream_wrapper);
 }
 
 template <
