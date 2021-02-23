@@ -680,36 +680,33 @@ void parse_stream(StreamType& stream, ContainerType& container)
     }
 }
 
-template <typename EncodingType, unsigned int ParsingFlags, typename ContainerType>
-void parse_json(const typename EncodingType::Ch* const json, ContainerType& container)
-{
-    rapidjson::GenericStringStream<EncodingType> stream{ json };
-    parse_stream<EncodingType, ParsingFlags>(stream, container);
-}
-
 template <
     typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
-auto from_json(const char* const json)
+ContainerType from_json(const char* const json)
 {
+    rapidjson::GenericStringStream<rapidjson::UTF8<>> stream{ json };
+
     ContainerType container;
-    parse_json<rapidjson::UTF8<>, ParseFlags>(json, container);
+    parse_stream<rapidjson::UTF8<>, ParseFlags>(stream, container);
 
     return container;
 }
 
 template <
     typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
-auto from_json(const wchar_t* const json)
+ContainerType from_json(const wchar_t* const json)
 {
+    rapidjson::GenericStringStream<rapidjson::UTF16<>> stream{ json };
+
     ContainerType container;
-    parse_json<rapidjson::UTF16<>, ParseFlags>(json, container);
+    parse_stream<rapidjson::UTF16<>, ParseFlags>(stream, container);
 
     return container;
 }
 
 template <
     typename ContainerType, unsigned int ParseFlags = rapidjson::ParseFlag::kParseDefaultFlags>
-auto from_json(const std::filesystem::path& path)
+ContainerType from_json(const std::filesystem::path& path)
 {
     std::ifstream file_stream{ path };
     rapidjson::IStreamWrapper stream_wrapper{ file_stream };
