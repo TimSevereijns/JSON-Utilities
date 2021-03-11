@@ -5,7 +5,6 @@
 #include <rapidjson/error/en.h>
 #include <rapidjson/reader.h>
 
-#include <iostream>
 #include <memory>
 #include <optional>
 #include <stdexcept>
