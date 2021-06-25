@@ -8,7 +8,7 @@ The primary motivation for this project is simply a desire to experiment with a 
 
 # Serialization
 
-For instance, suppose you have a simple `std::vector<int>` that you want to serialize. All you have to do is call the `serialize_to_json(...)` function, passing in the container:
+Suppose you have a simple `std::vector<int>` that you want to serialize. All you have to do is call the `serialize_to_json(...)` function, passing in the container:
 
 ```C++
 const std::vector<int> container = { 1, 2, 3, 4, 5 };
@@ -31,7 +31,7 @@ const std::unordered_map<std::string, int> container = { { "key_one", 1 },
 const auto json = json_utils::serialize_to_json(container);
 ```
 
-The snippet above would result in the following JSON serialization:
+The snippet above will result in the following JSON serialization:
 
 ```JSON
 {"key_three":3,"key_two":2,"key_one":1}
@@ -69,7 +69,7 @@ The resultant JSON string is as follows:
 }
 ```
 
-Note, that the ordering of a `std::unordered_map<...>` likely isn't going to remain stable from insertion to serialization; JSON makes no guarantees about ordering either.
+Note that the ordering of a `std::unordered_map<...>` likely isn't going to remain stable from insertion to serialization (i.e., elements may swap position); JSON makes no guarantees about ordering either.
 
 If you'd rather store your data in a contiguous container, the example above can also be expressed as a `std::vector<std::pair<...>>`:
 
@@ -86,7 +86,7 @@ const std::vector<std::pair<std::string, std::map<std::string, double>>> contain
 const auto json = json_utils::serialize_to_pretty_json(container);
 ```
 
-Generally speaking, any container type whose `value_type` is a `std::pair<..., ...>` will be converted to a JSON object.
+Generally speaking, any container type whose `value_type` is a `std::pair<..., ...>` will be serialized to a JSON object.
 
 # Deserialization
 
@@ -143,8 +143,6 @@ Note that SAX deserialization requires the use of C++17.
 ## Customization and Handling of Custom Types
 
 Since you'll probably want to serialize and deserialize custom, non-STL types, you can overload the `to_json(...)` and `from_json(...)` functions to achieve your needs.
-
-Note that the current API only allows for custom types to be deserialized via the DOM workflow. Support for custom types in the SAX model is a work in progress.
 
 ```C++
 namespace sample
@@ -220,6 +218,8 @@ void from_json(const rapidjson::Document& document, sample::heterogeneous_widget
 Note that in order for argument dependent lookup (ADL) to find the correct overload, the `to_json(...)` and `from_json(...)` functions will need to be in the same namespace as the custom type that is to be serialized. With regard for the example shown above, that would be the `sample` namespace.
 
 If you'd prefer to keep some of your class's internals private, you may opt to befriend the appropriate overload of either `to_json(...)` and `from_json(...)` so that only these functions can access your private members and functions.
+
+The current API only allows for custom types to be deserialized via the DOM interface. Providing SAX support for custom types is significantly more challenging and may be provided in the future.
 
 ## Handling Nulls
 
