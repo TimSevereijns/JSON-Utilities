@@ -32,7 +32,7 @@ ContainerType deserialize(StreamType& stream)
 
     static_assert(
         std::is_default_constructible<ContainerType>::value,
-        "The container must have a default constructible.");
+        "The container must have a default constructor.");
 
     ContainerType container;
     dom_deserializer::from_json(document, container);
