@@ -106,8 +106,8 @@ template <typename WriterType> void to_json(WriterType& writer, std::uint64_t da
 }
 
 template <typename WriterType, typename DataType>
-auto to_json(WriterType& writer, DataType data) ->
-    typename std::enable_if<std::is_floating_point<DataType>::value>::type
+auto to_json(WriterType& writer, DataType data)
+    -> std::enable_if_t<std::is_floating_point<DataType>::value>
 {
     writer.Double(data);
 }
@@ -179,8 +179,8 @@ void to_json(WriterType& writer, const std::weak_ptr<DataType>& weakPointer)
 }
 
 template <typename WriterType, typename ContainerType>
-auto to_json(WriterType& writer, const ContainerType& container) ->
-    typename std::enable_if<traits::treat_as_array_sink<ContainerType>::value>::type
+auto to_json(WriterType& writer, const ContainerType& container)
+    -> std::enable_if_t<traits::treat_as_array_sink_v<ContainerType>>
 {
     writer.StartArray();
 
@@ -192,8 +192,8 @@ auto to_json(WriterType& writer, const ContainerType& container) ->
 }
 
 template <typename WriterType, typename ContainerType>
-auto to_json(WriterType& writer, const ContainerType& container) ->
-    typename std::enable_if<traits::treat_as_object_sink<ContainerType>::value>::type
+auto to_json(WriterType& writer, const ContainerType& container)
+    -> std::enable_if_t<traits::treat_as_object_sink_v<ContainerType>>
 {
     writer.StartObject();
 

@@ -150,6 +150,10 @@ template <typename ElementType> struct is_optional<std::optional<ElementType>> :
 {
 };
 
+template <typename Type> constexpr bool is_optional_v = is_optional<Type>::value;
+
+#endif
+
 template <typename ContainerType>
 constexpr bool has_emplace_back_v = has_emplace_back<ContainerType>::value;
 
@@ -175,9 +179,5 @@ constexpr bool treat_as_array_or_object_sink_v =
 template <typename Type> constexpr bool is_shared_ptr_v = is_shared_ptr<Type>::value;
 
 template <typename Type> constexpr bool is_unique_ptr_v = is_unique_ptr<Type>::value;
-
-template <typename Type> constexpr bool is_optional_v = is_optional<Type>::value;
-
-#endif
 } // namespace traits
 } // namespace json_utils

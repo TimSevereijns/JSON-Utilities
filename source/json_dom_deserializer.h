@@ -219,8 +219,7 @@ template <> struct value_extractor<std::string>
 
     template <typename EncodingType, typename AllocatorType>
     static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
-        -> typename std::enable_if<
-            std::is_same<typename EncodingType::Ch, char>::value, value_type>::type
+        -> std::enable_if_t<std::is_same<typename EncodingType::Ch, char>::value, value_type>
     {
         if (RAPIDJSON_UNLIKELY(!value.IsString())) {
             throw std::invalid_argument{ "Expected a string, got " + type_to_string(value) + "." };
@@ -231,8 +230,7 @@ template <> struct value_extractor<std::string>
 
     template <typename EncodingType, typename AllocatorType>
     static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
-        -> typename std::enable_if<
-            std::is_same<typename EncodingType::Ch, wchar_t>::value, value_type>::type
+        -> std::enable_if_t<std::is_same<typename EncodingType::Ch, wchar_t>::value, value_type>
     {
         if (RAPIDJSON_UNLIKELY(!value.IsString())) {
             throw std::invalid_argument{ "Expected a string, got " + type_to_string(value) + "." };
@@ -248,8 +246,7 @@ template <> struct value_extractor<std::wstring>
 
     template <typename EncodingType, typename AllocatorType>
     static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
-        -> typename std::enable_if<
-            std::is_same<typename EncodingType::Ch, wchar_t>::value, value_type>::type
+        -> std::enable_if_t<std::is_same<typename EncodingType::Ch, wchar_t>::value, value_type>
     {
         if (RAPIDJSON_UNLIKELY(!value.IsString())) {
             throw std::invalid_argument{ "Expected a string, got " + type_to_string(value) + "." };
@@ -260,8 +257,7 @@ template <> struct value_extractor<std::wstring>
 
     template <typename EncodingType, typename AllocatorType>
     static auto extract_or_throw(const rapidjson::GenericValue<EncodingType, AllocatorType>& value)
-        -> typename std::enable_if<
-            std::is_same<typename EncodingType::Ch, char>::value, value_type>::type
+        -> std::enable_if_t<std::is_same<typename EncodingType::Ch, char>::value, value_type>
     {
         if (RAPIDJSON_UNLIKELY(!value.IsString())) {
             throw std::invalid_argument{ "Expected a string, got " + type_to_string(value) + "." };
@@ -317,15 +313,28 @@ template <typename DataType> struct value_extractor<std::optional<DataType>>
 
 #endif
 
-template <typename InsertionPolicy, typename DataType, typename ContainerType>
-void insert(DataType&& value, ContainerType& container)
+template <typename DataType, typename ContainerType>
+auto insert(DataType&& value, ContainerType& container)
+    -> std::enable_if_t<traits::has_emplace_v<ContainerType>>
 {
     static_assert(
         std::is_convertible<DataType, typename ContainerType::value_type>::value,
         "The type being inserted is not the same as, or cannot be converted to, the "
         "container's value type.");
 
-    InsertionPolicy::insert(std::forward<DataType>(value), container);
+    container.emplace(std::forward<DataType>(value));
+}
+
+template <typename DataType, typename ContainerType>
+auto insert(DataType&& value, ContainerType& container)
+    -> std::enable_if_t<traits::has_emplace_back_v<ContainerType>>
+{
+    static_assert(
+        std::is_convertible<DataType, typename ContainerType::value_type>::value,
+        "The type being inserted is not the same as, or cannot be converted to, the "
+        "container's value type.");
+
+    container.emplace_back(std::forward<DataType>(value));
 }
 
 template <typename PairType, typename EncodingType, typename AllocatorType>
@@ -345,9 +354,8 @@ PairType construct_nested_pair(const rapidjson::GenericMember<EncodingType, Allo
 }
 
 template <typename PairType, typename EncodingType, typename AllocatorType>
-auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
-    typename std::enable_if<
-        traits::treat_as_value_sink<typename PairType::second_type>::value, PairType>::type
+auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member)
+    -> std::enable_if_t<traits::treat_as_value_sink_v<typename PairType::second_type>, PairType>
 {
     using key_type = typename std::decay<typename PairType::first_type>::type;
     using value_type = typename PairType::second_type;
@@ -357,9 +365,8 @@ auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorTyp
 }
 
 template <typename PairType, typename EncodingType, typename AllocatorType>
-auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
-    typename std::enable_if<
-        traits::treat_as_object_sink<typename PairType::second_type>::value, PairType>::type
+auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member)
+    -> std::enable_if_t<traits::treat_as_object_sink_v<typename PairType::second_type>, PairType>
 {
     if (!member.value.IsObject()) {
         throw std::invalid_argument{ "Expected an object, got " + type_to_string(member.value) +
@@ -370,9 +377,8 @@ auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorTyp
 }
 
 template <typename PairType, typename EncodingType, typename AllocatorType>
-auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member) ->
-    typename std::enable_if<
-        traits::treat_as_array_sink<typename PairType::second_type>::value, PairType>::type
+auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorType>& member)
+    -> std::enable_if_t<traits::treat_as_array_sink_v<typename PairType::second_type>, PairType>
 {
     if (RAPIDJSON_UNLIKELY(!member.value.IsArray())) {
         throw std::invalid_argument{ "Expected an array, got " + type_to_string(member.value) +
@@ -382,34 +388,30 @@ auto to_key_value_pair(const rapidjson::GenericMember<EncodingType, AllocatorTyp
     return construct_nested_pair<PairType>(member);
 }
 
-template <
-    typename InsertionPolicy, typename EncodingType, typename AllocatorType, typename ContainerType>
+template <typename EncodingType, typename AllocatorType, typename ContainerType>
 void dispatch_insertion(
     const rapidjson::GenericMember<EncodingType, AllocatorType>& member, ContainerType& container)
 {
     auto pair = to_key_value_pair<typename ContainerType::value_type>(member);
-    insert<InsertionPolicy>(std::move(pair), container);
+    insert(std::move(pair), container);
 }
 
-template <
-    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
+template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto dispatch_insertion(
-    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container) ->
-    typename std::enable_if<
-        traits::treat_as_value_sink<typename ContainerType::value_type>::value>::type
+    const rapidjson::GenericValue<EncodingType, AllocatorType>& value, ContainerType& container)
+    -> std::enable_if_t<traits::treat_as_value_sink_v<typename ContainerType::value_type>>
 {
     using desired_type = typename ContainerType::value_type;
-    insert<InsertionPolicy>(value_extractor<desired_type>::extract_or_throw(value), container);
+    insert(value_extractor<desired_type>::extract_or_throw(value), container);
 }
 
-template <
-    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
+template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto dispatch_insertion(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
-    ContainerType& container) ->
-    typename std::enable_if<
-        traits::treat_as_array_sink<typename ContainerType::value_type>::value ||
-        traits::treat_as_object_sink<typename ContainerType::value_type>::value>::type
+    ContainerType& container)
+    -> std::enable_if_t<
+        traits::treat_as_array_sink_v<typename ContainerType::value_type> ||
+        traits::treat_as_object_sink_v<typename ContainerType::value_type>>
 {
     static_assert(
         std::is_default_constructible<typename ContainerType::value_type>::value,
@@ -420,11 +422,10 @@ auto dispatch_insertion(
     nested_container_type nested_container;
     dom_deserializer::from_json(json_value, nested_container);
 
-    insert<InsertionPolicy>(std::move(nested_container), container);
+    insert(std::move(nested_container), container);
 }
 
-template <
-    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
+template <typename ContainerType, typename EncodingType, typename AllocatorType>
 void deserialize_json_object(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container)
@@ -436,12 +437,11 @@ void deserialize_json_object(
 
     const auto& json_object = json_value.GetObject();
     for (const auto& nested_json_value : json_object) {
-        dispatch_insertion<InsertionPolicy>(nested_json_value, container);
+        dispatch_insertion(nested_json_value, container);
     }
 }
 
-template <
-    typename InsertionPolicy, typename ContainerType, typename EncodingType, typename AllocatorType>
+template <typename ContainerType, typename EncodingType, typename AllocatorType>
 void deserialize_json_array(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
     ContainerType& container)
@@ -452,52 +452,24 @@ void deserialize_json_array(
 
     const auto& json_array = json_value.GetArray();
     for (const auto& nested_json_value : json_array) {
-        dispatch_insertion<InsertionPolicy>(nested_json_value, container);
+        dispatch_insertion(nested_json_value, container);
     }
 }
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
-    ContainerType& container) ->
-    typename std::enable_if<
-        traits::has_emplace_back<ContainerType>::value &&
-        traits::treat_as_array_sink<ContainerType>::value>::type
+    ContainerType& container) -> std::enable_if_t<traits::treat_as_array_sink_v<ContainerType>>
 {
-    deserialize_json_array<back_insertion_policy>(json_value, container);
+    deserialize_json_array(json_value, container);
 }
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
-    ContainerType& container) ->
-    typename std::enable_if<
-        traits::has_emplace<ContainerType>::value &&
-        traits::treat_as_array_sink<ContainerType>::value>::type
+    ContainerType& container) -> std::enable_if_t<traits::treat_as_object_sink_v<ContainerType>>
 {
-    deserialize_json_array<default_insertion_policy>(json_value, container);
-}
-
-template <typename ContainerType, typename EncodingType, typename AllocatorType>
-auto from_json(
-    const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
-    ContainerType& container) ->
-    typename std::enable_if<
-        traits::has_emplace_back<ContainerType>::value &&
-        traits::treat_as_object_sink<ContainerType>::value>::type
-{
-    deserialize_json_object<back_insertion_policy>(json_value, container);
-}
-
-template <typename ContainerType, typename EncodingType, typename AllocatorType>
-auto from_json(
-    const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
-    ContainerType& container) ->
-    typename std::enable_if<
-        traits::has_emplace<ContainerType>::value &&
-        traits::treat_as_object_sink<ContainerType>::value>::type
-{
-    deserialize_json_object<default_insertion_policy>(json_value, container);
+    deserialize_json_object(json_value, container);
 }
 } // namespace detail
 } // namespace dom_deserializer

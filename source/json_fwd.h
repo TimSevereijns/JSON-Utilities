@@ -36,8 +36,8 @@ template <typename WriterType> void to_json(WriterType& writer, std::int64_t dat
 template <typename WriterType> void to_json(WriterType& writer, std::uint64_t data);
 
 template <typename WriterType, typename DataType>
-auto to_json(WriterType& writer, DataType data) ->
-    typename std::enable_if<std::is_floating_point<DataType>::value>::type;
+auto to_json(WriterType& writer, DataType data)
+    -> std::enable_if_t<std::is_floating_point<DataType>::value>;
 
 template <typename WriterType, typename CharacterType, typename CharacterTraits, typename Allocator>
 void to_json(
@@ -57,12 +57,12 @@ template <typename WriterType, typename DataType>
 void to_json(WriterType& writer, const std::weak_ptr<DataType>& weakPointer);
 
 template <typename WriterType, typename ContainerType>
-auto to_json(WriterType& writer, const ContainerType& container) ->
-    typename std::enable_if<traits::treat_as_array_sink<ContainerType>::value>::type;
+auto to_json(WriterType& writer, const ContainerType& container)
+    -> std::enable_if_t<traits::treat_as_array_sink_v<ContainerType>>;
 
 template <typename WriterType, typename ContainerType>
-auto to_json(WriterType& writer, const ContainerType& container) ->
-    typename std::enable_if<traits::treat_as_object_sink<ContainerType>::value>::type;
+auto to_json(WriterType& writer, const ContainerType& container)
+    -> std::enable_if_t<traits::treat_as_object_sink_v<ContainerType>>;
 
 template <typename WriterType, typename FirstType, typename SecondType>
 void to_json(WriterType& writer, const std::pair<FirstType, SecondType>& pair);
@@ -89,34 +89,12 @@ namespace detail
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
-    ContainerType& container) ->
-    typename std::enable_if<
-        traits::has_emplace_back<ContainerType>::value &&
-        traits::treat_as_array_sink<ContainerType>::value>::type;
+    ContainerType& container) -> std::enable_if_t<traits::treat_as_array_sink_v<ContainerType>>;
 
 template <typename ContainerType, typename EncodingType, typename AllocatorType>
 auto from_json(
     const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
-    ContainerType& container) ->
-    typename std::enable_if<
-        traits::has_emplace<ContainerType>::value &&
-        traits::treat_as_array_sink<ContainerType>::value>::type;
-
-template <typename ContainerType, typename EncodingType, typename AllocatorType>
-auto from_json(
-    const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
-    ContainerType& container) ->
-    typename std::enable_if<
-        traits::has_emplace_back<ContainerType>::value &&
-        traits::treat_as_object_sink<ContainerType>::value>::type;
-
-template <typename ContainerType, typename EncodingType, typename AllocatorType>
-auto from_json(
-    const rapidjson::GenericValue<EncodingType, AllocatorType>& json_value,
-    ContainerType& container) ->
-    typename std::enable_if<
-        traits::has_emplace<ContainerType>::value &&
-        traits::treat_as_object_sink<ContainerType>::value>::type;
+    ContainerType& container) -> std::enable_if_t<traits::treat_as_object_sink_v<ContainerType>>;
 } // namespace detail
 } // namespace dom_deserializer
 } // namespace json_utils
